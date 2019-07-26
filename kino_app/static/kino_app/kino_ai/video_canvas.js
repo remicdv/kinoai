@@ -2632,11 +2632,11 @@ function setup() {
     html_elements.push(extract_video_book);
     extract_video_book.mousePressed(extractVideoBook);
 
-    extract_keyframes = createButton('Extract Keyframes');
-    extract_keyframes.mouseOver(processToolTip('Extract an image for each subtitle'));
-    extract_keyframes.mouseOut(processToolTip(''));
-    html_elements.push(extract_keyframes);
-    extract_keyframes.mousePressed(processKeyFrames);
+    // extract_keyframes = createButton('Extract Keyframes');
+    // extract_keyframes.mouseOver(processToolTip('Extract an image for each subtitle'));
+    // extract_keyframes.mouseOut(processToolTip(''));
+    // html_elements.push(extract_keyframes);
+    // extract_keyframes.mousePressed(processKeyFrames);
 
     split_screen = createCheckbox('Split Screen', false);
     split_screen.mouseOver(processToolTip('Show the selected shots below the viewer'));
