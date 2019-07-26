@@ -1,0 +1,32 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/sign_in.css' %}">
+
+<div id="img_logo">
+  <a href="{% url 'kino_app:index' %}" > <img id="logo" width="480" height="480" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
+
+</div>
+
+{% if msg %}
+  <div id="msg"> {{msg}} </div>
+{% endif %}
+
+<form action="{% url 'kino_app:upload' %}" method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="submit" value="Upload Video" name="submit" onClick="clickSub()">
+</form>
+
+<div id='wait'></div>
+<script>
+var div = document.getElementById("wait");
+</script>
+
+<script>
+function clickSub() {
+  console.log('here', div);
+  var para = document.createElement("p");
+  var node = document.createTextNode("Your video is processing...");
+  para.appendChild(node);
+  div.appendChild(para);
+}
+</script>

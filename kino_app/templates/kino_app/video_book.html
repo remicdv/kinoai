@@ -1,0 +1,142 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/book.css' %}">
+<script src="{% static 'kino_app/jquery.min.js' %}"></script>
+<script src="{% static 'kino_app/lazyload.js' %}"></script>
+<script src="{% static 'kino_app/dash.all.min.js' %}"></script>
+<script src="{% static 'kino_app/p5.min.js' %}"></script>
+<script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
+<script> var end; var list_id = []; var list_player = [];</script>
+
+<h1 id='title'> Carnet audiovisuel </h1>
+<div class="persist-area">
+  <div class='row header'>
+    <div class='column left'>
+      <h2>Note</h2>
+    </div>
+    <div class='column center'>
+      <h2>Plan recadré</h2>
+    </div>
+    <div class='column right'>
+      <h2>Plan large</h2>
+    </div>
+  </div>
+</div>
+{% for p in path %}
+  <script>list_id.push('{{p.id}}')</script>
+  <div id="div_player_{{p.id}}" hidden class='player_container'>
+      <video id="videoPlayer_{{p.id}}" controls width="490" height="260"></video>
+      <script>
+           (function(){
+               var url = "/media/kino_app/data/{{p.path}}/mpd/original_dash.mpd";
+               dash_player = dashjs.MediaPlayer().create();
+               dash_player.initialize(document.querySelector("#videoPlayer_{{p.id}}"), url, false);
+           })();
+           list_player.push(dash_player);
+       </script>
+  </div>
+{% endfor %}
+<div class='row body'>
+
+  <div class='column left'>
+    {% if tab %}
+      {% for sub_tab in tab %}
+        {% for t in sub_tab %}
+          <h3 style="padding:120 0 120 0; margin:0 0 0 5;">{{t.text}}{{t.start}}</h3>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+        <p>No text are available.</p>
+    {% endif %}
+  </div>
+
+  <div class='column center'>
+    {% if crop %}
+      {% for sub_crop in crop %}
+        {% for c in sub_crop.tab %}
+          <img style="margin-bottom:2;" class="lazyload" data-src="/media/kino_app/images/{{sub_crop.id}}/{{c}}" src="/media/kino_app/images/{{sub_crop.id}}/{{c}}" width="490" height="260"/>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+        <p>No crop image are available.</p>
+    {% endif %}
+  </div>
+
+  <div class='column right'>
+    {% if full %}
+      {% for sub_full in full %}
+        {% for f in sub_full.tab %}
+          <img class="full" style="margin-bottom:2;" class="lazyload" data-src="/media/kino_app/images/{{sub_full.id}}/{{f}}" src="/media/kino_app/images/{{sub_full.id}}/{{f}}" width="490" height="260"/>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+        <p>No full image are available.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+  window.addEventListener("load", function(event) {
+      lazyload();
+  });
+  $('#div_player_'+list_id[0]).show();
+  $('.player_container').css({position:'absolute'});
+  $('#div_player_'+list_id[0]).css({top:$( '.column.right img:first' ).position().top, left:$( '.column.right img:first' ).position().left});
+  var str = "{{json_shots}}";
+  var data_shots = JSON.parse(str.replace(/&quot;/g,'"'));
+  var curr_data = data_shots[0];
+  var video = new p5.MediaElement(list_player[0].getVideoElement());
+  var canvas;
+  var currentPlayer = list_player[0];
+  var curr_id = list_id[0];
+  function setup() {
+    canvas = createCanvas(video.width, video.height);
+  }
+  var scale_ratio = video.elt.videoWidth/1024;
+  function draw() {
+    scale_ratio = video.elt.videoWidth/1024;
+    var bbox = [0,0,video.elt.videoWidth,video.elt.videoHeight];
+    if(!currentPlayer.isPaused()){
+      let fr = Math.round(currentPlayer.getVideoElement().currentTime * 24);
+      let b = curr_data[fr]
+      if(b!='null') {
+        bbox = [b[0]*scale_ratio, b[1]*scale_ratio, b[2]*scale_ratio, b[3]*scale_ratio];
+      }
+      canvas.position($('.center').position().left, $('#div_player_'+curr_id).position().top);
+      image(video, 0, 0, width, height, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+    }
+    updatePlayer();
+  }
+  function updatePlayer() {
+    if(!currentPlayer.isPaused()) {
+      if(end && currentPlayer.getVideoElement().currentTime >= end) {
+        currentPlayer.pause();
+        end = undefined;
+      }
+    }
+  }
+
+  $('.full').click(function() {
+    for(let i=0; i<list_id.length; i++) {
+      let src = $(this)[0].currentSrc.split('/')[$(this)[0].currentSrc.split('/').length-2];
+      if(src.includes(list_id[i])) {
+        currentPlayer = list_player[i];
+        curr_id = list_id[i];
+        curr_data = data_shots[i];
+        $('#div_player_'+list_id[i]).show();
+      } else {
+        $('#div_player_'+list_id[i]).hide();
+      }
+    }
+    video = new p5.MediaElement(currentPlayer.getVideoElement());
+    let time = parseInt($(this)[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+    if($(this).next().length >0) {
+      end = parseInt($(this).next()[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+    } else {
+      end = currentPlayer.getVideoElement().duration;
+    }
+    $('#div_player_'+curr_id).css({top:$( this ).position().top, left:$( this ).position().left});
+    currentPlayer.getVideoElement().currentTime = time;
+    currentPlayer.play();
+  });
+</script>

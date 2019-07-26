@@ -1,0 +1,319 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
+<script src="{% static 'kino_app/jquery.min.js' %}"></script>
+
+<div id='header_info'>
+<div id='user_info'>
+  <h3>Hello {{user.username}} !</h3>
+  <div id='log_up'>
+  <form action="{% url 'logout' %}" method="post" >
+          {% csrf_token %}
+          <input type="submit" value="Log Out" id='logout'/>
+      </form>
+  <form action="{% url 'kino_app:upload' %}" method="post" >
+          {% csrf_token %}
+          <input type="submit" value="Upload" id='logout'/>
+      </form>
+    </div>
+</div>
+<div class="aside">
+  <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
+</div>
+<h1>Video library </h1>
+</div>
+
+<div id='tabs'>
+  <div> <input type="checkbox" id="button_default" checked> Examples<br></div>
+   <div> <input type="checkbox" id="button_user"> My Videos<br></div>
+</div>
+<a id='book' href="">Video book</a>
+<script>
+var default_list = [];
+var name_clicked;
+var take_list = [];
+var user_default_list = [];
+var user_name_clicked;
+var user_take_list = [];
+</script>
+
+<span class='default'>
+{% if names %}
+  <ul id='list_def' class='default_list'>
+  {% for name in names %}
+    <script>
+    default_list.push("/media/kino_app/index_images/shots/{{name}}/part01/");
+    </script>
+      <li class='def_list default' id="{{name}}"><a><img hidden margin=0 class="sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/shots/{{name}}/part01/poster0.jpg"><br>{{ name }}</a></li>
+  {% endfor %}
+  </ul>
+{% endif %}
+
+{% if take_list %}
+    <ul id='list'>
+    {% for take in take_list %}
+      <script>
+      take_list.push("/media/kino_app/index_images/{{take.path}}/");
+      </script>
+        <li class='row_list' id="{{take.path}}"><a href="{% url 'kino_app:video_editing' take.id %}"><img hidden margin=0 class="sliding" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{take.path}}/poster0.jpg"><br>{{ take.path }}</a></li>
+    {% endfor %}
+    </ul>
+{% else %}
+    <p>No polls are available.</p>
+{% endif %}
+</span>
+
+<span class='user_video'>
+
+  {% if user_names %}
+
+  <ul id='user_list_def' class='default_list'>
+    {% for name in user_names %}
+      <script>
+      user_default_list.push("/media/kino_app/index_images/{{user.username}}/{{name}}/part01/");
+      </script>
+        <li class='def_list user' id="{{name}}"><a><img hidden margin=0 class="user_sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{user.username}}/{{name}}/part01/poster0.jpg"><br>{{ name }}</a></li>
+    {% endfor %}
+    </ul>
+  {% endif %}
+
+  {% if user_take_list %}
+    <ul id='user_list'>
+    {% for take in user_take_list %}
+      <script>
+      user_take_list.push("/media/kino_app/index_images/{{take.path}}/");
+      </script>
+        <li class='row_list' id="{{take.path}}"><a href="{% url 'kino_app:video_editing' take.id %}"><img hidden margin=0 class="user_sliding" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{take.path}}/poster0.jpg"><br>{{take.path}}</a></li>
+    {% endfor %}
+    </ul>
+  {% else %}
+      <p>No polls are available.</p>
+  {% endif %}
+
+</span>
+
+<script>
+  var objects = [];
+  var objects_def = [];
+  var images = document.getElementsByClassName("sliding");
+  var images_def = document.getElementsByClassName("sliding_def");
+  let off = document.getElementById('logo').offsetHeight - document.getElementById("tabs").offsetTop+5;
+  document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+  $('.user_video').find("ul, p").hide();
+  $('#book').hide();
+  document.getElementById('button_default').onclick = hideShowDefault;
+  document.getElementById('button_user').onclick = hideShowUser;
+
+  if(!name_clicked) {
+    $('#list').hide();
+    if($("#list_def li").length<=1) {
+      $('#list_def').css("column-count","1");
+      $('#list_def').css("width","25%");
+    }
+    if($("#user_list_def li").length<=1) {
+      $('#user_list_def').css("column-count","1");
+      $('#user_list_def').css("width","25%");
+    }
+  }
+  $('.row_list').each( function() {
+    let first_part = $(this)[0].firstChild.innerHTML.split('<br>');
+    let name = $(this)[0].firstChild.innerText.split('/')[$(this)[0].firstChild.innerText.split('/').length-1];
+    $(this)[0].firstChild.innerHTML = first_part[0]+'<br>'+name;
+  });
+  $('.def_list.default').click(function() {
+    name_clicked = this.id;
+    $('#list_def').hide();
+    $('#list').show();
+    document.getElementById('button_default').checked = false;
+    clickDef();
+    if($('#list li:visible').length<=1) {
+      $('#list').css("column-count","1");
+      $('#list').css("width","25%");
+    } else {
+      $('#list').css("column-count","4");
+      $('#list').css("width","100%");
+    }
+  });
+
+  $('.def_list.user').click(function() {
+    name_clicked = this.id;
+    $('#user_list_def').hide();
+    $('#user_list').show();
+    document.getElementById('button_user').checked = false;
+    clickDef();
+    if($('#user_list li:visible').length<=1) {
+      $('#user_list').css("column-count","1");
+      $('#user_list').css("width","25%");
+    } else {
+      $('#list').css("column-count","4");
+      $('#list').css("width","100%");
+    }
+  });
+
+  function clickDef() {
+    $('.row_list').each( function() {
+      if(this.id.includes(name_clicked)) {
+        $(this).show();
+        $('#book').show();
+        let href = 'video_book/'+$(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1];
+        $('#book').attr("href", href);
+        console.log($(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1], $('#book'));
+      } else {
+        $(this).hide();
+      }
+    });
+  }
+
+  function hideShowDefault() {
+    if(!document.getElementById('button_default').checked ) {
+      $('.default').find("ul, p").hide();
+    } else {
+      document.getElementById('button_user').checked = false;
+      $('.user_video').find("ul, p").hide();
+      $('.default').find("ul, p").show();
+      $('#book').hide();
+      objects_def = default_def_obj;
+      objects = default_objects;
+      images = document.getElementsByClassName("sliding");
+      images_def = document.getElementsByClassName("sliding_def");
+      $('#list').hide();
+    }
+  }
+
+  function hideShowUser() {
+    if(!document.getElementById('button_user').checked ) {
+      $('.user_video').find("ul, p").hide();
+    } else {
+      document.getElementById('button_default').checked = false;
+      $('.default').find("ul, p").hide();
+      $('.user_video').find("ul, p").show();
+      $('#book').hide();
+      objects_def = user_def_obj;
+      objects = user_objects;
+      images = document.getElementsByClassName("user_sliding");
+      images_def = document.getElementsByClassName("user_sliding_def");
+      $('#user_list').hide();
+    }
+  }
+
+  var default_def_obj = [];
+  for(let p of default_list) {
+    let obj = {};
+    obj.id = 0;
+    obj.path = p;
+    default_def_obj.push(obj);
+  }
+  objects_def = default_def_obj;
+
+  var user_def_obj = [];
+  for(let p of user_default_list) {
+    let obj = {};
+    obj.id = 0;
+    obj.path = p;
+    user_def_obj.push(obj);
+  }
+
+  var default_objects = [];
+  for(let p of take_list) {
+    let obj = {};
+    obj.id = 0;
+    obj.path = p;
+    default_objects.push(obj);
+  }
+  objects =default_objects;
+
+  var user_objects = [];
+  for(let p of user_take_list) {
+    let obj = {};
+    obj.id = 0;
+    obj.path = p;
+    user_objects.push(obj);
+  }
+
+  $('.row_list').height($('.row_list')[0].clientWidth/2+30);
+  function oneSecondFunction() {
+    let height, width;
+    if($('.def_list:visible:first')[0]) {
+      height = $('.def_list:visible:first')[0].clientWidth/2;
+      width = ($('.def_list:visible:first')[0].clientWidth*90/100);
+    }
+    if(!height) {
+      height = $('.row_list:visible:first')[0].clientWidth/2;
+    }
+    if(!width) {
+      width = ($('.row_list:visible:first')[0].clientWidth*90/100);
+    }
+    $('.row_list').height(height+30);
+    $('.def_list').height(height+30);
+    // stuff you want to do every second
+    for(let i=0; i < images.length; i++){
+      if(objects[i].path.includes(name_clicked)) {
+        let img = images[i];
+        img.hidden = false;
+        if(!objects[i].aspect_ratio) {
+          objects[i].aspect_ratio = img.width/img.height;
+        }
+        if(width / objects[i].aspect_ratio > height) {
+          img.height = height;
+          img.width = height*objects[i].aspect_ratio;
+
+        } else {
+          img.width = width;
+          img.height = width / objects[i].aspect_ratio;
+          let off = (height - img.height)/2;
+          img.style.marginTop = off;
+        }
+        // console.log(objects[i]);
+        let path = objects[i].path;
+        if(img.mouseOver) {
+          img.src = path+'poster'+objects[i].id+'.jpg';
+          objects[i].id = (objects[i].id+1)%10;
+        } else {
+          objects[i].id = 0;
+          img.src = path+'poster'+objects[i].id+'.jpg';
+        }
+      }
+    }
+
+    for(let i=0; i < images_def.length; i++){
+      // console.log(img);
+      let img = images_def[i];
+      img.hidden = false;
+      if(!objects_def[i].aspect_ratio) {
+        objects_def[i].aspect_ratio = img.width/img.height;
+      }
+      if(width / objects_def[i].aspect_ratio > height) {
+        img.height = height;
+        img.width = height*objects_def[i].aspect_ratio;
+
+      } else {
+        img.width = width;
+        img.height = width / objects_def[i].aspect_ratio;
+        let off = (height - img.height)/2;
+        img.style.marginTop = off;
+      }
+      // console.log(objects[i]);
+      let path = objects_def[i].path;
+      if(img.mouseOver) {
+        img.src = path+'poster'+objects_def[i].id+'.jpg';
+        objects_def[i].id = (objects_def[i].id+1)%10;
+      } else {
+        objects_def[i].id = 0;
+        img.src = path+'poster'+objects_def[i].id+'.jpg';
+      }
+    }
+  }
+
+  for(let name of ["sliding","sliding_def","user_sliding","user_sliding_def"]) {
+    for(let img of document.getElementsByClassName(name)) {
+      img.onmouseover = function() {
+        img.mouseOver = true;
+      }
+      img.onmouseout = function() {
+        img.mouseOver = false;
+      }
+    }
+  }
+
+ var logo = document.getElementById("logo");
+ var t = setInterval(oneSecondFunction, 1000);
+</script>

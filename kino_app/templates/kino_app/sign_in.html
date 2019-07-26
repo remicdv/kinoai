@@ -1,0 +1,25 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/sign_in.css' %}">
+
+
+<div id="img_logo">
+<img id="logo" width="480" height="480" src="{% static 'kino_app/logo/logo_cut.png' %}" >
+</div>
+
+{% if msg %}
+  <div id="msg"> {{msg}} </div>
+{% endif %}
+
+
+<form action="{% url 'sign_in' %}" method="post" >
+        {% csrf_token %}
+        <input type="text" name="email" value="{{ email }}" placeholder="E Mail"><br>
+        <input type="text" name="username" value="{{ username }}" placeholder="Username"><br>
+        <input type="password" name="password" value="" placeholder="Password"><br>
+
+        <input type='text' readonly name="left_part" value="{{left_part}}" class="test_op"> +
+        <input type="number" name="answer" class="test_op"> =
+        <input type='text' readonly name="right_part" value="{{right_part}}" class="test_op"><br>
+
+        <input type="submit" value="Sign In"/>
+    </form>

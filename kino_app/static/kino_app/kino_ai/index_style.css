@@ -1,0 +1,160 @@
+body {
+    background-color: #DCDCDC; /*#2E5C9C; 4B97FF */
+    padding: 0; margin: 0;
+}
+@import url(https://fonts.googleapis.com/css?family=EB+Garamond|Cardo:400italic);
+
+#header_info {
+  background-color: #2E5C9C;
+  }
+
+h1 {
+  color : white;
+  font-family: 'EB Garamond', serif;
+  font-size: 3.5em;
+  text-transform: uppercase;
+  text-align: center;
+  letter-spacing: 0.1em;
+  display: block;
+  font-style:normal;
+  padding-top: 0.5em;
+  text-shadow: 0.07em 0.07em 0 rgba(0, 0, 0, 0.1);
+  margin: 0;
+}
+
+h2 {
+  color:white;
+  vertical-align: top;
+  font-family: 'EB Garamond', serif;
+  font-size: 1.5em;
+  text-transform: uppercase;
+  text-align: center;
+  letter-spacing: 0.1em;
+  font-style:normal;
+  padding-top: 0.1em;
+  text-shadow: 0.07em 0.07em 0 rgba(0, 0, 0, 0.1);
+}
+
+#user_info {
+  float: right;
+  color: white;
+}
+
+#logout {
+  font-size: 15;
+  background-color: white;
+  color: #2E5C9C;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+}
+
+#log_up{
+  margin-right: 10;
+  -moz-column-count: 2;
+  -moz-column-gap: 20px;
+  -webkit-column-count: 2;
+  -webkit-column-gap: 20px;
+  column-count: 2;
+  column-gap: 20px;
+}
+
+.column {
+  float: left;
+  width: 27%;
+}
+
+.column.left {
+  width: 46%;
+}
+
+/* Clear floats after the columns */
+.row:after {
+  content: "";
+  display: table;
+  clear: both;
+}
+
+div img {
+  float: left;
+  /* position: absolute; */
+}
+
+
+ul {
+  -moz-column-count: 4;
+  -moz-column-gap: 20px;
+  -webkit-column-count: 4;
+  -webkit-column-gap: 20px;
+  column-count: 4;
+  column-gap: 20px;
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  padding-top: 10px;
+  background-color: white;
+  font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
+  vertical-align: middle;
+  margin-bottom: 5;
+}
+
+li:last-child {
+  border: none;
+}
+
+
+li a {
+  text-decoration: none;
+  vertical-align: middle;
+  color: #000;
+  display: block;
+  text-align: center;
+  -webkit-transition: font-size 0.3s ease, background-color 0.3s ease;
+  -moz-transition: font-size 0.3s ease, background-color 0.3s ease;
+  -o-transition: font-size 0.3s ease, background-color 0.3s ease;
+  -ms-transition: font-size 0.3s ease, background-color 0.3s ease;
+  transition: font-size 0.3s ease, background-color 0.3s ease;
+}
+
+li a:hover {
+  color:#5101DE;
+  background: #f6f6f6;
+}
+
+#book {
+  background-color: #2E5C9C;
+  padding: 10;
+  color: white;
+}
+
+#tabs {
+  margin-top: 5;
+  -moz-column-count: 2;
+  -moz-column-gap: 20px;
+  -webkit-column-count: 2;
+  -webkit-column-gap: 20px;
+  column-count: 2;
+  column-gap: 20px;
+  width: 49.47%;
+}
+
+#tabs div {
+  font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
+  background-color: white;
+  margin-bottom: 5;
+  text-align: center;
+}
+
+
+#footer {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: 0;
+  color:white;
+  text-align: center;
+}
