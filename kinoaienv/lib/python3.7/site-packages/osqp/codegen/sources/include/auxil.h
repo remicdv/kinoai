@@ -99,6 +99,11 @@ void update_y(OSQPWorkspace *work);
 c_float compute_obj_val(OSQPWorkspace *work,
                         c_float       *x);
 
+/**
+ * Check whether QP has solution
+ * @param info OSQPInfo
+ */
+c_int has_solution(OSQPInfo *info);
 
 /**
  * Store the QP solution
@@ -143,7 +148,7 @@ void update_status(OSQPInfo *info,
  *
  * @param  work        Workspace
  * @param  approximate Boolean
- * @return      Redisuals check
+ * @return      Residuals check
  */
 c_int check_termination(OSQPWorkspace *work,
                         c_int          approximate);
@@ -162,12 +167,12 @@ c_int validate_data(const OSQPData *data);
 /**
  * Validate problem settings
  * @param  settings OSQPSettings to be validated
- * @return      Exitflag to check
+ * @return          Exitflag to check
  */
 c_int validate_settings(const OSQPSettings *settings);
 
-# endif // #ifndef EMBEDDED
 
+# endif // #ifndef EMBEDDED
 
 # ifdef __cplusplus
 }

@@ -25,7 +25,7 @@ with open('/home/kinoai/secret_key.txt') as f:
     SECRET_KEY = f.read().strip()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
+DEBUG = True
 
 ALLOWED_HOSTS = ["kinoai.com", "194.199.26.106", "127.0.0.1", "127.0.1.1", "kinoai"]
 

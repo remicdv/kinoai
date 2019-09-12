@@ -132,14 +132,9 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
       this.tracks.sort(compare_first);
       this.removeState(mx, my);
         if(!this.isInTracks(t)) {
-          var unit = this.w/total_frame;
-          var start = this.x + Math.round((t.first_frame-1)*unit);
-          var end = start + Math.round((detec.length-1)*unit);
-          t.setPosition(start, this.y, end-start, 7);
           this.addTrack(t);
           ret = true;
         }
-
     }
     return ret;
   }
@@ -191,7 +186,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
       new_state.x = x;
       new_state.w = w;
       new_state.color = state.color;
-      new_state.h = 7;
+      new_state.h = this.h/2;
       if(new_state) {
        this.states.push(new_state);
       }
@@ -301,9 +296,9 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
 
   this.dragExtTrack = function(mx, my) {
     if (mx >= this.x && mx <= this.x + this.w) {
-      if(keyIsPressed && keyCode == 122 && act_timeline_scale>1) {
-        act_timeline_x_off = mouseX;
-      }
+      // if(keyIsPressed && keyCode == 122 && act_timeline_scale>1) {
+      //   act_timeline_x_off = mouseX;
+      // }
       if(this.t_dragged) {
         var t_prec = this.getPrec(this.t_dragged.first_frame);
         var t_next = this.getNext(this.t_dragged.first_frame);
@@ -315,7 +310,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
           this.rect_drag[0] = mx;
           this.rect_drag[1] = t.y;
           this.rect_drag[2] = t.x-mx;
-          this.rect_drag[3] = 7;
+          this.rect_drag[3] = this.h/2;
           // t.w += (t.x-mx);
           // t.x = mx;
         } else if(mx > t.x+t.w || (this.t_dragged.right_x && mx > this.t_dragged.right_x) ){
@@ -325,7 +320,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
           this.rect_drag[0] = t.x+t.w;
           this.rect_drag[1] = t.y;
           this.rect_drag[2] = mx-(t.x+t.w);
-          this.rect_drag[3] = 7;
+          this.rect_drag[3] = this.h/2;
           // t.w += mx-(t.x+t.w);
         } else {
           this.rect_drag = [0,0,0,0];
@@ -359,10 +354,11 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
 
   this.updateTrackPos = function(total_frame) {
     for(var i=0; i<this.tracks.length; i++) {
-      var unit = this.w/total_frame;
-      var start = this.x + Math.round((this.tracks[i].first_frame-1)*unit);
-      var end = start + Math.round((this.tracks[i].detections.length-1)*unit);
-      this.tracks[i].setPosition(start, this.y, end-start, 7);
+      let unit = this.w/total_frame;
+      let off_x = annotation_timeline.first*unit;
+      let start = this.x + Math.round((this.tracks[i].first_frame-1)*unit) - off_x;
+      let end = start + Math.round((this.tracks[i].detections.length-1)*unit);
+      this.tracks[i].setPosition(start, this.y, end-start, this.h/2);
     }
   }
 
@@ -621,7 +617,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
     new_track.detections = new_detections;
     var start = this.x + Math.round((new_track.first_frame-1)*unit);
     var end = start + Math.round((new_track.detections.length-1)*unit);
-    new_track.setPosition(start, this.y, end-start, 7);
+    new_track.setPosition(start, this.y, end-start, this.h/2);
     this.addTrack(new_track);
     detec_modif = true;
   }
@@ -663,7 +659,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
     new_track.detections = new_detections;
     var start = this.x + Math.round((new_track.first_frame-1)*unit);
     var end = start + Math.round((new_track.detections.length-1)*unit);
-    new_track.setPosition(start, this.y, end-start, 7);
+    new_track.setPosition(start, this.y, end-start, this.h/2);
     this.addTrack(new_track);
     detec_modif = true;
   }
@@ -685,7 +681,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
     this.t_dragged.first_frame = f_f;
     var start = this.x + Math.round((this.t_dragged.first_frame-1)*unit);
     var end = start + Math.round((this.t_dragged.detections.length-1)*unit);
-    this.t_dragged.setPosition(start, this.y, end-start, 7);
+    this.t_dragged.setPosition(start, this.y, end-start, this.h/2);
     detec_modif = true;
   }
 
@@ -707,7 +703,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
     this.t_dragged.detections = concat(this.t_dragged.detections, new_detections);
     var start = this.x + Math.round((this.t_dragged.first_frame-1)*unit);
     var end = start + Math.round((this.t_dragged.detections.length-1)*unit);
-    this.t_dragged.setPosition(start, this.y, end-start, 7);
+    this.t_dragged.setPosition(start, this.y, end-start, this.h/2);
     detec_modif = true;
   }
 
@@ -1058,36 +1054,38 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
   // Draw the rectangle
   this.display = function() {
     this.updateBBox();
-    this.elem.position(this.x-90, can.elt.offsetTop+this.y-25);
+    if(this.y > this.elem.elt.parentNode.offsetTop-can.elt.offsetTop) {
+      // this.elem.position(this.x-90, can.elt.offsetTop+this.y-25);
 
-    push();
-    rectMode(CORNER);
-    stroke(0);
-    strokeWeight(0);
-    // The color changes based on the state of the button
-    if (this.on) {
-      fill(46,92,156);
-    } else {
-      fill(102);
-      this.elem.style('color', 'rgb(0,0,0)');
-    }
-    rect(this.x,this.y,this.w,this.h);
-    for(var i=0; i<this.states.length; i++) {
-      fill(this.states[i].color);
-      rect(this.states[i].x, this.y, this.states[i].w, this.states[i].h);
-    }
-    pop();
+      push();
+      rectMode(CORNER);
+      stroke(0);
+      strokeWeight(0);
+      // The color changes based on the state of the button
+      if (this.on) {
+        fill(46,92,156);
+      } else {
+        fill(102);
+        this.elem.style('color', 'rgb(0,0,0)');
+      }
+      rect(this.x,this.y,this.w,this.h);
+      for(var i=0; i<this.states.length; i++) {
+        fill(this.states[i].color);
+        rect(this.states[i].x, this.y, this.states[i].w, this.states[i].h);
+      }
+      pop();
 
-    for(var i=0; i<this.tracks.length; i++) {
-      this.tracks[i].display();
-    }
-    for(let t of this.track_bbox_shot) {
-      t.displayTime();
-    }
-    push();
-    fill('yellow');
-    rect(this.rect_drag[0],this.rect_drag[1],this.rect_drag[2],this.rect_drag[3]);
-    pop();
+      for(var i=0; i<this.tracks.length; i++) {
+        this.tracks[i].display();
+      }
+      for(let t of this.track_bbox_shot) {
+        t.displayTime();
+      }
+      push();
+      fill('yellow');
+      rect(this.rect_drag[0],this.rect_drag[1],this.rect_drag[2],this.rect_drag[3]);
+      pop();
 
+    }
   }
 }

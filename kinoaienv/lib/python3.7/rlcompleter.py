@@ -1,1 +1,1 @@
-/usr/lib/python3.7/rlcompleter.py
+/usr/local/lib/python3.7/rlcompleter.py

@@ -70,10 +70,11 @@ function TrackBboxShot(a)  {
 
   // Draw the rectangle
   this.display = function() {
-    var unit = this.act.w/total_frame;
-    var start = this.act.x + Math.round((this.first_frame-1)*unit);
+    var unit = this.act.w/annotation_timeline.total_frame;
+    let off_x = annotation_timeline.first*unit;
+    var start = this.act.x + Math.round((this.first_frame-1)*unit)-off_x;
     var w = Math.round((this.bboxes.length-1)*unit);
-    this.setSize(start, this.act.y, w, 7);
+    this.setSize(start, this.act.y, w, this.act.h/2);
     if(this.bboxes.length > 0) {
      //display curr frame
      if(frame_num>this.first_frame && frame_num < this.last_frame) {
@@ -90,13 +91,18 @@ function TrackBboxShot(a)  {
 
   this.displayTime = function() {
     if(this.bboxes.length > 0) {
-     push();
-     if(!this.on)
-      fill('rgb(200,150,120)');
-     else
-      fill('rgb(250,110,80)');
-     rect(this.x, this.y, this.w, this.h);
-     pop();
+      if(this.x+this.w>player.x && this.x<player.x+player.w) {
+        push();
+        if(!this.on)
+          fill('rgb(200,150,120)');
+        else
+          fill('rgb(250,110,80)');
+        let x = Math.max(player.x,this.x);
+        let temp_w = this.w - (x-this.x);
+        let w = Math.min(x+temp_w,player.x+player.w)-x;
+        rect(x, this.y, w, this.h);
+        pop();
+      }
     }
   }
 }

@@ -49,6 +49,12 @@ media/kino_app/data/*
 media/kino_app/index_images/*
 media/kino_app/images/*
 
+# python virtual environnement #
+kinoaienv/
+activate/
+kinoaienv/*
+activate/*
+
 *.mov
 *.mp4
 *.jpeg

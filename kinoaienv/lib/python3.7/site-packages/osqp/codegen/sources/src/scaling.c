@@ -14,12 +14,12 @@ void limit_scaling(c_float *D, c_int n) {
 }
 
 /**
- * Compute infinite norm of the colums of the KKT matrix without forming it
+ * Compute infinite norm of the columns of the KKT matrix without forming it
  *
  * The norm is stored in the vector v = (D, E)
  *
  * @param P        Cost matrix
- * @param A        Contraints matrix
+ * @param A        Constraints matrix
  * @param D        Norm of columns related to variables
  * @param D_temp_A Temporary vector for norm of columns of A
  * @param E        Norm of columns related to constraints
@@ -52,7 +52,6 @@ c_int scale_data(OSQPWorkspace *work) {
   //  S = [ D    ]
   //      [    E ]
   //
-
 
   c_int   i;          // Iterations index
   c_int   n, m;       // Number of constraints and variables
@@ -174,20 +173,6 @@ c_int unscale_data(OSQPWorkspace *work) {
 
   return 0;
 }
-
-// // Scale solution
-// c_int scale_solution(OSQPWorkspace * work){
-//
-//     // primal
-//     vec_ew_prod(work->scaling->Dinv, work->solution->x, work->data->n);
-//
-//     // dual
-//     vec_ew_prod(work->scaling->Einv, work->solution->y, work->data->m);
-//     vec_mult_scalar(work->solution->y, work->scaling->c, work->data->m);
-//
-//     return 0;
-// }
-
 
 c_int unscale_solution(OSQPWorkspace *work) {
   // primal

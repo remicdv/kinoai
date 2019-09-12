@@ -41,13 +41,11 @@ static void print_line(void) {
 
 void print_header(void) {
   // Different indentation required for windows
-# ifdef IS_WINDOWS
-# ifndef PYTHON
+#if defined(IS_WINDOWS) && !defined(PYTHON)
   c_print("iter  ");
-# endif /* ifdef PYTHON */
-# else  /* ifdef IS_WINDOWS */
+#else
   c_print("iter   ");
-# endif /* ifdef IS_WINDOWS */
+#endif
 
   // Main information
   c_print("objective    pri res    dua res    rho");
@@ -71,7 +69,7 @@ void print_setup_header(const OSQPWorkspace *work) {
   print_line();
   c_print("           OSQP v%s  -  Operator Splitting QP Solver\n"
           "              (c) Bartolomeo Stellato,  Goran Banjac\n"
-          "        University of Oxford  -  Stanford University 2018\n",
+          "        University of Oxford  -  Stanford University 2019\n",
           OSQP_VERSION);
   print_line();
 
@@ -123,8 +121,12 @@ void print_setup_header(const OSQPWorkspace *work) {
   if (settings->warm_start) c_print("          warm start: on, ");
   else c_print("          warm start: off, ");
 
-  if (settings->polish) c_print("polish: on\n");
-  else c_print("polish: off\n");
+  if (settings->polish) c_print("polish: on, ");
+  else c_print("polish: off, ");
+
+  if (settings->time_limit) c_print("time_limit: %.2e sec\n", settings->time_limit);
+  else c_print("time_limit: off\n");
+
   c_print("\n");
 }
 
@@ -164,13 +166,12 @@ void print_polish(OSQPWorkspace *work) {
   c_print("  %9.2e", info->dua_res);
 
   // Different characters for windows/unix
-# ifdef IS_WINDOWS
-# ifndef PYTHON
+#if defined(IS_WINDOWS) && !defined(PYTHON)
   c_print("  ---------");
-# endif /* ifdef PYTHON */
-# else  /* ifdef IS_WINDOWS */
+#else
   c_print("   --------");
-# endif /* ifdef IS_WINDOWS */
+#endif
+
 # ifdef PROFILING
   if (work->first_run) {
     // total time: setup + solve
@@ -220,11 +221,44 @@ void print_footer(OSQPInfo *info, c_int polish) {
 
 #ifndef EMBEDDED
 
-OSQPSettings* copy_settings(OSQPSettings *settings) {
+OSQPSettings* copy_settings(const OSQPSettings *settings) {
   OSQPSettings *new = c_malloc(sizeof(OSQPSettings));
 
+  if (!new) return OSQP_NULL;
+
   // Copy settings
-  memcpy(new, settings, sizeof(OSQPSettings));
+  // NB. Copying them explicitly because memcpy is not
+  // defined when PRINTING is disabled (appears in string.h)
+  new->rho = settings->rho;
+  new->sigma = settings->sigma;
+  new->scaling = settings->scaling;
+
+# if EMBEDDED != 1
+  new->adaptive_rho = settings->adaptive_rho;
+  new->adaptive_rho_interval = settings->adaptive_rho_interval;
+  new->adaptive_rho_tolerance = settings->adaptive_rho_tolerance;
+# ifdef PROFILING
+  new->adaptive_rho_fraction = settings->adaptive_rho_fraction;
+# endif
+# endif // EMBEDDED != 1
+  new->max_iter = settings->max_iter;
+  new->eps_abs = settings->eps_abs;
+  new->eps_rel = settings->eps_rel;
+  new->eps_prim_inf = settings->eps_prim_inf;
+  new->eps_dual_inf = settings->eps_dual_inf;
+  new->alpha = settings->alpha;
+  new->linsys_solver = settings->linsys_solver;
+  new->delta = settings->delta;
+  new->polish = settings->polish;
+  new->polish_refine_iter = settings->polish_refine_iter;
+  new->verbose = settings->verbose;
+  new->scaled_termination = settings->scaled_termination;
+  new->check_termination = settings->check_termination;
+  new->warm_start = settings->warm_start;
+# ifdef PROFILING
+  new->time_limit = settings->time_limit;
+# endif
+
   return new;
 }
 

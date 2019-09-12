@@ -23,6 +23,8 @@
     <script src="{% static 'kino_app/kino_ai/shot.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/track_bbox_shot.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/bbox_shot.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/annotation_timeline.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/actor_annotation.js' %}"></script>
     <script>
         // var json_detec = "{% static 'kino_app/data/' %}{{path}}/detections.json";
         // var json_detec_test = "{{data_detec}}";
@@ -33,6 +35,7 @@
         }
         var json_track = "/media/kino_app/data/{{path}}/tracklets.json";
         var json_timeline = "/media/kino_app/data/{{path}}/actors_timeline.json";
+        var json_annotation_timeline = "/media/kino_app/data/{{path}}/annotation_timeline.json";
         var json_shots = "/media/kino_app/data/{{path}}/shots.json";
         var abs_path = "{{abs_path}}";
         var original_width = "{{width}}";
@@ -161,6 +164,7 @@
           if(sub_granted) {
             saveTimeline();
           } else {
+            saveTimeline();
             console.log("not allowed");
           }
           keyDown = undefined;

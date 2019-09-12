@@ -15,19 +15,19 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 from __future__ import unicode_literals
-
-import sys
-
 from . import Progress
+from .helpers import WritelnMixin
 
 
-class Bar(Progress):
+class Bar(WritelnMixin, Progress):
     width = 32
+    message = ''
     suffix = '%(index)d/%(max)d'
     bar_prefix = ' |'
     bar_suffix = '| '
     empty_fill = ' '
     fill = '#'
+    hide_cursor = True
 
     def update(self):
         filled_length = int(self.width * self.progress)
@@ -61,10 +61,7 @@ class FillingCirclesBar(ChargingBar):
 
 
 class IncrementalBar(Bar):
-    if sys.platform.startswith('win'):
-        phases = (u' ', u'▌', u'█')
-    else:
-        phases = (' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█')
+    phases = (' ', '▏', '▎', '▍', '▌', '▋', '▊', '▉', '█')
 
     def update(self):
         nphases = len(self.phases)

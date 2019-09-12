@@ -26,10 +26,12 @@ function EraseButton(ind, tempX=0, tempY=0, tempRad = 10)  {
   }
   // Draw the rectangle
   this.display = function() {
-    push();
-    fill('red');
-    ellipse(this.x,this.y,this.rad);
-    pop();
+    if(this.y > div_actors_timeline.elt.offsetTop-can.elt.offsetTop) {
+      push();
+      fill('red');
+      ellipse(this.x,this.y,this.rad);
+      pop();
+    }
   }
 
 }

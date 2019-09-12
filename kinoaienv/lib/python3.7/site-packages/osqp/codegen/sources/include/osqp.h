@@ -50,12 +50,12 @@ void osqp_set_default_settings(OSQPSettings *settings);
  * NB: This is the only function that allocates dynamic memory and is not used
  *during code generation
  *
+ * @param  workp        Solver workspace pointer
  * @param  data         Problem data
  * @param  settings     Solver settings
- * @return              Solver environment
+ * @return              Exitflag for errors (0 if no errors)
  */
-OSQPWorkspace* osqp_setup(const OSQPData *data,
-                          OSQPSettings   *settings);
+c_int osqp_setup(OSQPWorkspace** workp, const OSQPData* data, const OSQPSettings* settings);
 
 # endif // #ifndef EMBEDDED
 
@@ -208,7 +208,7 @@ c_int osqp_update_P(OSQPWorkspace *work,
  *
  *
  *  If Ax_new_idx is OSQP_NULL, Ax_new is assumed to be as long as A->x
- *  and the whole P->x is replaced.
+ *  and the whole A->x is replaced.
  *
  * @param  work       Workspace structure
  * @param  Ax_new     Vector of new elements in A->x
@@ -233,7 +233,7 @@ c_int osqp_update_A(OSQPWorkspace *work,
  *  and the whole P->x is replaced.
  *
  *  If Ax_new_idx is OSQP_NULL, Ax_new is assumed to be as long as A->x
- *  and the whole P->x is replaced.
+ *  and the whole A->x is replaced.
  *
  * @param  work       Workspace structure
  * @param  Px_new     Vector of new elements in P->x (upper triangular)

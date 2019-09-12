@@ -29,11 +29,11 @@ function Track(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
       if(x_off<0){x_off=0;}
       if(y_off<0){y_off=0;}
-      mx = mx-x_off;
-      my = my-y_off;
-      mx /=(vid_h/Number(original_height));
-      my /=(vid_h/Number(original_height));
-      if(mx > this.bbox[0] && mx < this.bbox[2] && my > this.bbox[1] && my < this.bbox[3]) {
+      let vid_mx = mx-x_off;
+      let vid_my = my-y_off;
+      vid_mx /=(vid_h/Number(original_height));
+      vid_my /=(vid_h/Number(original_height));
+      if(vid_mx > this.bbox[0] && vid_mx < this.bbox[2] && vid_my > this.bbox[1] && vid_my < this.bbox[3]) {
         if(!this.old) {
           this.on = !this.on;
           if(!this.added) {
@@ -63,8 +63,9 @@ function Track(tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.updatePos = function(unit, tx, ty) {
-    var start = tx + Math.round((this.first_frame-1)*unit);
-    var end = start + Math.round((this.detections.length-1)*unit);
+    let off_x = annotation_timeline.first*unit;
+    let start = tx + Math.round((this.first_frame-1)*unit) - off_x;
+    let end = start + Math.round((this.detections.length-1)*unit);
     this.setPosition(start, ty, end-start, 7);
   }
 
@@ -87,19 +88,24 @@ function Track(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   // Draw the rectangle
   this.display = function() {
-    push();
-    rectMode(CORNER);
-    stroke(0);
-    strokeWeight(0);
-    // The color changes based on the state of the button
-    if (this.on) {
-      fill(170,56,35);
-    } else if(this.drag) {
-      fill(32,56,142);
-    } else {
-      fill(255);
+    if(this.x+this.w>player.x && this.x<player.x+player.w) {
+      push();
+      rectMode(CORNER);
+      stroke(0);
+      strokeWeight(0);
+      // The color changes based on the state of the button
+      if (this.on) {
+        fill(170,56,35);
+      } else if(this.drag) {
+        fill(32,56,142);
+      } else {
+        fill(255);
+      }
+      let x = Math.max(player.x,this.x);
+      let temp_w = this.w - (x-this.x);
+      let w = Math.min(x+temp_w,player.x+player.w)-x;
+      rect(x,this.y,w,this.h);
+      pop();
     }
-    rect(this.x,this.y,this.w,this.h);
-    pop();
   }
 }

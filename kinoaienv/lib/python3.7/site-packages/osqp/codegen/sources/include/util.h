@@ -30,7 +30,7 @@ const char* osqp_version(void);
  * @param  settings Settings to be copied
  * @return          New settings structure
  */
-OSQPSettings* copy_settings(OSQPSettings *settings);
+OSQPSettings* copy_settings(const OSQPSettings *settings);
 
 # endif // #ifndef EMBEDDED
 
@@ -94,9 +94,9 @@ void print_footer(OSQPInfo *info,
   // Some R packages clash with elements
   // of the windows.h header, so use a
   // slimmer version for conflict avoidance
-  # ifdef R_LANG
-    #define NOGDI
-  # endif
+# ifdef R_LANG
+#define NOGDI
+# endif
 
 #   include <windows.h>
 
@@ -121,7 +121,7 @@ struct OSQP_TIMER {
 // Linux
 #  else // ifdef IS_WINDOWS
 
-/* Use POSIX clocl_gettime() for timing on non-Windows machines */
+/* Use POSIX clock_gettime() for timing on non-Windows machines */
 #   include <time.h>
 #   include <sys/time.h>
 

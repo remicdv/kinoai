@@ -1,0 +1,4 @@
+cvxpy
+opencv-python
+Django
+moviepy

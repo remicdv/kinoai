@@ -397,6 +397,7 @@ def submit(request):
     abs_path = request.POST.get('abs_path','')
     json_detec_path = abs_path+'/detections.json'
     json_timeline_path = abs_path+'/actors_timeline.json'
+    json_annot_timeline_path = abs_path+'/annotation_timeline.json'
     json_tracklets_path = abs_path+'/tracklets.json'
     json_shots_path = abs_path+'/shots.json'
     print(json_detec_path)
@@ -413,6 +414,12 @@ def submit(request):
         if os.path.isfile(abs_path+'/subtitle.vtt'):
             os.remove(abs_path+'/subtitle.vtt')
         os.rename(abs_path+'/subtitle_new.vtt',abs_path+'/subtitle.vtt')
+
+    data_annot = request.POST.get('annotation','')
+    parse_annot = json.loads(data_annot)
+    with open(json_annot_timeline_path, 'w') as fp:
+        json.dump(parse_annot, fp, indent=2)
+
     data_timelines = request.POST.get('timeline','')
     parse_timelines = json.loads(data_timelines)
     with open(json_timeline_path, 'w') as fp:

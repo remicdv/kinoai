@@ -1,4 +1,4 @@
-#!/home/kinoai/kinoai/kinoaienv/bin/python
+#!/home/kinoai/Development/kinoai/kinoaienv/bin/python
 
 import sys
 import getopt
