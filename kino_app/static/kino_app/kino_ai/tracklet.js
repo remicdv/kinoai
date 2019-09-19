@@ -25,28 +25,30 @@ function Track(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
-    if(frame_num>=this.first_frame && frame_num <= this.first_frame + this.detections.length) {
+    if(!is_split && !is_note_book) {
+      if(frame_num>=this.first_frame && frame_num <= this.first_frame + this.detections.length) {
 
-      if(x_off<0){x_off=0;}
-      if(y_off<0){y_off=0;}
-      let vid_mx = mx-x_off;
-      let vid_my = my-y_off;
-      vid_mx /=(vid_h/Number(original_height));
-      vid_my /=(vid_h/Number(original_height));
-      if(vid_mx > this.bbox[0] && vid_mx < this.bbox[2] && vid_my > this.bbox[1] && vid_my < this.bbox[3]) {
+        if(x_off<0){x_off=0;}
+        if(y_off<0){y_off=0;}
+        let vid_mx = mx-x_off;
+        let vid_my = my-y_off;
+        vid_mx /=(vid_h/Number(original_height));
+        vid_my /=(vid_h/Number(original_height));
+        if(vid_mx > this.bbox[0] && vid_mx < this.bbox[2] && vid_my > this.bbox[1] && vid_my < this.bbox[3]) {
+          if(!this.old) {
+            this.on = !this.on;
+            if(!this.added) {
+              this.drag = true;
+            }
+          }
+        }
+      }
+      if ( (mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) ) {
         if(!this.old) {
           this.on = !this.on;
           if(!this.added) {
             this.drag = true;
           }
-        }
-      }
-    }
-    if ( (mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) ) {
-      if(!this.old) {
-        this.on = !this.on;
-        if(!this.added) {
-          this.drag = true;
         }
       }
     }

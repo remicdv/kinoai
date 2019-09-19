@@ -1,5 +1,5 @@
 // Constructor initializes all variables
-function EraseButton(ind, tempX=0, tempY=0, tempRad = 10)  {
+function EraseButton(ind, tempX=0, tempY=0, tempRad = 5)  {
 
   // Is the button on or off?
   // Button always starts as off
@@ -28,8 +28,14 @@ function EraseButton(ind, tempX=0, tempY=0, tempRad = 10)  {
   this.display = function() {
     if(this.y > div_actors_timeline.elt.offsetTop-can.elt.offsetTop) {
       push();
-      fill('red');
-      ellipse(this.x,this.y,this.rad);
+      stroke('red');
+      strokeWeight(3);
+      let x1=this.x-this.rad;
+      let y1=this.y-this.rad;
+      let x2=this.x+this.rad;
+      let y2=this.y+this.rad;
+      line(x1,y1,x2,y2);
+      line(x1,y2,x2,y1);
       pop();
     }
   }

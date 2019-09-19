@@ -41,7 +41,9 @@
     {% if tab %}
       {% for sub_tab in tab %}
         {% for t in sub_tab %}
-          <h3 style="padding:120 0 120 0; margin:0 0 0 5;">{{t.text}}{{t.start}}</h3>
+          <p style="padding:0; margin:0 0 0 5;">{{t.start}} - {{t.end}}</p>
+          <h3 style="padding:0; margin:0 0 0 5;" contenteditable="true" id="{{t.id}}">{{t.text}}</h3>
+          <p class="paragraph" id="par_{{t.id}}" contenteditable="true" style="padding:0; margin:0 0 0 5;"></p>
         {% endfor %}
       {% endfor %}
     {% else %}
@@ -84,6 +86,10 @@
   $('#div_player_'+list_id[0]).css({top:$( '.column.right img:first' ).position().top, left:$( '.column.right img:first' ).position().left});
   var str = "{{json_shots}}";
   var data_shots = JSON.parse(str.replace(/&quot;/g,'"'));
+  var tab_parse = "{{tab}}".replace(/\n/g,"\\n");
+  var tab_json = JSON.parse(tab_parse.replace(/&#39;/g,'"'));
+  var json_notes = "{{json_notes}}".replace(/\n/g,"\\n").replace(/&#39;/g,"'");
+  var tab_notes = JSON.parse(json_notes.replace(/&quot;/g,'"'))
   var curr_data = data_shots[0];
   var video = new p5.MediaElement(list_player[0].getVideoElement());
   var canvas;
@@ -91,6 +97,19 @@
   var curr_id = list_id[0];
   function setup() {
     canvas = createCanvas(video.width, video.height);
+    $('.column.left h3').each(function() {
+      console.log($(this).height(),$('.full')[0].height);
+      $(this).height((262-18)/2);
+      $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
+      $(this).css('overflow','auto');
+    });
+    $('.column.left .paragraph').each(function() {
+      $(this).height((262-18)/2);
+      $(this).css('overflow','auto');
+    });
+    for(let n of tab_notes) {
+      document.getElementById('par_'+n.id+'.0').innerText = n.text;
+    }
   }
   var scale_ratio = video.elt.videoWidth/1024;
   function draw() {
@@ -105,6 +124,7 @@
       canvas.position($('.center').position().left, $('#div_player_'+curr_id).position().top);
       image(video, 0, 0, width, height, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
     }
+
     updatePlayer();
   }
   function updatePlayer() {
@@ -138,5 +158,29 @@
     $('#div_player_'+curr_id).css({top:$( this ).position().top, left:$( this ).position().left});
     currentPlayer.getVideoElement().currentTime = time;
     currentPlayer.play();
+  });
+
+  $(document).bind('keydown', function(e) {
+    if(e.ctrlKey && (e.which == 83)) {
+      e.preventDefault();
+      console.log('ctrl s = save');
+      var note_tab = [];
+      for(let sub_tab of tab_json) {
+        for(let t of sub_tab) {
+          t.text = document.getElementById(t.id+'.0').innerText;
+          note_tab.push({'id':t.id,'text':document.getElementById('par_'+t.id+'.0').innerText});
+        }
+      }
+      $.post({
+        url: "save_note_video",
+        data: {'id': curr_id, 'data_sub':JSON.stringify(tab_json), 'note_tab':JSON.stringify(note_tab)},
+        dataType: 'json',
+        success: function (data) {
+          return callBack(data);
+        }
+      });
+      keyDown = undefined;
+      return false;
+    }
   });
 </script>

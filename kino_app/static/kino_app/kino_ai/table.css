@@ -64,6 +64,18 @@ tr:hover td:hover {
   overflow:auto;
 }
 
+#div_notes div {
+  display: table;
+}
+
+#div_notes div h3, #div_notes div p{
+  display: table-cell;
+}
+
+#div_notes div h3 {
+  padding: 0 5 0 10;
+}
+
 .side, button{
   width: 150;
 }

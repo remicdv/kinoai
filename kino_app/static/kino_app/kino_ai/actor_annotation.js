@@ -273,20 +273,30 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
             a.y = this.y;
             if(a.on) {
               fill('white');
+              let curr_x;
+              let curr_w;
+              let wi;
               if(a.ext) {
                 if(a.side == 0 && a.drag_x < a.x+a.w) {
                   rect(a.drag_x, a.y, a.w+(a.x-a.drag_x), a.h);
+                  curr_x = a.drag_x;
+                  curr_w = a.w+(a.x-a.drag_x);
                 } else if(a.side ==1 && a.drag_x > a.x) {
                   rect(a.x, a.y, a.drag_x-a.x, a.h);
+                  curr_x = a.x;
+                  curr_w = a.drag_x-a.x;
                 }
+                wi = Math.min(curr_w*0.4,10);
               } else {
-                rect(Math.max(Math.min(a.drag_x-a.drag_off,(this.x+this.w)-(a.w)),this.x), a.y, a.w, a.h);
+                curr_x = Math.max(Math.min(a.drag_x-a.drag_off,(this.x+this.w)-(a.w)),this.x);
+                wi = Math.min(a.w*0.4,10);
+                curr_w = a.w;
+                rect(curr_x, a.y, a.w, a.h);
               }
-              // if(a.drag_x < a.x) {
-              //   rect(a.drag_x, a.y, a.w+(a.x-a.drag_x), a.h);
-              // } else {
-              //   rect(a.x, a.y, a.drag_x-a.x, a.h);
-              // }
+              stroke(0);
+              line(curr_x, a.y+a.h/2, curr_x+curr_w, a.y+a.h/2);
+              triangle(curr_x, a.y+a.h/2, curr_x+wi, a.y+a.h, curr_x+wi, a.y);
+              triangle(curr_x+curr_w, a.y+a.h/2, curr_x+curr_w-wi, a.y+a.h, curr_x+curr_w-wi, a.y);
             } else {
               fill(a.color);
               rect(a.x, a.y, a.w, a.h);

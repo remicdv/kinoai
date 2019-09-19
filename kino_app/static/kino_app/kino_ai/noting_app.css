@@ -1,0 +1,11 @@
+.register_notes div {
+  display: table;
+}
+
+.register_notes div p{
+  display: table-cell;
+}
+
+div {
+  background-color: white;
+}

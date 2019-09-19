@@ -25,14 +25,18 @@
     <script src="{% static 'kino_app/kino_ai/bbox_shot.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/annotation_timeline.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/actor_annotation.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/note_editor.js' %}"></script>
     <script>
         // var json_detec = "{% static 'kino_app/data/' %}{{path}}/detections.json";
         // var json_detec_test = "{{data_detec}}";
         // var data_detects = JSON.parse(json_detec_test.replace(/&quot;/g,'"'));
+        var json_data_note = "{{data_note}}";
+        var data_note = JSON.parse(json_data_note.replace(/&quot;/g,'"'));
         var sub_granted = true;
         if("{{owner}}"=="None") {
           sub_granted = false;
         }
+        var owner = "{{owner}}";
         var json_track = "/media/kino_app/data/{{path}}/tracklets.json";
         var json_timeline = "/media/kino_app/data/{{path}}/actors_timeline.json";
         var json_annotation_timeline = "/media/kino_app/data/{{path}}/annotation_timeline.json";
@@ -164,9 +168,9 @@
           if(sub_granted) {
             saveTimeline();
           } else {
-            saveTimeline();
             console.log("not allowed");
           }
+          note_editor.saveNote();
           keyDown = undefined;
           return false;
         }

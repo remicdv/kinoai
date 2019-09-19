@@ -1,0 +1,115 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/noting_app.css' %}">
+<script src="{% static 'kino_app/jquery.min.js' %}"></script>
+
+<div id='header_info'>
+
+<div class="aside">
+  <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
+</div>
+<h1 >Noting app </h1>
+</div>
+
+<div class='register_notes'>
+  <!-- <input type="text" name="" value="" id='input_note'> -->
+</div>
+
+<div class='notes' contenteditable="true">
+
+</div>
+
+<script>
+let off = document.getElementById('logo').offsetHeight - document.getElementsByClassName("register_notes")[0].offsetTop+5;
+document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+var start;
+var start_time;
+var tab_ind_time = [];
+var notes = [];
+// $('#input_note').change(function() {
+//   if($(this).val().length) {
+//     let timeCode = document.createElement('p');
+//     let newNote = document.createElement('h3');
+//     let str =  $(this).val();
+//     for(let o of tab_ind_time) {
+//       str = str.replaceAt(o.ind,"X");
+//       console.log(o.ind, str,str[o.ind]);
+//     }
+//     newNote.innerText = str;
+//     timeCode.innerText = start + '/ End '+Date().split('GMT')[0];
+//     $('.notes').append(timeCode);
+//     $('.notes').append(newNote);
+//     $(this).val('');
+//     tab_ind_time = [];
+//   }
+// });
+//
+// $('#input_note').keyup(function( event ){
+//   if($(this).val().length == 1) {
+//     let timeCode = 'Start '+Date().split('GMT')[0];
+//     start = timeCode;
+//     start_time = Date.now();
+//   }
+// });
+
+$('.notes').keyup(function(event) {
+  let last = $('.notes')[0].innerText.split('\n')[$('.notes')[0].innerText.split('\n').length-1];
+  if(last.length==1) {
+    let timeCode = 'Start '+Date().split('GMT')[0].split('2019')[1];
+    start = timeCode;
+    start_time = Date.now();
+  }
+  if(event.originalEvent.keyCode == 13 && start) {
+    let end = 'End '+Date().split('GMT')[0].split('2019')[1];
+    let text = getLastLine($('.notes')[0].innerText.split('\n'));
+    console.log(event.originalEvent.key, text, start, end);
+    let timeCode = document.createElement('p');
+    let newNote = document.createElement('p');
+    for(let o of tab_ind_time) {
+      text = text.replaceAt(o.ind,"X");
+      console.log(o.ind, text,text[o.ind]);
+    }
+    newNote.innerText = text;
+    timeCode.innerText = start + '/ '+end;
+    let div = document.createElement('div');
+    div.append(timeCode);
+    div.append(newNote);
+    $('.register_notes').append(div);
+    $('.notes')[0].innerText = '';
+    tab_ind_time = [];
+    start = undefined;
+  }else if(last.length==0) {
+    start=undefined;
+  }
+});
+
+function getLastLine(tab) {
+  let text;
+  for(let i=tab.length-1;i>=0;i--) {
+    if(tab[i]!='') {
+      text = tab[i];
+      break;
+    }
+  }
+  return text;
+}
+
+setInterval(function(){
+  if(Date.now()/1000 - start_time/1000 > 5) {
+    // $('#input_note').trigger("change");
+    if(start) {
+      start_time=Date.now();
+      let text = getLastLine($('.notes')[0].innerText.split('\n'));
+      tab_ind_time.push({'ind':text.length, 'time':start_time})
+      console.log(text.length, text);
+    } else {
+      start_time = Infinity;
+    }
+  }
+}, 100);
+
+String.prototype.replaceAt=function(index, replacement) {
+    return this.substr(0, index) + replacement+ this.substr(index + replacement.length);
+}
+
+</script>

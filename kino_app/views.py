@@ -268,10 +268,15 @@ def video_editing(request, id):
         if check_prev>0:
             prev = FolderPath.objects.get(path=new_path+'part{:02d}'.format(int(part.split('t')[1])-1)).id
 
+    data_note = []
+    if os.path.isfile(dir.abs_path+'/'+str(request.user.username)+'_note.json'):
+        with open(dir.abs_path+'/'+str(request.user.username)+'_note.json') as f:
+            data_note = json.load(f)
     if request.user is None or request.user.is_authenticated == False:
         print(settings.LOGIN_URL)
         return HttpResponseRedirect(settings.LOGIN_URL)
-    return render(request, 'kino_app/video_editing.html', {'id':id, 'title':title, 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner})
+    return render(request, 'kino_app/video_editing.html', {'id':id, 'title':title, 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner,
+     'data_note':json.dumps(data_note)})
     # return render(request, 'kino_app/index.html', {'image' : data_path})
 
 def get_shot_from_spec(shots, type, actors_involved, aspect_ratio):
@@ -308,6 +313,12 @@ def video_book(request, id):
     full_vid = dir.path.split('/')[1]
     full_list = FolderPath.objects.filter(path__icontains=full_vid).order_by('path')
 
+    full_note = []
+    if os.path.isfile(full_list[0].abs_path+'/note.txt'):
+        with open(full_list[0].abs_path+'/note.txt') as json_file:
+            full_note = json.load(json_file)
+
+    print(full_note)
     full_script = []
     full_json_shots = []
     for p in full_list:
@@ -320,8 +331,11 @@ def video_book(request, id):
     for s in full_script:
         tab = parser_vtt(s)
         for t in tab:
+            t['id'] = t['start']+cpt*600
             start = '{min:02d}'.format(min=cpt*10+(math.floor(int(t['start'])/60)%60))+':'+'{sec:02d}'.format(sec=math.floor(int(t['start'])%60))
+            end = '{min:02d}'.format(min=cpt*10+(math.floor(int(t['end'])/60)%60))+':'+'{sec:02d}'.format(sec=math.floor(int(t['end'])%60))
             t['start'] = start
+            t['end'] = end
         cpt+=1
         full_tab.append(tab)
 
@@ -378,7 +392,40 @@ def video_book(request, id):
         full_crop[i]['id'] = full_list[i].id
         full_full[i]['id'] = full_list[i].id
 
-    return render(request, 'kino_app/video_book.html', {'crop':full_crop, 'full':full_full, 'tab':full_tab, 'path':full_list, 'json_shots':json.dumps(full_data)})
+    return render(request, 'kino_app/video_book.html', {'crop':full_crop, 'full':full_full, 'tab':full_tab, 'path':full_list, 'json_shots':json.dumps(full_data), 'json_notes':json.dumps(full_note)})
+
+@csrf_exempt
+def save_note_video(request):
+    id = request.POST.get('id','')
+    dir = get_object_or_404(FolderPath, pk=id)
+    full_vid = dir.path.split('/')[1]
+    full_list = FolderPath.objects.filter(path__icontains=full_vid).order_by('path')
+    json_sub = json.loads(request.POST.get('data_sub',''))
+    json_notes = json.loads(request.POST.get('note_tab',''))
+    print(full_list[0].abs_path)
+
+    with open(full_list[0].abs_path+'/note.txt', 'w') as fp:
+        json.dump(json_notes, fp, indent=2)
+
+    full_script = []
+    for p in full_list:
+        if os.path.isfile(p.abs_path+'/subtitle.vtt'):
+            full_script.append(p.abs_path+'/subtitle.vtt')
+
+    cpt=0
+    for s in full_script:
+        tab = parser_vtt(s)
+        i=0
+        for t in tab:
+            print(str(json_sub[cpt][i]['text']))
+            t['text'] = str(json_sub[cpt][i]['text'])
+            i+=1
+        cpt+=1
+        save_vtt(tab,s)
+    return HttpResponse('')
+
+def noting_app(request):
+    return render(request, 'kino_app/noting.html')
 
 @csrf_exempt
 def get_data_detec(request):
@@ -390,6 +437,15 @@ def get_data_detec(request):
     if(request.method == 'POST'):
         print('post data detec')
         return HttpResponse(json.dumps({'data_detec':detec}), content_type='application/json')
+    return HttpResponse('')
+
+@csrf_exempt
+def save_note(request):
+    abs_path = request.POST.get('abs_path','')
+    json_notes = json.loads(request.POST.get('notes',''))
+    print(json_notes)
+    with open(abs_path+'/'+str(request.user.username)+'_note.json', 'w') as fp:
+        json.dump(json_notes, fp, indent=2)
     return HttpResponse('')
 
 @csrf_exempt
@@ -442,24 +498,48 @@ def submit(request):
 
 def parser_vtt(file):
     f = open(file, "r")
+    total = len(open(file, "r").readlines())
     tab = []
     start = 0
     end = 0
     text = ""
+    cpt=0
     for line in f:
         if len(line.split('-->')) > 1:
             start = (float(line.split('-->')[0].split(":")[0])*60) + (float(line.split('-->')[0].split(":")[1]))
             end = (float(line.split('-->')[1].split(":")[0])*60) + (float(line.split('-->')[1].split(":")[1]))
             # print(line, start, end)
-        elif (start != 0 or end != 0) and text == "":
-            text = line.split('\n')[0]
+        elif (start != 0 or end != 0):
+            if line.split('\n')[0] == "":
+                dict = {"start": start, "end": end, "text": text}
+                tab.append(dict)
+                text = ""
+                end = 0
+                start = 0
+            else:
+                text += line.split('\n')[0]+"\n"
+        cpt+=1
+        if cpt == total and text != '' and (start != 0 or end != 0):
             dict = {"start": start, "end": end, "text": text}
             tab.append(dict)
-            # print(line, start, end, dict)
-            text = ""
-            end = 0
-            start = 0
     return tab
+
+def to_vtt(total_sec):
+    min = math.floor(total_sec/60)
+    sec = total_sec%60
+    return str(min)+':'+str(sec)
+
+def save_vtt(tab, file):
+    # f = open(file, "w")
+    with open(file, 'w') as fp:
+        string_config = 'WEBVTT\n\n'
+        for t in tab:
+            string_config += to_vtt(t['start'])+'-->'+to_vtt(t['end'])+'\n'
+            for part in t['text'].split('\n'):
+                if part != '':
+                    string_config += part+'\n'
+            string_config += ''+'\n'
+        fp.write('{0}'.format(string_config))
 
 def upload_rough_cut(request):
     print(request)

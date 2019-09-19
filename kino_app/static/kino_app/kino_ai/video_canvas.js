@@ -68,6 +68,8 @@ var is_annotation = false;
 var offset_split = 0;
 var note_book;
 var is_note_book = false;
+var is_note_editor = false;
+var note_editor;
 var div_sub;
 var tab_sub = [];
 var is_timer = false;
@@ -129,7 +131,7 @@ function preload() {
   }
   data_shots = loadJSON(json_shots);
   // specify multiple formats for different browsers
-  loadRough(abs_path.split('kino_site/kino_app')[1]+'/Rough.json');
+  loadRough(abs_path.split('kinoai')[abs_path.split('kinoai').length-1]+'/Rough.json');
   can = createCanvas();
   var div = select('#div_player');
   can.child(div);
@@ -868,6 +870,8 @@ function updateAnnotationEdit() {
 
 function updateNoteBook() {
   is_note_book = this.checked();
+  is_note_editor = this.checked();
+  note_editor.update(is_note_editor);
 }
 
 function selectShotType() {
@@ -1343,6 +1347,15 @@ function processToolTip(text) {
   }
 }
 
+// Add 0 if one digit
+function toTwoDigit(str) {
+  if(str.length == 1) {
+    return '0'+str;
+  } else {
+    return str;
+  }
+}
+
 // Hide all hmtl elements for showing the player in fullscreen
 function hideAllElt() {
   var elems = selectAll('.aside');
@@ -1394,7 +1407,10 @@ function hideNoteBook() {
 
 // Show the subtitle next to the player and allow the user to navigate in the video
 function showNoteBook() {
-  if(!div_sub) {
+  if(!div_sub || div_sub.size().height!=height || viewer_width != mid_width) {
+    $("#div_sub").remove();
+    div_sub = undefined;
+    tab_sub = [];
     let cpt=0;
     for(let t of video.elt.textTracks) {
       if(t.mode == "showing" && cpt==0) {
@@ -1404,7 +1420,7 @@ function showNoteBook() {
         div_sub = createDiv();
         div_sub.id('div_sub');
         div_sub.position(viewer_width+10,can.elt.offsetTop);
-        div_sub.size(reframe_button.position().x-(viewer_width+10),height);
+        div_sub.size((reframe_button.position().x-(viewer_width+10))/2,height);
         for(let c of t.cues) {
           let obj = {};
           let p = createP(c.text);
@@ -1421,8 +1437,7 @@ function showNoteBook() {
       for(let s of tab_sub) {
         if(video.time() >= s.start && video.time() <= s.end) {
           s.p.style('color','red');
-          let pos = $('#div_sub').scrollTop() + s.p.position().y - ($('#div_sub').height()/2);
-          // console.log(pos);
+          let pos = s.p.position().y - ($('#div_sub').height()/2);
           if(!dash_player.isPaused())
             $('#div_sub').scrollTop(pos);
         } else {
@@ -1440,7 +1455,7 @@ function showNoteBook() {
 // Remove the selected tracklet
 function removeTracklet() {
   for(var i=0; i<tracklets_line.length; i++) {
-    if(tracklets_line[i].on) {
+    if(tracklets_line[i].on && !tracklets_line[i].added) {
       tracklets_line.splice(i,1);
       table_scroll.remove();
       table_scroll = undefined;
@@ -1475,7 +1490,6 @@ function removeShot() {
       for (let i = ind.length -1; i >= 0; i--) {
         shots_timeline.shots.splice(ind[i],1);
       }
-
       shots.splice(i,1);
     }
   }
@@ -1610,6 +1624,10 @@ function loadSubtile() {
       dataType: 'json',
       success: function (data) {
         // console.log('success');
+        note_book.checked(true);
+        is_note_book = true;
+        is_note_editor = true;
+        note_editor.update(is_note_editor);
         return setSubtitle(data);
       },
       error: function (error) {
@@ -2104,7 +2122,7 @@ function displayTimeline() {
     // scale(act_timeline_scale,1);
     actors_timeline[i].display();
     // pop();
-    erase_button[i].setPosition(mid_width+5, actors_timeline[i].y+(actors_timeline[i].h/2));
+    erase_button[i].setPosition(mid_width+10, actors_timeline[i].y+(actors_timeline[i].h/2));
     erase_button[i].display();
   }
   remove_timeline = false;
@@ -2136,43 +2154,53 @@ function splitScreen() {
       if(is_split || s.isFrameBbox()) {
         let b = true;
         for(let s_s of split_shot) {
-          if(s_s.equalTo(s)) {
+          if(!s_s.no_img && !s.no_img && s_s.equalTo(s)) {
             b= false;
             break;
           }
         }
         if(b) {
           split_shot.push(s);
+        } else {
+          split_shot.push({'no_img':true,'shot':s});
         }
+      } else {
+        split_shot.push({'no_img':true,'shot':s});
       }
     }
   }
   let j=0;
   let bboxes = [];
   for(let s of split_shot) {
-    let b = s.getCurrStabShot(frame_num);
-    if(b) {
-      let bb = {};
-      bb.bbox = b;
-      bb.shot = s;
-      bboxes.push(bb);
-    }
-  }
-  if(!is_split) {
-    for(let i=0;i<bboxes.length; i++){
-      let bb = [round_prec(bboxes[i].bbox[0]),round_prec(bboxes[i].bbox[1]),round_prec(bboxes[i].bbox[2]),round_prec(bboxes[i].bbox[3])];
-      for(let j=0;j<bboxes.length; j++) {
-        if(i!=j){
-          let bb1 = [round_prec(bboxes[j].bbox[0]),round_prec(bboxes[j].bbox[1]),round_prec(bboxes[j].bbox[2]),round_prec(bboxes[j].bbox[3])];
-          if(abs(bb[0]-bb1[0])<15 && abs(bb[1]-bb1[1])<15 && abs(bb[2]-bb1[2])<15 && abs(bb[3]-bb1[3])<15) {
-            bboxes.splice(i,1);
-            break;
-          }
-        }
+    if(s.no_img) {
+      bboxes.push({'no_img':true,'bbox':[s.shot.getCurrStabShot(frame_num)[0]]});
+    } else {
+      let b = s.getCurrStabShot(frame_num);
+      if(b) {
+        let bb = {};
+        bb.bbox = b;
+        bb.shot = s;
+        bboxes.push(bb);
       }
     }
   }
-  bboxes.sort(sortSplit);
+  // if(!is_split) {
+  //   for(let i=0;i<bboxes.length; i++){
+  //     if(!bboxes[i].no_img) {
+  //       let bb = [round_prec(bboxes[i].bbox[0]),round_prec(bboxes[i].bbox[1]),round_prec(bboxes[i].bbox[2]),round_prec(bboxes[i].bbox[3])];
+  //       for(let j=0;j<bboxes.length; j++) {
+  //         if(i!=j){
+  //           let bb1 = [round_prec(bboxes[j].bbox[0]),round_prec(bboxes[j].bbox[1]),round_prec(bboxes[j].bbox[2]),round_prec(bboxes[j].bbox[3])];
+  //           if(abs(bb[0]-bb1[0])<15 && abs(bb[1]-bb1[1])<15 && abs(bb[2]-bb1[2])<15 && abs(bb[3]-bb1[3])<15) {
+  //             bboxes.splice(i,1);
+  //             break;
+  //           }
+  //         }
+  //       }
+  //     }
+  //   }
+  // }
+  // bboxes.sort(sortSplit);
   let max_by_raw = 4;
   let nb_raw = Math.ceil(bboxes.length/max_by_raw);
   if(nb_raw!=0 && offset_split>(nb_raw-1)*max_by_raw) {
@@ -2187,108 +2215,46 @@ function splitScreen() {
   let x_vid=0;
   let max_h = 0;
   let curr_raw = 1;
-  // console.log(nb_raw, bboxes.length);
-  //
-  // if(!img_hd) {
-  //   var myNode = document.getElementById("opencv_out");
-  //   while (myNode.firstChild) {
-  //       myNode.removeChild(myNode.firstChild);
-  //   }
-  // }
+
   for(let b of bboxes) {
     let bb = b.bbox;
-    if (bb) {
+    let a_s = aspect_ratio;
+    if(b.shot && b.shot.aspect_ratio) {
+      a_s = b.shot.aspect_ratio;
+    }
+    let w=0;
+    if(nb_raw==1) {
+      w = viewer_width/bboxes.length;
+    } else {
+      if(j<(max_by_raw*curr_raw)){
+        w = viewer_width/max_by_raw;
+      } else {
+        if(curr_raw==nb_raw) {
+          w = viewer_height/(bboxes.length-(max_by_raw*curr_raw));
+        } else {
+          w = viewer_width/max_by_raw;
+        }
+        y_vid = max_h*curr_raw;
+        max_h = 0;
+        x_vid=0;
+        curr_raw++;
+      }
+    }
+    x_vid = (j%max_by_raw) * w;
+    if(w/a_s>viewer_height) {
+      w = viewer_height*a_s;
+    }
+    if(w/a_s>max_h) {
+      max_h = w/a_s;
+    }
+    if (bb && !b.no_img) {
       let acts = b.shot.getUpdateActInvolved();
       bbox = [bb[0]*scale_ratio, bb[1]*scale_ratio, bb[2]*scale_ratio, bb[3]*scale_ratio];
       if(bbox) {
-        let a_s = b.shot.aspect_ratio;
-        let w=0;
-        if(nb_raw==1) {
-          w = viewer_width/bboxes.length;
-        } else {
-          if(j<(max_by_raw*curr_raw)){
-            w = viewer_width/max_by_raw;
-          } else {
-            if(curr_raw==nb_raw) {
-              w = viewer_height/(bboxes.length-(max_by_raw*curr_raw));
-            } else {
-              w = viewer_width/max_by_raw;
-            }
-            y_vid = max_h*curr_raw;
-            max_h = 0;
-            x_vid=0;
-            curr_raw++;
-          }
-        }
-        x_vid = (j%max_by_raw) * w;
-        if(w/a_s>viewer_height) {
-          w = viewer_height*a_s;
-        }
-        if(w/a_s>max_h) {
-          max_h = w/a_s;
-        }
-        if(!a_s){a_s = aspect_ratio;}
         if(img_hd) {
           let ratio = img_hd.width / video.elt.videoWidth;
           bbox = [bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio, bbox[3]*ratio];
-          // let p = createGraphics(w, w/a_s);
-          // p.image(img_hd, 0,0,w,w/a_s, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
-          // image(p, x_vid,viewer_height+y_vid,w,w/a_s);
           image(img_hd, x_vid,viewer_height+y_vid,w,w/a_s, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
-          // if(document.getElementById("opencv_out").childNodes.length != bboxes.length) {
-          //   let out = document.createElement('canvas');
-          //   document.getElementById('opencv_out').appendChild(out);
-          //   let id_name = 'opencv'+str(x_vid);
-          //   out.id = id_name;
-          //   out.style.position = 'absolute';
-          //   out.style.top = can.elt.offsetTop+viewer_height+y_vid;
-          //   out.style.left = x_vid;
-          //   out.style.width = w;
-          //   out.style.height = w/a_s;
-          //   let mat = cv.imread(p.canvas);
-          //   cv.cvtColor(mat, mat, cv.COLOR_RGBA2RGB, 0);
-          //   let bgdModel = new cv.Mat();
-          //   let fgdModel = new cv.Mat();
-          //   let mask = new cv.Mat();
-          //   // cv.cvtColor(mat, mat, cv.COLOR_RGBA2GRAY);
-          //   // cv.blur(mat, mat, new cv.Size(3,3), new cv.Point(-1,-1), cv.BORDER_DEFAULT);
-          //   // cv.Canny(mat, mat, 50, 100, 3, false);
-          //   // let kernel = cv.Mat.ones(5, 5, cv.CV_8U);
-          //   // cv.morphologyEx(mat, mat, cv.MORPH_CLOSE, kernel);
-          //   // cv.imshow(out, mat);
-          //   // kernel.delete();
-          //   let scale = (w/a_s)/Number(original_height);
-          //   let tab_roi = getROI(acts, bb[0], bb[1], bb[2], bb[3]);
-          //   for(let tab_rect of tab_roi) {
-          //     let rect = new cv.Rect(tab_rect[0]*scale, tab_rect[1]*scale, tab_rect[2]*scale, tab_rect[3]*scale);
-          //     if(rect.x<0) {
-          //       rect.x = 0;
-          //     }
-          //     if(rect.y<0) {
-          //       rect.y = 0;
-          //     }
-          //     if(rect.x+rect.width>mat.cols) {
-          //       rect.width = Math.floor(mat.cols-rect.x);
-          //     }
-          //     if(rect.y+rect.height>mat.rows) {
-          //       rect.height = Math.floor(mat.rows-rect.y);
-          //     }
-          //     cv.grabCut(mat, mask, rect, bgdModel, fgdModel, 1, cv.GC_INIT_WITH_RECT);
-          //     for (let i = 0; i < mat.rows; i++) {
-          //         for (let j = 0; j < mat.cols; j++) {
-          //             if (mask.ucharPtr(i, j)[0] == 0 || mask.ucharPtr(i, j)[0] == 2) {
-          //                 mat.ucharPtr(i, j)[0] = 0;
-          //                 mat.ucharPtr(i, j)[1] = 0;
-          //                 mat.ucharPtr(i, j)[2] = 0;
-          //             }
-          //         }
-          //     }
-          //     // roi = mat.roi(rect);
-          //     cv.rectangle(mat, new cv.Point(rect.x, rect.y), new cv.Point(rect.x+rect.width, rect.y+rect.height), new cv.Scalar(255,0,0,255));
-          //   }
-          //   cv.imshow(out, mat);
-          //   mat.delete();mask.delete(); bgdModel.delete(); fgdModel.delete();
-          // }
         } else {
           let p = createGraphics(w, w/a_s);
           p.image(video, 0,0,w,w/a_s, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
@@ -2307,11 +2273,20 @@ function splitScreen() {
         }
         pop();
       }
+    } else {
+      push();
+      fill(0);
+      rect(x_vid,viewer_height+y_vid,w,w/a_s);
+      pop();
     }
     j++;
   }
 }
 // -----------------------------------------------------------------------------------------------------------------
+
+/*
+  unused functions
+*/
 
 function enhancePose(l_offset, r_offset, index, k, first_frame, detections_track) {
   const reducer = (accumulator, currentValue) => accumulator + currentValue;
@@ -2458,9 +2433,12 @@ function createAllActorsFullShot() {
 
 }
 
+// -----------------------------------------------------------------------------------------------------------------
+
 /*
   Main setup and draw P5
 */
+
 function setup() {
   tool_tip.is_on = false;
   tool_tip.text = "";
@@ -2734,7 +2712,7 @@ function setup() {
     split_screen.changed(updateSplitScreen);
 
     note_book = createCheckbox('Note book', false);
-    note_book.mouseOver(processToolTip('Splitscreen view and subtitle navigation'));
+    note_book.mouseOver(processToolTip('Show the note book and the reframed shots'));
     note_book.mouseOut(processToolTip(''));
     html_elements.push(note_book);
     note_book.size(150,30);
@@ -2779,6 +2757,9 @@ function setup() {
 
     editing_button = new Button(act_input.position().x+act_input.width+15,viewer_height+10,15);
     crop_button = new Button(editing_button.x+30,viewer_height+10,15);
+
+    note_editor = new NoteEditor();
+    note_editor.updateChilds();
 
     let k=0;
     let off = 5;
@@ -2825,11 +2806,6 @@ function draw() {
   }
   if(viewer_width!=mid_width || up_rough){
 
-    $("#div_sub").remove();
-    // if(div_sub)
-    //   div_sub.remove();
-    div_sub = undefined;
-    tab_sub = [];
     showAllElt();
     shot_selector.original_x = mid_width + 10;
     ratio_selector.original_x = mid_width + 80;
@@ -2989,6 +2965,7 @@ function draw() {
     if(w!=player.w){shots_timeline.updatePos();}
 
     if(!is_note_book) {
+      dash_player.setAutoSwitchQualityFor('video',true);
       if(keyIsDown(17)) {
         keyDown = 17;
       }
@@ -3078,12 +3055,16 @@ function draw() {
       }else {
         act_input.show();
       }
-      $("#div_sub").remove();
-      // if(div_sub)
-      //   div_sub.remove();
-      div_sub = undefined;
-      tab_sub = [];
+      if(div_sub) {
+        $("#div_sub").remove();
+        div_sub = undefined;
+        tab_sub = [];
+      }
+
     } else {
+      frameRate(frame_rate);
+      dash_player.setQualityFor('video',0);
+      dash_player.setAutoSwitchQualityFor('video',false);
       total_frame = Math.floor(video.duration()*frame_rate);
       frame_num = Math.floor(video.time()*frame_rate)%total_frame+1;
       setCursor();
@@ -3096,6 +3077,11 @@ function draw() {
       drawTracklets();
       pop();
       hideNoteBook();
+      note_editor.display();
+      push();
+      fill(back_color);
+      rect(0,viewer_height,viewer_width, viewer_height*2);
+      pop();
       showNoteBook();
     }
 
@@ -3135,14 +3121,21 @@ function draw() {
   }
   push();
   fill(255);
-  text(cpt+'/'+l,15,15);
-  var min = Math.floor(video.time()/60);
-  var sec = Math.floor(video.time()%60);
-  var mil = round_prec((video.time()%1)*100,0);
-  text(min +':'+sec+':'+mil, 65,15);
-  text(scale_ratio, 120,15);
+  text(cpt+'/'+l,100,15);
+  var min = toTwoDigit(Math.floor(video.time()/60).toString());
+  var sec = toTwoDigit(Math.floor(video.time()%60).toString());
+  var mil = toTwoDigit(round_prec((video.time()%1)*100,0).toString());
+  text(scale_ratio, 150,15);
   text(frame_num, 200,15);
   text(Math.round(frameRate()), viewer_width-40,15);
+  textSize(20);
+  text(min +':'+sec+':'+mil, 10,20);
+  min = toTwoDigit(Math.floor(video.duration()/60).toString());
+  sec = toTwoDigit(Math.floor(video.duration()%60).toString());
+  mil = toTwoDigit(round_prec((video.duration()%1)*100,0).toString());
+  text(min +':'+sec+':'+mil, 10,45);
+  stroke(255);
+  line(10,25,90,25);
   pop();
 
   if(is_annotation) {
@@ -3175,6 +3168,7 @@ function mousePressed() {
         video.time(s.start);
       }
     }
+    note_editor.click(mouseX,mouseY);
   }
   if((is_split || is_note_book) && (mouseY>viewer_height || mouseX>viewer_width)) {
     let b = false;
@@ -3439,7 +3433,8 @@ function mouseWheel(event) {
     }
     //z = 122
   }
-  if(is_split) {
+  if((is_split || is_note_book) &&
+  (mouseX >0 && mouseX < mid_width)) {
     // increase offset_split
     if(event.delta<0) {
       if(offset_split>0)
@@ -3480,12 +3475,13 @@ function keyPressed() {
   }
 
   if(keyCode===46) {
-    if(!editing_button.on) {
-      removeTracklet();
+    if(!is_note_book) {
       removeShot();
-    } else {
-      removeShot();
-      shots_timeline.removeShot();
+      if(!editing_button.on) {
+        removeTracklet();
+      } else {
+        shots_timeline.removeShot();
+      }
     }
   }
   if(keyCode===83) {
@@ -3504,15 +3500,17 @@ function keyPressed() {
     }
   }
   if (keyCode === 32) {
-    if (playing) {
-      time_hd = video.time();
-      imgHDRequest();
-      dash_player.pause();
-    } else {
-      dash_player.play();
-      img_hd = undefined;
+    if(!is_note_editor) {
+      if (playing) {
+        time_hd = video.time();
+        imgHDRequest();
+        dash_player.pause();
+      } else {
+        dash_player.play();
+        img_hd = undefined;
+      }
+      playing = !playing;
     }
-    playing = !playing;
   } else if(keyCode == 37) {
     img_hd = undefined;
     video.time(video.time()-0.05);
