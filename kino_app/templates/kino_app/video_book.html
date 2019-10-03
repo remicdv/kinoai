@@ -5,7 +5,7 @@
 <script src="{% static 'kino_app/dash.all.min.js' %}"></script>
 <script src="{% static 'kino_app/p5.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
-<script> var end, start; var list_id = []; var list_player = [];</script>
+<script> var end, start; var list_id = []; var list_player = []; var tab_json = [];</script>
 
 <div id='header_info'>
 <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
@@ -44,11 +44,14 @@
   <div class='column left'>
     {% if tab %}
       {% for sub_tab in tab %}
+        <script> var tab = [];</script>
         {% for t in sub_tab %}
           <p style="padding:0; margin:0 0 0 5;" class="timing" id="time_{{t.id}}">{{t.start}} - {{t.end}}</p>
           <h3 style="padding:0; margin:0 0 0 5;" contenteditable="true" id="{{t.id}}">{{t.text}}</h3>
           <p class="paragraph" id="par_{{t.id}}" contenteditable="true" style="padding:0; margin:0 0 0 5;"></p>
+          <script> tab.push({"start":'{{t.start}}',"end":'{{t.end}}', "text":'{{t}}'.split('&#39;text&#39;: &#39;')[1].split('&#39;')[0].replace(/&quot;/g,'"'),"id":parseInt('{{t.id}}')});</script>
         {% endfor %}
+        <script>tab_json.push(tab);</script>
       {% endfor %}
     {% else %}
         <p>No text are available.</p>
@@ -92,8 +95,6 @@
   $('#div_player_'+list_id[0]).css({top:$( '.column.right img:first' ).position().top, left:$( '.column.right img:first' ).position().left});
   var str = "{{json_shots}}";
   var data_shots = JSON.parse(str.replace(/&quot;/g,'"'));
-  var tab_parse = "{{tab}}".replace(/\n/g,"\\n");
-  var tab_json = JSON.parse(tab_parse.replace(/&#39;/g,'"'));
   var json_notes = "{{json_notes}}".replace(/\n/g,"\\n").replace(/&#39;/g,"'");
   var tab_notes = JSON.parse(json_notes.replace(/&quot;/g,'"'))
   var curr_data = data_shots[0];
@@ -105,7 +106,6 @@
   function setup() {
     canvas = createCanvas(video.width, video.height);
     $('.column.left h3').each(function() {
-      console.log($(this).height(),$('.full')[0].height);
       $(this).height((262-18)/2);
       $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
       $(this).css('overflow','auto');
