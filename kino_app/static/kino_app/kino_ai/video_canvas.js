@@ -92,6 +92,7 @@ var aspect_ratio;
 var add_shot = [];
 var img;
 var img_hd;
+var image_frame;
 var time_hd=0;
 var stock_img=0;
 var detec_modif = false;
@@ -143,6 +144,31 @@ function preload() {
 /*
   Getters functions
 */
+
+// Active the shots choosen by the user for the notebook
+function setShotsFromActs() {
+  let acts = [];
+  for(let a of actors_timeline) {
+    if(a.on) {
+      acts.push(a.actor_name);
+    }
+  }
+  for(let s of shots) {
+    let b = false;
+    for(let a of s.actors_involved) {
+      if(acts.includes(a.actor_name)) {
+        b = true;
+        break;
+      }
+    }
+    if(b && s.actors_involved.length == 1) {
+      s.on = true;
+    } else {
+      s.on = false;
+      s.bbox_show = [];
+    }
+  }
+}
 
 //Get the bounding box from open pose detect
 function getBBox(keypoints, scale=0) {
@@ -355,8 +381,9 @@ function getBBoxShot(shotType, aspectRatio) {
         var keypointsB = frames_data[frame_num];
         var detections_track = t.detections;
         var first_frame = t.first_frame;
-        if(first_frame < frame_num && detections_track.length > (frame_num-first_frame)) {
-          var boxB = getBBoxShotAdapted(aspectRatio, keypointsB[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor);
+        let keypoints_tab = keypointsB[detections_track[frame_num-first_frame]];
+        if(first_frame < frame_num && detections_track.length > (frame_num-first_frame) && keypoints_tab) {
+          var boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor);
           if(!gaze_vect) {
             gaze_vect = getGazevect(keypointsB[detections_track[frame_num-first_frame]]['KeyPoints']);
             let vel = act.getVelocityVect(frame_num);
@@ -419,12 +446,13 @@ function getBBoxShot(shotType, aspectRatio) {
         var keypoints_tab = frames_data[frame_num];
         var detections_track = t.detections;
         var first_frame = t.first_frame;
-        if(first_frame < frame_num && detections_track.length > (frame_num-first_frame)) {
-          var boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor);
+        let keypoints= keypoints_tab[detections_track[frame_num-first_frame]];
+        if(first_frame < frame_num && detections_track.length > (frame_num-first_frame) && keypoints) {
+          var boxB = getBBoxShotAdapted(aspectRatio, keypoints['KeyPoints'], shot_factor);
           let box_side = getBBox(keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'],0.05);
           boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
           if(boxB && bbox) {
-            if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || box[3] < bbox[1])) {
+            if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
               bbox[0] = min(bbox[0], boxB[0]);
               bbox[1] = min(bbox[1], boxB[1]);
               bbox[2] = max(bbox[2], boxB[2]);
@@ -441,7 +469,7 @@ function getBBoxShot(shotType, aspectRatio) {
           let box_side = curr_bbox;
           boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
           if(boxB && bbox) {
-            if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || box[3] < bbox[1])) {
+            if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
               bbox[0] = min(bbox[0], boxB[0]);
               bbox[1] = min(bbox[1], boxB[1]);
               bbox[2] = max(bbox[2], boxB[2]);
@@ -591,9 +619,27 @@ function getTrackletsIndexes(fr_n=undefined,added=false,just_acts=false) {
   }
   var keypoints = frames_data[fr_n];
   let tab = [];
-  if(!just_acts) {
-    for (let t of tracklets_line) {
-      if((added || !t.added) && !t.old) {
+  if(keypoints) {
+    if(!just_acts) {
+      for (let t of tracklets_line) {
+        if((added || !t.added) && !t.old) {
+          var detections_track = t.detections;
+          var first_frame = t.first_frame;
+          if(first_frame < fr_n) {
+            if(detections_track.length > (fr_n-first_frame)) {
+              if(detections_track[fr_n-first_frame] < keypoints.length) {
+                let obj = {};
+                obj.ind = detections_track[fr_n-first_frame];
+                obj.track = t;
+                tab.push(obj);
+              }
+            }
+          }
+        }
+      }
+    }
+    for(let act of actors_timeline) {
+      for(let t of act.tracks) {
         var detections_track = t.detections;
         var first_frame = t.first_frame;
         if(first_frame < fr_n) {
@@ -602,25 +648,9 @@ function getTrackletsIndexes(fr_n=undefined,added=false,just_acts=false) {
               let obj = {};
               obj.ind = detections_track[fr_n-first_frame];
               obj.track = t;
+              obj.act = act;
               tab.push(obj);
             }
-          }
-        }
-      }
-    }
-  }
-  for(let act of actors_timeline) {
-    for(let t of act.tracks) {
-      var detections_track = t.detections;
-      var first_frame = t.first_frame;
-      if(first_frame < fr_n) {
-        if(detections_track.length > (fr_n-first_frame)) {
-          if(detections_track[fr_n-first_frame] < keypoints.length) {
-            let obj = {};
-            obj.ind = detections_track[fr_n-first_frame];
-            obj.track = t;
-            obj.act = act;
-            tab.push(obj);
           }
         }
       }
@@ -679,6 +709,21 @@ function p5VectToJson(vect) {
     return {x:vect.x, y:vect.y};
   } else {
     return {x:0,y:0};
+  }
+}
+
+// Extract a p5 Image object from the current frame
+function p5ImageFromDash() {
+  if(video.elt.videoWidth) {
+    let temp_can = document.createElement('canvas');
+    temp_can.width = video.elt.videoWidth;
+    temp_can.height = video.elt.videoHeight;
+    let image_test = new p5.Image(temp_can.width, temp_can.height);
+    image_test.drawingContext.drawImage(video.elt, 0, 0);
+    temp_can.remove();
+    return image_test;
+  } else {
+    return new p5.Image(100,100);
   }
 }
 
@@ -834,6 +879,7 @@ function updateDrawPose() {
 
 function updateShotCreate() {
   is_shot_creation = this.checked();
+  $('#div_creation').remove();
   if(!is_shot_creation) {
     for(let a of actors_timeline) {
       a.elem.remove();
@@ -841,6 +887,15 @@ function updateShotCreate() {
       a.elem.elt.contentEditable = 'true';
       a.elem.id('editor');
       div_actors_timeline.child(a.elem);
+    }
+  } else {
+    let div_creation = createDiv();
+    div_creation.id('div_creation');
+    div_creation.position(mid_width,shot_selector.y+30);
+    div_creation.style('display','table');
+    div_creation.size((reframe_button.position().x-mid_width)-10);
+    for(let a of actors_timeline) {
+      a.on = false;
     }
   }
 }
@@ -872,6 +927,30 @@ function updateNoteBook() {
   is_note_book = this.checked();
   is_note_editor = this.checked();
   note_editor.update(is_note_editor);
+  $('#div_creation').remove();
+  if(is_note_book) {
+    is_shot_creation = false;
+    shot_creation.checked(false);
+    is_show_shots = false;
+    show_shots.checked(false);
+    editing_button.setOnOff(false);
+    let div_creation = createDiv();
+    div_creation.id('div_creation');
+    div_creation.position(windowWidth-150,draw_track.y+30);
+    div_creation.size(150);
+    for(let a of actors_timeline) {
+      a.on = false;
+      div_creation.child(a.elem.elt);
+    }
+  }else {
+    for(let a of actors_timeline) {
+      a.elem.remove();
+      a.elem = createElement('h3', a.actor_name);
+      a.elem.elt.contentEditable = 'true';
+      a.elem.id('editor');
+      div_actors_timeline.child(a.elem);
+    }
+  }
 }
 
 function selectShotType() {
@@ -1400,9 +1479,9 @@ function hideNoteBook() {
   if(table_scroll){
     table_scroll.hide();
   }
-  for(let act of actors_timeline) {
-    act.elem.hide();
-  }
+  // for(let act of actors_timeline) {
+  //   act.elem.hide();
+  // }
 }
 
 // Show the subtitle next to the player and allow the user to navigate in the video
@@ -1441,14 +1520,13 @@ function showNoteBook() {
           if(!dash_player.isPaused())
             $('#div_sub').scrollTop(pos);
         } else {
-          s.p.style('color','rgb(120,120,120)');
+          s.p.style('color','rgb(50,50,50)');
         }
+        s.p.style('font-size','20');
       }
     }
   }
-  for(let s of shots) {
-    s.on = true;
-  }
+  setShotsFromActs();
   splitScreen();
 }
 
@@ -1625,6 +1703,14 @@ function loadSubtile() {
       success: function (data) {
         // console.log('success');
         note_book.checked(true);
+        let div_creation = createDiv();
+        div_creation.id('div_creation');
+        div_creation.position(windowWidth-150,draw_track.y+30);
+        div_creation.size(150);
+        for(let a of actors_timeline) {
+          a.on = false;
+          div_creation.child(a.elem.elt);
+        }
         is_note_book = true;
         is_note_editor = true;
         note_editor.update(is_note_editor);
@@ -1713,7 +1799,7 @@ function drawPreview() {
   for(let t of tracklets_line) {
     if(t.on && !t.added && !t.old) {
       text('Preview '+k,10,viewer_height+37);
-      t.updatePos(player.w/annotation_timeline.total_frame, 100, viewer_height+30);
+      t.updatePos(player.w/annotation_timeline.total_frame, player.x, viewer_height+30);
       t.display();
     }
     if(t.drag) {
@@ -1758,8 +1844,8 @@ function drawCreationShot() {
   intersect.show();
   save_shot.show();
   for(let i=0; i<actors_timeline.length; i++) {
-    document.body.appendChild(actors_timeline[i].elem.elt);
-    actors_timeline[i].elem.position(viewer_width+10+i*100, shot_selector.y+15);
+    $('#div_creation').append(actors_timeline[i].elem.elt);
+    actors_timeline[i].elem.style('display','table-cell');
   }
   var keypoints = frames_data[frame_num];
   var w = 300;
@@ -1785,7 +1871,7 @@ function drawCreationShot() {
     let ratio = img_hd.width / video.elt.videoWidth;
     image(img_hd, (viewer_width+10), top_shot, w, h, bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio - bbox[0]*ratio, bbox[3]*ratio - bbox[1]*ratio);
   } else {
-    image(video, (viewer_width+10), top_shot, w, h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+    image(image_frame, (viewer_width+10), top_shot, w, h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
   }
   push();
   fill(255);
@@ -2032,18 +2118,21 @@ function drawShots() {
       for(var j=0; j<arr.length; j++) {
         bbox.push(arr[j]*scale_ratio);
       }
-      w = 150;
+      w = Math.round((reframe_button.position().x-mid_width-40)/3);
       h = Math.floor(w/aspect_ratio);
       let n_w=w;let n_h=h;
       if(!s.drag) {
         if(h*s.aspect_ratio>w){
           n_h = w/s.aspect_ratio;
         }else{ n_w = h*s.aspect_ratio;}
-        if(k%2==1) {
-          off_x = 1;
+        if(k%3==2) {
+          off_x = 2;
           s.setPosition((viewer_width+10)+(off_x*w)+(off_x*10), top_shot + (off_y*h)+ (off_y*10), n_w, n_h);
           off_y++;
-        } else {
+        } else if(k%3==1) {
+          off_x = 1;
+          s.setPosition((viewer_width+10)+(off_x*w)+(off_x*10), top_shot + (off_y*h)+ (off_y*10), n_w, n_h);
+        }else {
           off_x=0;
           s.setPosition(viewer_width+10+(off_x*w), top_shot + (off_y*h) + (off_y*10), n_w, n_h);
         }
@@ -2060,12 +2149,9 @@ function drawShots() {
           let ratio = img_hd.width / video.elt.videoWidth;
           image(img_hd, s.x, s.y, s.w, s.h, bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio - bbox[0]*ratio, bbox[3]*ratio - bbox[1]*ratio);
         } else {
-          // if(s.w!=0 && s.h!=0) {
-          //   let p = createGraphics(s.w, s.h);
-          //   p.image(video, 0,0,s.w, s.h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
-          //   image(p, s.x, s.y, s.w, s.h);
-          // }
-          image(video, s.x, s.y, s.w, s.h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+          if(s.w!=0 && s.h!=0) {
+            image(image_frame, s.x, s.y, s.w, s.h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+          }
         }
         s.displayText();
       }
@@ -2079,7 +2165,7 @@ function drawShots() {
       let ratio = img_hd.width / video.elt.videoWidth;
       image(img_hd, s.x, s.y, s.w, s.h, bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio - bbox[0]*ratio, bbox[3]*ratio - bbox[1]*ratio);
     } else {
-      image(video, s.x, s.y, s.w, s.h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+      image(image_frame, s.x, s.y, s.w, s.h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
     }
     s.displayText();
   }
@@ -2151,22 +2237,22 @@ function splitScreen() {
   var split_shot = [];
   for(let s of shots) {
     if(s.on) {
-      if(is_split || s.isFrameBbox()) {
-        let b = true;
-        for(let s_s of split_shot) {
-          if(!s_s.no_img && !s.no_img && s_s.equalTo(s)) {
-            b= false;
-            break;
-          }
-        }
-        if(b) {
+      // if(is_split || s.isFrameBbox()) {
+        // let b = true;
+        // for(let s_s of split_shot) {
+        //   if(!s_s.no_img && !s.no_img && s_s.equalTo(s)) {
+        //     b= false;
+        //     break;
+        //   }
+        // }
+        // if(b) {
           split_shot.push(s);
-        } else {
-          split_shot.push({'no_img':true,'shot':s});
-        }
-      } else {
-        split_shot.push({'no_img':true,'shot':s});
-      }
+        // } else {
+        //   split_shot.push({'no_img':true,'shot':s});
+        // }
+      // } else {
+      //   split_shot.push({'no_img':true,'shot':s});
+      // }
     }
   }
   let j=0;
@@ -2201,7 +2287,12 @@ function splitScreen() {
   //   }
   // }
   // bboxes.sort(sortSplit);
-  let max_by_raw = 4;
+  let max_by_raw=0;
+  for(let a of actors_timeline) {
+    if(a.on) {
+      max_by_raw++;
+    }
+  }
   let nb_raw = Math.ceil(bboxes.length/max_by_raw);
   if(nb_raw!=0 && offset_split>(nb_raw-1)*max_by_raw) {
     offset_split = (nb_raw-1)*max_by_raw;
@@ -2248,7 +2339,7 @@ function splitScreen() {
       max_h = w/a_s;
     }
     if (bb && !b.no_img) {
-      let acts = b.shot.getUpdateActInvolved();
+      // let acts = b.shot.getUpdateActInvolved();
       bbox = [bb[0]*scale_ratio, bb[1]*scale_ratio, bb[2]*scale_ratio, bb[3]*scale_ratio];
       if(bbox) {
         if(img_hd) {
@@ -2256,20 +2347,18 @@ function splitScreen() {
           bbox = [bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio, bbox[3]*ratio];
           image(img_hd, x_vid,viewer_height+y_vid,w,w/a_s, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
         } else {
-          let p = createGraphics(w, w/a_s);
-          p.image(video, 0,0,w,w/a_s, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
-          image(p, x_vid,viewer_height+y_vid,w,w/a_s);
+          image(image_frame, x_vid,viewer_height+y_vid,w,w/a_s,bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
         }
         b.shot.bbox_show = [x_vid,viewer_height+y_vid,w,w/a_s];
         push();
         fill(255);
-        let type = b.shot.getUpdatedSizeShot(b.shot.getCurrStabShot(frame_num)[3]);
-        if(!type) {
-          type = b.shot.type;
-        }
-        text(type+round_prec(a_s,2), x_vid, viewer_height+y_vid+10);
-        for(var i=0; i<acts.length; i++) {
-          text(acts[i], x_vid, viewer_height+y_vid+20+i*10);
+        // let type = b.shot.getUpdatedSizeShot(b.shot.getCurrStabShot(frame_num)[3]);
+        // if(!type) {
+        //   type = b.shot.type;
+        // }
+        text(b.shot.type+round_prec(a_s,2), x_vid, viewer_height+y_vid+10);
+        for(var i=0; i<b.shot.actors_involved.length; i++) {
+          text(b.shot.actors_involved[i].actor_name, x_vid, viewer_height+y_vid+20+i*10);
         }
         pop();
       }
@@ -2395,14 +2484,23 @@ function smoothDetections(off) {
 function createAllShots() {
   for(let s_t of ['CU', 'MS', 'FS']) {
     for(let act of actors_timeline) {
-      var shot = new Shot();
+      let shot = new Shot();
       shot.actors_involved.push(act);
       shot.type = s_t;
+      shot.aspect_ratio = aspect_ratio;
+      shot.start_frame = 0;
+      shot.end_frame = Math.round(frame_rate*video.duration());
+      shot.calcBboxes(aspect_ratio);
       shots.push(shot);
+      if(shot.actors_involved.length>=1) {
+        add_shot.push(shot);
+        shot.in_stabilize = true;
+      }
     }
   }
 }
 
+// Create a full shots with every actors included
 function createAllActorsFullShot() {
   let r = {};
   r.Type = 'FS';
@@ -2788,6 +2886,7 @@ function setup() {
 
 function draw() {
 
+  image_frame = p5ImageFromDash();
   var x_vid = 0;
   var y_vid = 0;
   mid_width = windowWidth*((3/5)*viewer_scale);
@@ -2936,13 +3035,13 @@ function draw() {
             let ratio = img_hd.width / video.elt.videoWidth;
             image(img_hd, x_vid,y_vid,vid_w,vid_h, bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio - bbox[0]*ratio, bbox[3]*ratio - bbox[1]*ratio);
           } else {
-            image(video, x_vid,y_vid,vid_w,vid_h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+            image(image_frame, x_vid,y_vid,vid_w,vid_h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
           }
       } else {
         if(img_hd) {
           image(img_hd, x_vid,y_vid,vid_w,vid_h);
         } else {
-          image(video, x_vid,y_vid,vid_w,vid_h); // draw a second copy to canvas
+          image(image_frame, x_vid,y_vid,vid_w,vid_h); // draw a second copy to canvas
         }
       }
     }
@@ -2950,7 +3049,7 @@ function draw() {
     if(img_hd) {
       image(img_hd, x_vid,y_vid,vid_w,vid_h); // draw a second copy to canvas
     } else {
-      image(video, x_vid,y_vid,vid_w,vid_h); // draw a second copy to canvas
+      image(image_frame, x_vid,y_vid,vid_w,vid_h); // draw a second copy to canvas
     }
   }
   pop();
@@ -2960,12 +3059,11 @@ function draw() {
   if(!fullscreen()) {
     showAllElt();
     let w = player.w;
-    createVideoTimer(viewer_height-15);
+    player.updatePos(95, viewer_height-15, (viewer_width-90-20), 10);
     drawStatus();
     if(w!=player.w){shots_timeline.updatePos();}
 
     if(!is_note_book) {
-      dash_player.setAutoSwitchQualityFor('video',true);
       if(keyIsDown(17)) {
         keyDown = 17;
       }
@@ -3062,9 +3160,6 @@ function draw() {
       }
 
     } else {
-      frameRate(frame_rate);
-      dash_player.setQualityFor('video',0);
-      dash_player.setAutoSwitchQualityFor('video',false);
       total_frame = Math.floor(video.duration()*frame_rate);
       frame_num = Math.floor(video.time()*frame_rate)%total_frame+1;
       setCursor();
@@ -3089,7 +3184,8 @@ function draw() {
     hideAllElt();
     total_frame = Math.floor(video.duration()*frame_rate);
     frame_num = Math.floor(video.time()*frame_rate)%total_frame+1;
-    createVideoTimer(y_vid + viewer_height-15);
+    // createVideoTimer(y_vid + viewer_height-15);
+    player.updatePos(95, y_vid + viewer_height-15, (viewer_width-90-20), 10);
     push();
     if(vid_h == screen.height) {translate(x_vid,0);}
     drawStatus();
@@ -3122,18 +3218,18 @@ function draw() {
   push();
   fill(255);
   text(cpt+'/'+l,100,15);
-  var min = toTwoDigit(Math.floor(video.time()/60).toString());
-  var sec = toTwoDigit(Math.floor(video.time()%60).toString());
-  var mil = toTwoDigit(round_prec((video.time()%1)*100,0).toString());
+  let min = toTwoDigit(Math.floor(video.time()/60).toString());
+  let sec = toTwoDigit(Math.floor(video.time()%60).toString());
+  let mil = toTwoDigit(round_prec((video.time()%1)*100,0).toString());
   text(scale_ratio, 150,15);
   text(frame_num, 200,15);
   text(Math.round(frameRate()), viewer_width-40,15);
   textSize(20);
-  text(min +':'+sec+':'+mil, 10,20);
+  text(min +':'+sec+'.'+mil, 10,20);
   min = toTwoDigit(Math.floor(video.duration()/60).toString());
   sec = toTwoDigit(Math.floor(video.duration()%60).toString());
   mil = toTwoDigit(round_prec((video.duration()%1)*100,0).toString());
-  text(min +':'+sec+':'+mil, 10,45);
+  text(min +':'+sec+'.'+mil, 10,45);
   stroke(255);
   line(10,25,90,25);
   pop();
@@ -3360,9 +3456,12 @@ function mouseDragged() {
   let new_t = player.drag(mouseX, mouseY);
   if(new_t && !b)
     video.time(new_t);
+
+  annotation_timeline.dragNavBar(mouseX, mouseY);
 }
 
 function mouseReleased() {
+  player.drop();
 
   if(is_annotation) {
     annotation_timeline.drop(mouseX, mouseY);
@@ -3475,7 +3574,7 @@ function keyPressed() {
   }
 
   if(keyCode===46) {
-    if(!is_note_book) {
+    if(!is_note_book && is_show_shots) {
       removeShot();
       if(!editing_button.on) {
         removeTracklet();

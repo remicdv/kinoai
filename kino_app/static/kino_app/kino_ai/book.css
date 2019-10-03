@@ -28,6 +28,10 @@ h2 {
   margin-bottom: 0.83em;
 }
 
+#header_info {
+  background-color: #2E5C9C;
+}
+
 .column {
   float: left;
   width: 27%;
@@ -42,6 +46,10 @@ h2 {
   content: "";
   display: table;
   clear: both;
+}
+
+#logo {
+  float: left;
 }
 
 #div_player{

@@ -9,6 +9,8 @@ function Player(tempX, tempY, tempW, tempH, tempDur, tempRate, tempXCursor = 0) 
 
   this.on = false;
 
+  this.is_drag = false;
+
   this.x_cursor = tempXCursor;
 
   this.duration = tempDur;
@@ -29,8 +31,13 @@ function Player(tempX, tempY, tempW, tempH, tempDur, tempRate, tempXCursor = 0) 
     if (mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       var unit = this.w/this.duration;
       t = (mx-this.x)/unit;
+      this.is_drag = true;
     }
     return t;
+  }
+
+  this.drop = function() {
+    this.is_drag = false;
   }
 
   this.setPosition = function(tx, ty) {
@@ -44,6 +51,13 @@ function Player(tempX, tempY, tempW, tempH, tempDur, tempRate, tempXCursor = 0) 
 
   this.setXCursor = function(tx) {
     this.x_cursor = tx;
+  }
+
+  this.updatePos = function(tempX, tempY, tempW, tempH) {
+    this.x  = tempX;
+    this.y  = tempY;
+    this.w  = tempW;
+    this.h  = tempH;
   }
 
 
@@ -96,6 +110,15 @@ function Player(tempX, tempY, tempW, tempH, tempDur, tempRate, tempXCursor = 0) 
     line(this.x, this.y+(this.h/2), this.x+this.w, this.y+(this.h/2));
     stroke(50,50,123);
     line(this.x, this.y+(this.h/2), this.x_cursor, this.y+(this.h/2));
+    if(this.is_drag){
+      let min = toTwoDigit(Math.floor(video.time()/60).toString());
+      let sec = toTwoDigit(Math.floor(video.time()%60).toString());
+      let mil = toTwoDigit(round_prec((video.time()%1)*100,0).toString());
+      fill(255);
+      textSize(15);
+      noStroke();
+      text(min+':'+sec+'.'+mil,this.x_cursor-30,this.y-15);
+    }
     pop();
     this.drawCursor();
   }

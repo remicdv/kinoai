@@ -27,7 +27,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
 
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
-    if(!is_shot_creation) {
+    if(!is_shot_creation && !is_note_book) {
       if (mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
         this.on = !this.on;
         for(var i=0; i< this.tracks.length; i++) {
@@ -48,8 +48,9 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
         this.on = !this.on;
       }
     } else {
-      my += can.elt.offsetTop;
-      if(mx > this.elem.x && mx < this.elem.x+this.elem.elt.offsetWidth && my > (this.elem.y+this.elem.elt.offsetHeight) && my < (this.elem.y + 2*this.elem.elt.offsetHeight)) {
+      my += can.elt.offsetTop - $('#div_creation').position().top;
+      mx -= $('#div_creation').position().left;
+      if(mx > this.elem.elt.offsetLeft && mx < this.elem.elt.offsetLeft+this.elem.elt.offsetWidth && my > this.elem.elt.offsetTop && my < (this.elem.elt.offsetTop + this.elem.elt.offsetHeight)) {
         this.on = !this.on;
         if(this.on) {
           this.elem.style('color', 'rgb(46,92,156)');
@@ -808,7 +809,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
       if(t.first_frame <= f_n && f_n < t.first_frame + t.detections.length) {
         let ind = t.detections[f_n-t.first_frame];
         let keypoints;
-        if(this.frames_data[f_n][ind]) {
+        if(this.frames_data[f_n] && this.frames_data[f_n][ind]) {
           keypoints = this.frames_data[f_n][ind]['KeyPoints'];
         }
         if(keypoints && keypoints[1*3] != "null") {

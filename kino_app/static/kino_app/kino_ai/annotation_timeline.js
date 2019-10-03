@@ -63,6 +63,14 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     }
   }
 
+  this.dragNavBar = function(mx, my) {
+    if (mx > this.nav_bar.x && mx < this.nav_bar.x + this.nav_bar.w && my > this.nav_bar.y && my < this.nav_bar.y + this.nav_bar.h) {
+      let unit = player.w / (this.last-this.first)*frame_rate;
+      let time = (mx-player.x)/unit + (this.first/frame_rate);
+      video.time(time);
+    }
+  }
+
   this.keyPressed = function(keyCode) {
     for(let a of this.actors_annotation) {
       a.keyPressed(keyCode);
@@ -153,11 +161,12 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     strokeWeight(this.nav_bar.h );
     line(this.nav_bar.x, this.nav_bar.y, this.nav_bar.x+this.nav_bar.w, this.nav_bar.y);
     let unit = player.w / this.total_frame;
+    this.nav_bar.cursor = player.x+(frame_num-this.first)*unit;
     noStroke();
     text(this.getTimeFrame(this.first), player.x, viewer_height+37);
     text(this.getTimeFrame(this.last), player.x+player.w-35, viewer_height+37);
     fill(0);
-    ellipse(player.x+(frame_num-this.first)*unit,this.nav_bar.y,this.nav_bar.h*2);
+    ellipse(this.nav_bar.cursor,this.nav_bar.y,this.nav_bar.h*2);
     pop();
   }
 

@@ -8,6 +8,7 @@ from django.contrib.auth.models import Permission, User
 from django.views.decorators.csrf import csrf_exempt
 from .models import FolderPath, Detections
 from django.core.files.storage import FileSystemStorage
+from django.views.decorators.cache import never_cache
 
 import os
 import json
@@ -23,7 +24,6 @@ import math, random
 import time
 import cv2
 #  command ffmpeg for extract screeshot at 32.375 sec ffmpeg -ss 32.375 -i original_hevc.mov -frames:v 1 out1.jpg
-
 
 class LoginView(generic.View):
     template_name='kino_app/login.html'
@@ -132,7 +132,9 @@ class IndexView(generic.ListView):
     context_object_name = 'take_list'
     start = time.time()
 
+    @never_cache
     def get(self, request):
+        print(self.request.META.get('HTTP_REFERER'))
         path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/shots')
         old = len(FolderPath.objects.filter(owner=None))
         list = list_files(path, None)
@@ -152,6 +154,12 @@ class IndexView(generic.ListView):
             return HttpResponseRedirect(settings.LOGIN_URL)
         else:
             return render(request, 'kino_app/index.html', {'take_list':FolderPath.objects.filter(owner=None).order_by('path'), 'names':list_dir_name, 'user_take_list':FolderPath.objects.filter(owner=request.user).order_by('path'), 'user_names':list_dir_name_user})
+
+@csrf_exempt
+def set_previous(request):
+    name = request.POST.get('name','')
+    request.session['previous_name'] = name
+    return HttpResponseRedirect('')
 
 def launch_preprocess(name, username):
     utility = settings.MEDIA_ROOT+'/utility'
@@ -269,6 +277,7 @@ def video_editing(request, id):
             prev = FolderPath.objects.get(path=new_path+'part{:02d}'.format(int(part.split('t')[1])-1)).id
 
     data_note = []
+    request.session['previous_name'] = title
     if os.path.isfile(dir.abs_path+'/'+str(request.user.username)+'_note.json'):
         with open(dir.abs_path+'/'+str(request.user.username)+'_note.json') as f:
             data_note = json.load(f)
@@ -276,7 +285,7 @@ def video_editing(request, id):
         print(settings.LOGIN_URL)
         return HttpResponseRedirect(settings.LOGIN_URL)
     return render(request, 'kino_app/video_editing.html', {'id':id, 'title':title, 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner,
-     'data_note':json.dumps(data_note)})
+     'data_note':json.dumps(data_note).replace('\"','\\"')})
     # return render(request, 'kino_app/index.html', {'image' : data_path})
 
 def get_shot_from_spec(shots, type, actors_involved, aspect_ratio):
@@ -312,6 +321,11 @@ def video_book(request, id):
     dir = get_object_or_404(FolderPath, pk=id)
     full_vid = dir.path.split('/')[1]
     full_list = FolderPath.objects.filter(path__icontains=full_vid).order_by('path')
+
+    ind = []
+    for p in full_list:
+        if p.path.split('/')[1] != full_vid:
+            full_list = full_list.exclude(path=p.path)
 
     full_note = []
     if os.path.isfile(full_list[0].abs_path+'/note.txt'):
@@ -392,7 +406,7 @@ def video_book(request, id):
         full_crop[i]['id'] = full_list[i].id
         full_full[i]['id'] = full_list[i].id
 
-    return render(request, 'kino_app/video_book.html', {'crop':full_crop, 'full':full_full, 'tab':full_tab, 'path':full_list, 'json_shots':json.dumps(full_data), 'json_notes':json.dumps(full_note)})
+    return render(request, 'kino_app/video_book.html', {'crop':full_crop, 'full':full_full, 'tab':full_tab, 'path':full_list, 'json_shots':json.dumps(full_data), 'json_notes':json.dumps(full_note).replace('\"','\\"')})
 
 @csrf_exempt
 def save_note_video(request):

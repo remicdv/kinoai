@@ -82,23 +82,25 @@ div img {
 
 
 ul {
-  -moz-column-count: 4;
+  /* -moz-column-count: 4;
   -moz-column-gap: 20px;
   -webkit-column-count: 4;
   -webkit-column-gap: 20px;
   column-count: 4;
-  column-gap: 20px;
+  column-gap: 20px; */
   list-style-type: none;
   margin: 0;
   padding: 0;
 }
 
 li {
+  float:left;
   padding-top: 10px;
   background-color: white;
   font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
   vertical-align: middle;
   margin-bottom: 5;
+  width: 25%;
 }
 
 li:last-child {

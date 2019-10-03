@@ -34,6 +34,7 @@ var take_list = [];
 var user_default_list = [];
 var user_name_clicked;
 var user_take_list = [];
+var previous = "{{ request.session.previous_name }}";
 </script>
 
 <span class='default'>
@@ -97,6 +98,19 @@ var user_take_list = [];
   var images = document.getElementsByClassName("sliding");
   var images_def = document.getElementsByClassName("sliding_def");
   let off = document.getElementById('logo').offsetHeight - document.getElementById("tabs").offsetTop+5;
+  name_clicked = previous;
+
+  $.post({
+    url: "set_previous",
+    async: true,
+    data: {'name': ''},
+    dataType: 'json',
+    success: function (data) {
+      // console.log(data);
+    }
+  });
+
+  console.log(previous);
   document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
   $('.user_video').find("ul, p").hide();
   $('#book').hide();
@@ -105,14 +119,13 @@ var user_take_list = [];
 
   if(!name_clicked) {
     $('#list').hide();
-    if($("#list_def li").length<=1) {
-      $('#list_def').css("column-count","1");
-      $('#list_def').css("width","25%");
-    }
-    if($("#user_list_def li").length<=1) {
-      $('#user_list_def').css("column-count","1");
-      $('#user_list_def').css("width","25%");
-    }
+  } else {
+    document.getElementById('button_default').checked = false;
+    $('#user_list_def').hide();
+    $('#user_list').show();
+    $('#list_def').hide();
+    $('#list').show();
+    clickDef();
   }
   $('.row_list').each( function() {
     let first_part = $(this)[0].firstChild.innerHTML.split('<br>');
@@ -125,13 +138,6 @@ var user_take_list = [];
     $('#list').show();
     document.getElementById('button_default').checked = false;
     clickDef();
-    if($('#list li:visible').length<=1) {
-      $('#list').css("column-count","1");
-      $('#list').css("width","25%");
-    } else {
-      $('#list').css("column-count","4");
-      $('#list').css("width","100%");
-    }
   });
 
   $('.def_list.user').click(function() {
@@ -140,23 +146,16 @@ var user_take_list = [];
     $('#user_list').show();
     document.getElementById('button_user').checked = false;
     clickDef();
-    if($('#user_list li:visible').length<=1) {
-      $('#user_list').css("column-count","1");
-      $('#user_list').css("width","25%");
-    } else {
-      $('#list').css("column-count","4");
-      $('#list').css("width","100%");
-    }
   });
 
   function clickDef() {
     $('.row_list').each( function() {
-      if(this.id.includes(name_clicked)) {
+      if(this.id.includes(name_clicked) && (this.id.split('/').length>1 && this.id.split('/')[1]==name_clicked)) {
         $(this).show();
         $('#book').show();
         let href = 'video_book/'+$(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1];
         $('#book').attr("href", href);
-        console.log($(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1], $('#book'));
+        // console.log(this.id.split('/')[1],name_clicked,$(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1], $('#book'));
       } else {
         $(this).hide();
       }

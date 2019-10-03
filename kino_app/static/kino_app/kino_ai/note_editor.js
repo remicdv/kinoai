@@ -74,8 +74,8 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.setDivSize = function() {
-    this.div_notes.position(mid_width+(reframe_button.position().x-mid_width)/2,can.elt.offsetTop+60);
-    this.div_notes.size((reframe_button.position().x-mid_width)/2,height-60);
+    this.div_notes.position(mid_width+(reframe_button.position().x-mid_width)/2,can.elt.offsetTop+70);
+    this.div_notes.size((reframe_button.position().x-mid_width)/2-10,height-70);
   }
 
   function addNote() {
@@ -103,6 +103,7 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
     for(let note of this.notes) {
       let div = createDiv();
       let p = createP(note.Text);
+      p.style('font-size','20');
       let h3 = createElement('h3',this.getTimeFrame(note.Time));
       p.elt.contentEditable = true;
       note.elem = p;
@@ -130,8 +131,8 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
   this.display = function() {
     if(this.div_notes.size().height!=height) {
       this.setDivSize();
-      this.input_note.position(this.div_notes.position().x+130,can.elt.offsetTop+15);
-      this.input_note.size(this.div_notes.size().width/2);
+      this.input_note.position(this.div_notes.position().x+10,can.elt.offsetTop+45);
+      this.input_note.size(this.div_notes.size().width-15);
     }
     for(let note of this.notes) {
       note.Text = note.elem.elt.innerText;
@@ -140,10 +141,10 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
     stroke(0);
     line(this.div_notes.position().x+5,0,this.div_notes.position().x+5,height);
     noStroke();
-    textSize(15);
-    fill(120);
+    textSize(20);
+    fill(50);
     text('Add a note :',this.div_notes.position().x+10,30);
-    text(this.getTimeFrame(Math.floor(video.time())),this.div_notes.position().x+100,30);
+    text(this.getTimeFrame(Math.floor(video.time())),this.div_notes.position().x+130,30);
     // let i =0;
     // for(let note of this.notes) {
     //   text(this.getTimeFrame(note.Frame)+'  '+note.Text, mid_width+10, 200+i*20);

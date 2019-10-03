@@ -135,8 +135,8 @@ for part in "${parts[@]}"; do
 		# exit
 	  #   fi
 
-  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -x264-params 'keyint=24:min-keyint=24:no-scenecut' -b:v 1500k -maxrate 1500k -bufsize 1000k -vf "scale=-1:540" "$take_dir/$part_dir/original540.mp4" &> "$take_dir/$part_dir/original540.mp4.log"
-  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -x264-params 'keyint=24:min-keyint=24:no-scenecut' -b:v 2400k -maxrate 4800k -bufsize 2000k -vf "scale=-1:1080" "$take_dir/$part_dir/original1080.mp4" &> "$take_dir/$part_dir/original1080.mp4.log"
+  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -pix_fmt yuv420p -vf "scale=-1:540" "$take_dir/$part_dir/original540.mp4" &> "$take_dir/$part_dir/original540.mp4.log"
+  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -pix_fmt yuv420p -vf "scale=-1:1080" "$take_dir/$part_dir/original1080.mp4" &> "$take_dir/$part_dir/original1080.mp4.log"
 
     fi
 

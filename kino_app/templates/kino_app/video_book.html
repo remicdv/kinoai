@@ -5,10 +5,14 @@
 <script src="{% static 'kino_app/dash.all.min.js' %}"></script>
 <script src="{% static 'kino_app/p5.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
-<script> var end; var list_id = []; var list_player = [];</script>
+<script> var end, start; var list_id = []; var list_player = [];</script>
 
-<h1 id='title'> Carnet audiovisuel </h1>
-<div class="persist-area">
+<div id='header_info'>
+<a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
+<h1 id='title'>Carnet audiovisuel </h1>
+</div>
+
+<div id="persist-area">
   <div class='row header'>
     <div class='column left'>
       <h2>Note</h2>
@@ -41,7 +45,7 @@
     {% if tab %}
       {% for sub_tab in tab %}
         {% for t in sub_tab %}
-          <p style="padding:0; margin:0 0 0 5;">{{t.start}} - {{t.end}}</p>
+          <p style="padding:0; margin:0 0 0 5;" class="timing" id="time_{{t.id}}">{{t.start}} - {{t.end}}</p>
           <h3 style="padding:0; margin:0 0 0 5;" contenteditable="true" id="{{t.id}}">{{t.text}}</h3>
           <p class="paragraph" id="par_{{t.id}}" contenteditable="true" style="padding:0; margin:0 0 0 5;"></p>
         {% endfor %}
@@ -81,6 +85,8 @@
   window.addEventListener("load", function(event) {
       lazyload();
   });
+  let off = document.getElementById('logo').offsetHeight - document.getElementById("persist-area").offsetTop+5;
+  document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
   $('#div_player_'+list_id[0]).show();
   $('.player_container').css({position:'absolute'});
   $('#div_player_'+list_id[0]).css({top:$( '.column.right img:first' ).position().top, left:$( '.column.right img:first' ).position().left});
@@ -95,6 +101,7 @@
   var canvas;
   var currentPlayer = list_player[0];
   var curr_id = list_id[0];
+  var curr_ind = 0;
   function setup() {
     canvas = createCanvas(video.width, video.height);
     $('.column.left h3').each(function() {
@@ -128,12 +135,10 @@
     updatePlayer();
   }
   function updatePlayer() {
-    if(!currentPlayer.isPaused()) {
-      if(end && currentPlayer.getVideoElement().currentTime >= end) {
+      if(end && start && (currentPlayer.getVideoElement().currentTime > end || currentPlayer.getVideoElement().currentTime < start)) {
+        currentPlayer.getVideoElement().currentTime = start;
         currentPlayer.pause();
-        end = undefined;
       }
-    }
   }
 
   $('.full').click(function() {
@@ -142,6 +147,7 @@
       if(src.includes(list_id[i])) {
         currentPlayer = list_player[i];
         curr_id = list_id[i];
+        curr_ind = i;
         curr_data = data_shots[i];
         $('#div_player_'+list_id[i]).show();
       } else {
@@ -150,13 +156,19 @@
     }
     video = new p5.MediaElement(currentPlayer.getVideoElement());
     let time = parseInt($(this)[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+
+    start = time;
+    time+=+600*curr_ind;
     if($(this).next().length >0) {
-      end = parseInt($(this).next()[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+      // end = parseInt($(this).next()[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+      end = parseInt(document.getElementById('time_'+time+'.0').innerText.split('-')[1].split(':')[0])*60 + parseInt(document.getElementById('time_'+time+'.0').innerText.split('-')[1].split(':')[1]);
+      if(curr_ind!=0)
+        end = end%(600*curr_ind);
     } else {
       end = currentPlayer.getVideoElement().duration;
     }
     $('#div_player_'+curr_id).css({top:$( this ).position().top, left:$( this ).position().left});
-    currentPlayer.getVideoElement().currentTime = time;
+    currentPlayer.getVideoElement().currentTime = start;
     currentPlayer.play();
   });
 

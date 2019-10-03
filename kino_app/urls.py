@@ -6,6 +6,7 @@ app_name = 'kino_app'
 urlpatterns = [
     # ex: /polls/
     path('', views.IndexView.as_view(), name='index'),
+    path('set_previous', views.set_previous, name='set_previous'),
     path('upload', views.upload_view, name='upload'),
     path('preprocess', views.preprocess, name='preprocess'),
     path('video_book/<int:id>', views.video_book, name='video_book'),

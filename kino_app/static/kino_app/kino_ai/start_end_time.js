@@ -493,7 +493,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
         if(!type) {
           type = s.type;
         }
-        text(type, 15 ,30);
+        text(type, 15 ,60);
         let j=0;
         let string_psl_act = 'On '
         for(let act_name of s.getUpdateActInvolved()) {
@@ -503,7 +503,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
           // text(act_name, 15 ,45+j*15);
           j++;
         }
-        text(string_psl_act, 15, 45);
+        text(string_psl_act, 15, 75);
         // text('Width '+Math.round(s.getCurrStabShot(frame_num)[2]-s.getCurrStabShot(frame_num)[0]),100,30);
         // text('X '+Math.round((s.getCurrStabShot(frame_num)[2]+s.getCurrStabShot(frame_num)[0])/2),100,45);
         // text('Y '+Math.round((s.getCurrStabShot(frame_num)[3]+s.getCurrStabShot(frame_num)[1])/2),100,60);

@@ -285,7 +285,7 @@ function Shot()  {
               // boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
             }
             if(boxB && bbox) {
-              if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || box[3] < bbox[1])) {
+              if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
                 x_centers.push((boxB[0]+boxB[2])/2);
                 y_centers.push((boxB[1]+boxB[3])/2);
                 is_not_inv = true;
@@ -305,7 +305,7 @@ function Shot()  {
             // let box_side = curr_bbox;
             // boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
             if(boxB && bbox) {
-              if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || box[3] < bbox[1])) {
+              if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
                 x_centers.push((boxB[0]+boxB[2])/2);
                 y_centers.push((boxB[1]+boxB[3])/2);
                 is_not_inv = true;

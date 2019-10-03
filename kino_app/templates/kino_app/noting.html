@@ -11,78 +11,131 @@
 <h1 >Noting app </h1>
 </div>
 
-<div class='register_notes'>
-  <!-- <input type="text" name="" value="" id='input_note'> -->
+<div id="add_note">
+  <p>Add note : </p>
+  <input type="text" id="input_add"/>
 </div>
 
-<div class='notes' contenteditable="true">
-
+<div id='created_notes'>
 </div>
+
+<!-- <img src="{% static 'kino_app/logo/frigo.png' %}" width="100%" style='"text-align: center"'> -->
 
 <script>
-let off = document.getElementById('logo').offsetHeight - document.getElementsByClassName("register_notes")[0].offsetTop+5;
+let off = document.getElementById('logo').offsetHeight - document.getElementById("add_note").offsetTop+5;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
 var start;
 var start_time;
 var tab_ind_time = [];
 var notes = [];
-// $('#input_note').change(function() {
-//   if($(this).val().length) {
-//     let timeCode = document.createElement('p');
-//     let newNote = document.createElement('h3');
-//     let str =  $(this).val();
-//     for(let o of tab_ind_time) {
-//       str = str.replaceAt(o.ind,"X");
-//       console.log(o.ind, str,str[o.ind]);
-//     }
-//     newNote.innerText = str;
-//     timeCode.innerText = start + '/ End '+Date().split('GMT')[0];
-//     $('.notes').append(timeCode);
-//     $('.notes').append(newNote);
-//     $(this).val('');
-//     tab_ind_time = [];
-//   }
-// });
-//
-// $('#input_note').keyup(function( event ){
-//   if($(this).val().length == 1) {
-//     let timeCode = 'Start '+Date().split('GMT')[0];
-//     start = timeCode;
-//     start_time = Date.now();
-//   }
-// });
+var curr_note_ind;
+var is_dragging = {};
 
-$('.notes').keyup(function(event) {
-  let last = $('.notes')[0].innerText.split('\n')[$('.notes')[0].innerText.split('\n').length-1];
-  if(last.length==1) {
-    let timeCode = 'Start '+Date().split('GMT')[0].split('2019')[1];
-    start = timeCode;
-    start_time = Date.now();
-  }
-  if(event.originalEvent.keyCode == 13 && start) {
-    let end = 'End '+Date().split('GMT')[0].split('2019')[1];
-    let text = getLastLine($('.notes')[0].innerText.split('\n'));
-    console.log(event.originalEvent.key, text, start, end);
-    let timeCode = document.createElement('p');
-    let newNote = document.createElement('p');
-    for(let o of tab_ind_time) {
-      text = text.replaceAt(o.ind,"X");
-      console.log(o.ind, text,text[o.ind]);
-    }
-    newNote.innerText = text;
-    timeCode.innerText = start + '/ '+end;
-    let div = document.createElement('div');
-    div.append(timeCode);
-    div.append(newNote);
-    $('.register_notes').append(div);
-    $('.notes')[0].innerText = '';
-    tab_ind_time = [];
-    start = undefined;
-  }else if(last.length==0) {
-    start=undefined;
-  }
+$('#input_add').change(function() {
+  let wrap_note = document.createElement('div');
+  wrap_note.className = "wrap_notes";
+  let register_notes = document.createElement('div');
+  register_notes.className = "register_notes";
+  let note = document.createElement('div');
+  note.className = "notes";
+  note.contentEditable = true;
+  let div_title = document.createElement('div');
+  let title = document.createElement('h3');
+  title.innerText = $(this).val()+' '+Date().split('GMT')[0];
+  let img = document.createElement('img');
+  img.src = "/static/kino_app/logo/punaise.png";
+  img.width = 65;
+  img.height = 50;
+  div_title.append(img);
+  div_title.append(title);
+  wrap_note.append(div_title);
+  let text_note = document.createElement('div');
+  text_note.append(register_notes);
+  text_note.append(note);
+  text_note.style.overflow = 'auto';
+  text_note.style.height = '100%';
+  text_note.style.width = '100%';
+  wrap_note.append(text_note);
+  $('#created_notes').append(wrap_note);
+  $(this).val('');
+  updateEvent();
 });
 
+function updateEvent() {
+
+  $('.notes').keyup(function(event) {
+    curr_note_ind = $('.notes').index(this);
+    if(event.originalEvent.keyCode == 13){
+      $('.notes')[curr_note_ind].innerText = '';
+    }
+  });
+
+  $('.notes').keydown(function(event) {
+    curr_note_ind = $('.notes').index(this);
+    let last = $('.notes')[curr_note_ind].innerText.split('\n')[$('.notes')[curr_note_ind].innerText.split('\n').length-1];
+    console.log('key');
+    if(last.length==1) {
+      let timeCode = Date().split('GMT')[0].split('2019')[1];
+      start = timeCode;
+      start_time = Date.now();
+    }
+    if(event.originalEvent.keyCode == 13 && start) {
+      let end = Date().split('GMT')[0].split('2019')[1];
+      let text = getLastLine($('.notes')[curr_note_ind].innerText.split('\n'));
+      console.log(event.originalEvent.key, text, start, end);
+      let timeCode = document.createElement('p');
+      timeCode.style.width = 165;
+      let newNote = document.createElement('p');
+      newNote.contentEditable = true;
+      let note = {};
+      note.Start = start;
+      note.End = end;
+      note.Text = text;
+      note.IndexTime = tab_ind_time;
+      notes.push(note);
+      newNote.innerText = text;
+      timeCode.innerText = start + ' -- '+end;
+      let div = document.createElement('div');
+      div.append(timeCode);
+      div.append(newNote);
+      $('.register_notes')[curr_note_ind].append(div);
+      $('.notes')[curr_note_ind].innerText = '';
+      tab_ind_time = [];
+      start = undefined;
+    }else if(last.length==0) {
+      start=undefined;
+    }
+  });
+
+  $('.wrap_notes').mousedown(function() {
+    if(!is_dragging.drag) {
+      is_dragging.drag = true;
+      // $(this).css('z-index', 3000);
+      if (event.ctrlKey) {
+         //do something, ctrl was down when clicked
+         if($(this).parent().width()/ $(this).width() != 10){
+           $(this).css('width','10%');
+           $(this).css('height','10%');
+         } else {
+           $(this).css('width','40%');
+           $(this).css('height','40%');
+         }
+      }
+      $(this).detach().appendTo($('#created_notes'));
+      is_dragging.ind = $('.wrap_notes').index(this);
+    }
+    // console.log('click down');
+  }).mousemove(function( event ) {
+    if(is_dragging.drag && is_dragging.ind == $('.wrap_notes').index(this)) {
+      let w = $(this).width();
+      let h = $(this).height();
+      $(this).css({top: event.pageY-h/2, left: event.pageX-w/2});
+    }
+  }).mouseup(function( event ){
+    is_dragging.drag = false;
+  });
+
+}
 function getLastLine(tab) {
   let text;
   for(let i=tab.length-1;i>=0;i--) {
