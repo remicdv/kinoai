@@ -40,6 +40,8 @@ var shot_creation;
 var is_shot_creation = false;
 var intersect;
 var is_intersect = true;
+var all_types;
+var is_all_types = true;
 var show_tracks;
 var is_show_tracks = false;
 var show_shots;
@@ -145,6 +147,28 @@ function preload() {
   Getters functions
 */
 
+// Sort the created shots
+function sortShotsByType(a, b) {
+  if (getFactor(a.type) < getFactor(b.type))
+    return -1;
+  if (getFactor(a.type) > getFactor(b.type))
+    return 1;
+  return 0;
+}
+
+// Sort the created shots
+function sortShotsByName(a, b) {
+  if(a.actors_involved.length==1&&b.actors_involved.length==1) {
+    if (a.actors_involved[0].actor_name < b.actors_involved[0].actor_name)
+      return -1;
+    if (a.actors_involved[0].actor_name > b.actors_involved[0].actor_name)
+      return 1;
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
 // Active the shots choosen by the user for the notebook
 function setShotsFromActs() {
   let acts = [];
@@ -170,6 +194,34 @@ function setShotsFromActs() {
   }
 }
 
+// Get the factor scale factor based on the types
+function getFactor(type) {
+  var shot_factor = 1;
+  switch (type){
+    case 'BCU':
+      shot_factor = 1/7;
+      break;
+    case 'CU':
+      shot_factor = 1/5;
+      break;
+    case 'MCU':
+      shot_factor = 1/3;
+      break;
+    case 'MS':
+      shot_factor = 1/2;
+      break;
+    case 'MLS':
+      shot_factor = 2/3;
+      break;
+    case 'FS':
+      shot_factor = 1;
+      break;
+    default:
+      shot_factor = 1;
+      break;
+  }
+  return shot_factor;
+}
 //Get the bounding box from open pose detect
 function getBBox(keypoints, scale=0) {
   // console.log(keypoints);
@@ -345,30 +397,7 @@ function getBBoxShot(shotType, aspectRatio) {
     }
   }
   var imageSize = [0, 0, Number(original_width), Number(original_height)];
-  var shot_factor = 1;
-  switch (shotType){
-    case 'BCU':
-      shot_factor = 1/7;
-      break;
-    case 'CU':
-      shot_factor = 1/5;
-      break;
-    case 'MCU':
-      shot_factor = 1/3;
-      break;
-    case 'MS':
-      shot_factor = 1/2;
-      break;
-    case 'MLS':
-      shot_factor = 2/3;
-      break;
-    case 'FS':
-      shot_factor = 1;
-      break;
-    default:
-      shot_factor = 1;
-      break;
-  }
+  var shot_factor = getFactor(shotType);
 
   var bbox = [];
   let k = 0;
@@ -904,6 +933,10 @@ function updateShotIntersect() {
   is_intersect = this.checked();
 }
 
+function updateAllShotSelect() {
+  is_all_types = this.checked();
+}
+
 function updateShowTracks() {
   is_show_tracks = this.checked();
 }
@@ -955,6 +988,10 @@ function updateNoteBook() {
 
 function selectShotType() {
   shot_type = shot_selector.value();
+  if(is_show_shots) {
+    all_types.checked(false);
+    is_all_types = false;
+  }
 }
 
 function selectRatio() {
@@ -1084,6 +1121,8 @@ function exploitRoughCut() {
       // console.log(shots_timeline.shots);
     shots_timeline.fillRough(frames_no_info);
   }
+  shots.sort(sortShotsByName);
+  shots.sort(sortShotsByType);
 }
 
 // Get the specification and launch the stabilization of the shot created by the user
@@ -1112,6 +1151,8 @@ function saveShot() {
     add_shot.push(shot);
     shot.in_stabilize = true;
   }
+  shots.sort(sortShotsByName);
+  shots.sort(sortShotsByType);
 }
 
 function setCursor() {
@@ -2093,17 +2134,17 @@ function drawShots() {
   if(table_scroll) {
     top_shot = table_scroll.y + table_scroll.height + 10;
   }
+
+  shot_selector.show();
+  all_types.show();
   var k=0;
   var off_x = 0;
   var off_y = 0;
-  if(!is_shot_creation){
-
-  }
   if(!is_show_tracks) {
     push();
     fill('red');
     textSize(15);
-    text('Shots created :', viewer_width+10, shot_selector.original_y+35);
+    text('Shots created :', viewer_width+10, shot_selector.original_y+45);
     pop();
   }
   var front_shot;
@@ -2113,7 +2154,7 @@ function drawShots() {
       s.aspect_ratio = aspect_ratio;
     }
     var arr = s.getCurrStabShot(frame_num);
-    if(arr) {
+    if(arr && (s.type == shot_type || is_all_types)) {
       var bbox = [];
       for(var j=0; j<arr.length; j++) {
         bbox.push(arr[j]*scale_ratio);
@@ -2237,75 +2278,45 @@ function splitScreen() {
   var split_shot = [];
   for(let s of shots) {
     if(s.on) {
-      // if(is_split || s.isFrameBbox()) {
-        // let b = true;
-        // for(let s_s of split_shot) {
-        //   if(!s_s.no_img && !s.no_img && s_s.equalTo(s)) {
-        //     b= false;
-        //     break;
-        //   }
-        // }
-        // if(b) {
-          split_shot.push(s);
-        // } else {
-        //   split_shot.push({'no_img':true,'shot':s});
-        // }
-      // } else {
-      //   split_shot.push({'no_img':true,'shot':s});
-      // }
+      split_shot.push(s);
     }
   }
   let j=0;
   let bboxes = [];
   for(let s of split_shot) {
-    if(s.no_img) {
-      bboxes.push({'no_img':true,'bbox':[s.shot.getCurrStabShot(frame_num)[0]]});
-    } else {
-      let b = s.getCurrStabShot(frame_num);
-      if(b) {
-        let bb = {};
-        bb.bbox = b;
-        bb.shot = s;
-        bboxes.push(bb);
+    let b = s.getCurrStabShot(frame_num);
+    if(b) {
+      let bb = {};
+      bb.bbox = b;
+      bb.shot = s;
+      bboxes.push(bb);
+    }
+  }
+
+  let max_by_raw=4;
+  if(is_note_book) {
+    max_by_raw=0;
+    for(let a of actors_timeline) {
+      if(a.on) {
+        max_by_raw++;
       }
     }
   }
-  // if(!is_split) {
-  //   for(let i=0;i<bboxes.length; i++){
-  //     if(!bboxes[i].no_img) {
-  //       let bb = [round_prec(bboxes[i].bbox[0]),round_prec(bboxes[i].bbox[1]),round_prec(bboxes[i].bbox[2]),round_prec(bboxes[i].bbox[3])];
-  //       for(let j=0;j<bboxes.length; j++) {
-  //         if(i!=j){
-  //           let bb1 = [round_prec(bboxes[j].bbox[0]),round_prec(bboxes[j].bbox[1]),round_prec(bboxes[j].bbox[2]),round_prec(bboxes[j].bbox[3])];
-  //           if(abs(bb[0]-bb1[0])<15 && abs(bb[1]-bb1[1])<15 && abs(bb[2]-bb1[2])<15 && abs(bb[3]-bb1[3])<15) {
-  //             bboxes.splice(i,1);
-  //             break;
-  //           }
-  //         }
-  //       }
-  //     }
-  //   }
-  // }
-  // bboxes.sort(sortSplit);
-  let max_by_raw=0;
-  for(let a of actors_timeline) {
-    if(a.on) {
-      max_by_raw++;
-    }
-  }
   let nb_raw = Math.ceil(bboxes.length/max_by_raw);
-  if(nb_raw!=0 && offset_split>(nb_raw-1)*max_by_raw) {
-    offset_split = (nb_raw-1)*max_by_raw;
-  } else if(nb_raw==0) {
-    offset_split = 0;
-  }
-  if(Math.ceil(offset_split/nb_raw)>0) {
-    bboxes.splice(0,Math.ceil(offset_split/nb_raw)*max_by_raw);
-  }
+  // if(nb_raw!=0 && offset_split>(nb_raw-1)*max_by_raw) {
+  //   offset_split = (nb_raw-1)*max_by_raw;
+  // } else if(nb_raw==0) {
+  //   offset_split = 0;
+  // }
+  // if(Math.ceil(offset_split/nb_raw)>0) {
+  //   bboxes.splice(0,Math.ceil(offset_split/nb_raw)*max_by_raw);
+  // }
   let y_vid=0;
   let x_vid=0;
   let max_h = 0;
   let curr_raw = 1;
+  let total_height = 0;
+  let total_width = 0;
 
   for(let b of bboxes) {
     let bb = b.bbox;
@@ -2338,37 +2349,53 @@ function splitScreen() {
     if(w/a_s>max_h) {
       max_h = w/a_s;
     }
-    if (bb && !b.no_img) {
+    total_height += max_h;
+    total_width += w;
+    b.shot.bbox_show = [x_vid,viewer_height+y_vid,w,w/a_s];
+    j++;
+  }
+
+  let sc = 1;
+  let off_height = 0;
+  let off_width = 0;
+  if(max_by_raw!=0 && (height-viewer_height)<(total_height/max_by_raw)) {
+    sc = (height-viewer_height)/(total_height/max_by_raw);
+    off_height = viewer_height-bboxes[0].shot.bbox_show[1]*sc;
+    off_width = (mid_width-(total_width/3)*sc)/2;
+  }
+  for(let b of bboxes) {
+    b.shot.bbox_show = b.shot.bbox_show.map(x => x*sc);
+    b.shot.bbox_show[1] = b.shot.bbox_show[1]+off_height;
+    b.shot.bbox_show[0] = b.shot.bbox_show[0]+off_width;
+    let bb = b.bbox;
+    let a_s = aspect_ratio;
+    if(b.shot && b.shot.aspect_ratio) {
+      a_s = b.shot.aspect_ratio;
+    }
+    if (bb) {
       // let acts = b.shot.getUpdateActInvolved();
       bbox = [bb[0]*scale_ratio, bb[1]*scale_ratio, bb[2]*scale_ratio, bb[3]*scale_ratio];
       if(bbox) {
         if(img_hd) {
           let ratio = img_hd.width / video.elt.videoWidth;
           bbox = [bbox[0]*ratio, bbox[1]*ratio, bbox[2]*ratio, bbox[3]*ratio];
-          image(img_hd, x_vid,viewer_height+y_vid,w,w/a_s, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+          image(img_hd, b.shot.bbox_show[0],b.shot.bbox_show[1],b.shot.bbox_show[2],b.shot.bbox_show[3], bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
         } else {
-          image(image_frame, x_vid,viewer_height+y_vid,w,w/a_s,bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+          image(image_frame, b.shot.bbox_show[0],b.shot.bbox_show[1],b.shot.bbox_show[2],b.shot.bbox_show[3],bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
         }
-        b.shot.bbox_show = [x_vid,viewer_height+y_vid,w,w/a_s];
         push();
         fill(255);
         // let type = b.shot.getUpdatedSizeShot(b.shot.getCurrStabShot(frame_num)[3]);
         // if(!type) {
         //   type = b.shot.type;
         // }
-        text(b.shot.type+round_prec(a_s,2), x_vid, viewer_height+y_vid+10);
+        text(b.shot.type+round_prec(a_s,2), b.shot.bbox_show[0],b.shot.bbox_show[1]+10);
         for(var i=0; i<b.shot.actors_involved.length; i++) {
-          text(b.shot.actors_involved[i].actor_name, x_vid, viewer_height+y_vid+20+i*10);
+          text(b.shot.actors_involved[i].actor_name, b.shot.bbox_show[0],b.shot.bbox_show[1]+20+i*10);
         }
         pop();
       }
-    } else {
-      push();
-      fill(0);
-      rect(x_vid,viewer_height+y_vid,w,w/a_s);
-      pop();
     }
-    j++;
   }
 }
 // -----------------------------------------------------------------------------------------------------------------
@@ -2498,6 +2525,8 @@ function createAllShots() {
       }
     }
   }
+  shots.sort(sortShotsByName);
+  shots.sort(sortShotsByType);
 }
 
 // Create a full shots with every actors included
@@ -2527,6 +2556,9 @@ function createAllActorsFullShot() {
     add_shot.push(s);
 
     s.in_stabilize = true;
+
+    shots.sort(sortShotsByName);
+    shots.sort(sortShotsByType);
   }
 
 }
@@ -2663,6 +2695,8 @@ function setup() {
         shots.push(s);
       }
     }
+    shots.sort(sortShotsByName);
+    shots.sort(sortShotsByType);
 
     can.size(windowWidth, viewer_height * 2);
 
@@ -2700,6 +2734,14 @@ function setup() {
     html_elements.push(intersect);
     intersect.position(windowWidth/2 + 140, 40);
     intersect.changed(updateShotIntersect);
+
+    all_types = createCheckbox('All types', true);
+    all_types.side = false;
+    all_types.mouseOver(processToolTip('Display all types'));
+    all_types.mouseOut(processToolTip(''));
+    html_elements.push(all_types);
+    all_types.position(windowWidth/2 + 140, 40);
+    all_types.changed(updateAllShotSelect);
 
     save_shot = createButton('Save');
     save_shot.side = false;
@@ -2879,7 +2921,7 @@ function setup() {
     save_shot.hide();
     ratio_selector.hide();
     intersect.hide();
-
+    all_types.hide();
     // createAllShots();
   }
 }
@@ -2909,6 +2951,7 @@ function draw() {
     shot_selector.original_x = mid_width + 10;
     ratio_selector.original_x = mid_width + 80;
     intersect.original_x = mid_width + 140;
+    all_types.original_x = mid_width + 140;
     shot_creation.original_x = mid_width + 10;
     show_tracks.original_x = mid_width + 160;
     show_shots.original_x = mid_width + 320;
@@ -3126,6 +3169,7 @@ function draw() {
           }
         }
         if(is_shot_creation) {
+          all_types.hide();
           drawCreationShot();
           if(table_scroll) {
             table_scroll.remove();
@@ -3137,8 +3181,11 @@ function draw() {
           ratio_selector.hide();
           intersect.hide();
           save_shot.hide();
-          if(is_show_shots && !is_show_tracks)
+          if(is_show_shots && !is_show_tracks) {
             drawShots();
+          } else {
+            all_types.hide();
+          }
         }
         if(!crop_button.on) {
           drawPreview();
