@@ -169,14 +169,29 @@ function sortShotsByName(a, b) {
   }
 }
 
+function sortShotsByActPosition(a, b) {
+  if(a.actors_involved.length==1&&b.actors_involved.length==1) {
+    if (a.actors_involved[0].getActPosition().x < b.actors_involved[0].getActPosition().x)
+      return -1;
+    if (a.actors_involved[0].getActPosition().x > b.actors_involved[0].getActPosition().x)
+      return 1;
+    return 0;
+  } else {
+    return -1;
+  }
+}
+
 // Active the shots choosen by the user for the notebook
-function setShotsFromActs() {
+function getShotsFromActs() {
   let acts = [];
   for(let a of actors_timeline) {
     if(a.on) {
       acts.push(a.actor_name);
     }
   }
+  // if(all_on_stage) {
+  // }
+  let printed_shots = [];
   for(let s of shots) {
     let b = false;
     for(let a of s.actors_involved) {
@@ -187,13 +202,17 @@ function setShotsFromActs() {
     }
     if(b && s.actors_involved.length == 1) {
       s.on = true;
+      printed_shots.push(s);
     } else {
       s.on = false;
       s.bbox_show = [];
     }
   }
-}
 
+  printed_shots.sort(sortShotsByActPosition);
+  printed_shots.sort(sortShotsByType);
+  return printed_shots;
+}
 // Get the factor scale factor based on the types
 function getFactor(type) {
   var shot_factor = 1;
@@ -1567,8 +1586,8 @@ function showNoteBook() {
       }
     }
   }
-  setShotsFromActs();
-  splitScreen();
+  // getShotsFromActs();
+  splitScreen(getShotsFromActs());
 }
 
 // Remove the selected tracklet
@@ -2274,11 +2293,17 @@ function sortSplit(a,b) {
 }
 
 // Show the selected shot preview below the player
-function splitScreen() {
-  var split_shot = [];
-  for(let s of shots) {
-    if(s.on) {
-      split_shot.push(s);
+function splitScreen(printed_shots=undefined) {
+  let split_shot = [];
+  if(!is_note_book) {
+    for(let s of shots) {
+      if(s.on) {
+        split_shot.push(s);
+      }
+    }
+  } else {
+    if(printed_shots) {
+      split_shot = printed_shots;
     }
   }
   let j=0;
@@ -2389,7 +2414,7 @@ function splitScreen() {
         // if(!type) {
         //   type = b.shot.type;
         // }
-        text(b.shot.type+round_prec(a_s,2), b.shot.bbox_show[0],b.shot.bbox_show[1]+10);
+        text(b.shot.type/*+round_prec(a_s,2)*/, b.shot.bbox_show[0],b.shot.bbox_show[1]+10);
         for(var i=0; i<b.shot.actors_involved.length; i++) {
           text(b.shot.actors_involved[i].actor_name, b.shot.bbox_show[0],b.shot.bbox_show[1]+20+i*10);
         }
@@ -2931,7 +2956,8 @@ function draw() {
   image_frame = p5ImageFromDash();
   var x_vid = 0;
   var y_vid = 0;
-  mid_width = windowWidth*((3/5)*viewer_scale);
+  if(viewer_scale==1)
+    mid_width = windowWidth*((3/5)*viewer_scale);
   can.size(windowWidth, windowHeight-can.elt.offsetTop-5);
   editing_button.setPosition(act_input.position().x+act_input.elt.offsetWidth+15,viewer_height+10);
   crop_button.setPosition(editing_button.x+30,viewer_height+10);
@@ -3001,13 +3027,13 @@ function draw() {
     }
     viewer_width = mid_width;
     viewer_height = windowHeight*((1/2)*viewer_scale);
-    if(viewer_height*aspect_ratio>mid_width){
-      vid_h = mid_width/aspect_ratio;
-      vid_w = mid_width;
-    } else {
+    // if(viewer_height*aspect_ratio>mid_width){
+    //   vid_h = mid_width/aspect_ratio;
+    //   vid_w = mid_width;
+    // } else {
       vid_h = viewer_height;
       vid_w = vid_h*aspect_ratio;
-    }
+    // }
     x_off = (mid_width - vid_w)/2;
     y_off = (viewer_height-vid_h)/2;
     background(255);

@@ -831,6 +831,22 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
     return center;
   }
 
+  this.getActPosition = function(f_n = frame_num) {
+    let c = this.getCenterAct(f_n);
+    if(!c.x) {
+      for(let i=0; i<Math.min(total_frame-f_n,frame_rate*5);i++) {
+        c = this.getCenterAct(f_n+i);
+        if(c.x) {
+          break;
+        }
+      }
+    }
+    if(!c.x) {
+      c = {x:parseInt(original_width),y:parseInt(original_height)};
+    }
+    return c;
+  }
+
   this.getVelocityVect = function(fr_num) {
     let c_1t = this.getCenterAct(fr_num-1).x;
     let c_t = this.getCenterAct(fr_num).x;
