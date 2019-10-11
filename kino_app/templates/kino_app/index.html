@@ -4,7 +4,7 @@
 
 <div id='header_info'>
 <div id='user_info'>
-  <h3>Hello {{user.username}} !</h3>
+  <h3>{{user.username}}</h3>
   <div id='log_up'>
   <form action="{% url 'logout' %}" method="post" >
           {% csrf_token %}

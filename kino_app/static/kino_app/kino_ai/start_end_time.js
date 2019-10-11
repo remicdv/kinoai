@@ -40,9 +40,11 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       // } else{
       //   this.end = mx;
       // }
-      var unit = this.w/this.duration;
-      this.time= (mx-this.x)/unit;
-      return this.time
+      // var unit = this.w/this.duration;
+      // this.time= (mx-this.x)/unit;
+      let unit = this.w/(annotation_timeline.total_frame/frame_rate);
+      this.time=(annotation_timeline.first/frame_rate)+(mx-this.x)/unit;
+      return this.time;
     } else {
       return undefined;
     }
@@ -68,14 +70,14 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
         return 0;
       } else {
         var unit = this.w/this.duration;
-        this.time= (mx-this.x)/unit;
+        this.time= (annotation_timeline.first/frame_rate) + (mx-this.x)/unit;
         this.addShot(s);
         return this.time;
       }
     } else if (!is_split && ext_s && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h && (mx < ext_s.start || mx > ext_s.end)) {
       // Extend ext shot
       var unit = this.w/this.duration;
-      this.time= (mx-this.x)/unit;
+      this.time= (annotation_timeline.first/frame_rate) + (mx-this.x)/unit;
       this.extendShot(ext_s, mx);
       return this.time;
     } else {
@@ -462,6 +464,20 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     return ret;
   }
 
+  this.getAspectRatio = function() {
+    let curr_a_s;
+    for(let s of this.shots) {
+      if(!curr_a_s) {
+        curr_a_s = s.aspect_ratio;
+      } else if(curr_a_s != s.aspect_ratio) {
+        curr_a_s = aspect_ratio;
+        break;
+      }
+    }
+    console.log(curr_a_s);
+    return curr_a_s;
+  }
+
   this.extractKeyFrames = function() {
     let ret = [];
     for(let t of video.elt.textTracks) {
@@ -482,6 +498,17 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     }
     // console.log(ret);
     return ret;
+  }
+
+  this.updateShotPos = function() {
+    for(let s of this.shots) {
+      let unit = this.w/annotation_timeline.total_frame;
+      let off_x = annotation_timeline.first*unit;
+      let start = this.x + Math.round((s.start_frame-1)*unit) - off_x;
+      let end = start + Math.round((s.end_frame-s.start_frame-1)*unit);
+      s.start = start;
+      s.end = end;
+    }
   }
 
   this.displayPSL = function() {
@@ -535,6 +562,10 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
 
   // Draw the rectangle
   this.display = function() {
+    this.duration = (annotation_timeline.total_frame/frame_rate);
+    annotation_timeline.updateFirstLast();
+    annotation_timeline.drawCursor();
+    this.updateShotPos();
     push();
     noStroke();
     fill(120);
@@ -542,38 +573,42 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     pop();
 
     for(var i=0; i<this.shots.length; i++) {
-      if(this.shots[i].on) {
-        push();
-        noStroke();
-        fill(120,230,216);
-        rect(this.shots[i].start,this.y,this.shots[i].end-this.shots[i].start,this.h);
-        pop();
-      }
-      if(this.shots[i]) {
-        push();
-        strokeWeight(2);
-        stroke(255);
-        line(this.shots[i].start, this.y+this.h/2, this.shots[i].end-10, this.y+this.h/2);
-        line(this.shots[i].end, this.y, this.shots[i].end, this.y+this.h);
-        line(this.shots[i].end, this.y, this.shots[i].end-10, this.y);
-        line(this.shots[i].end, this.y+this.h, this.shots[i].end-10, this.y+this.h);
-        // if(this.shots[i].img_start) {
-        //   var bbox = this.shots[i].bboxes[this.shots[i].start_frame];
-        //   var h = this.h/3;
-        //   if(bbox) {
-        //     image(this.shots[i].img_start,this.shots[i].start,this.y,h*aspect_ratio, h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
-        //   } else {
-        //     image(this.shots[i].img_start,this.shots[i].start,this.y,h*aspect_ratio, h);
-        //   }
-        // }
-        fill(255);
-        noStroke();
-        text(this.shots[i].type, this.shots[i].start, this.y+10);
-        for(var j=0; j<this.shots[i].actors_involved.length; j++) {
-          text(this.shots[i].actors_involved[j].actor_name, this.shots[i].start, this.y+25+j*15);
+      if(this.shots[i].start_frame<annotation_timeline.last && this.shots[i].end_frame>annotation_timeline.first) {
+        let x_start = Math.max(this.shots[i].start, this.x);
+        let x_end = Math.min(this.shots[i].end, this.x+this.w);
+        if(this.shots[i].on) {
+          push();
+          noStroke();
+          fill(120,230,216);
+          rect(x_start,this.y,x_end-x_start,this.h);
+          pop();
         }
-        pop();
-      }
+        if(this.shots[i]) {
+          push();
+          strokeWeight(2);
+          stroke(255);
+          line(x_start, this.y+this.h/2, x_end-10, this.y+this.h/2);
+          line(x_end, this.y, x_end, this.y+this.h);
+          line(x_end, this.y, x_end-10, this.y);
+          line(x_end, this.y+this.h, x_end-10, this.y+this.h);
+          // if(this.shots[i].img_start) {
+          //   var bbox = this.shots[i].bboxes[x_start_frame];
+          //   var h = this.h/3;
+          //   if(bbox) {
+          //     image(this.shots[i].img_start,x_start,this.y,h*aspect_ratio, h, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+          //   } else {
+          //     image(this.shots[i].img_start,x_start,this.y,h*aspect_ratio, h);
+          //   }
+          // }
+            fill(255);
+            noStroke();
+            text(this.shots[i].type, x_start, this.y+10);
+            for(var j=0; j<this.shots[i].actors_involved.length; j++) {
+              text(this.shots[i].actors_involved[j].actor_name, x_start, this.y+25+j*15);
+            }
+            pop();
+          }
+        }
     }
 
     push();

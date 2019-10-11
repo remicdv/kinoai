@@ -67,7 +67,15 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     if (mx > this.nav_bar.x && mx < this.nav_bar.x + this.nav_bar.w && my > this.nav_bar.y && my < this.nav_bar.y + this.nav_bar.h) {
       let unit = player.w / (this.last-this.first)*frame_rate;
       let time = (mx-player.x)/unit + (this.first/frame_rate);
-      video.time(time);
+      let b = false;
+      for(let t of tracklets_line) {
+        if(t.drag) {
+          b = true;
+          break;
+        }
+      }
+      if(!b)
+        video.time(time);
     }
   }
 

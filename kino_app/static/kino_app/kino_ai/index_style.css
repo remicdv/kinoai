@@ -77,17 +77,10 @@ h2 {
 
 div img {
   float: left;
-  /* position: absolute; */
 }
 
 
 ul {
-  /* -moz-column-count: 4;
-  -moz-column-gap: 20px;
-  -webkit-column-count: 4;
-  -webkit-column-gap: 20px;
-  column-count: 4;
-  column-gap: 20px; */
   list-style-type: none;
   margin: 0;
   padding: 0;
@@ -100,8 +93,21 @@ li {
   font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
   vertical-align: middle;
   margin-bottom: 5;
-  width: 25%;
+  width: 100%;
 }
+
+@media screen and (min-width: 1200px) {
+  li{
+    width:25%;
+  }
+}
+
+@media screen and (max-width: 1200px) and (min-width: 500px) {
+  li{
+    width:50%;
+  }
+}
+
 
 li:last-child {
   border: none;

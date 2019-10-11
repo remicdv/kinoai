@@ -327,6 +327,9 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
           this.rect_drag = [0,0,0,0];
         }
       }
+      return true;
+    } else {
+      return false;
     }
   }
 

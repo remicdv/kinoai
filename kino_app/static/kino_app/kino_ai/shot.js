@@ -65,12 +65,18 @@ function Shot()  {
     }
   }
 
-  this.equalTo = function(s) {
+  this.equalTo = function(s, updated=true) {
     let b = false;
-    let act_inv = this.getUpdateActInvolved();
-    let type = this.getUpdatedSizeShot(this.getCurrStabShot(frame_num)[3]);
-    let s_act_inv = s.getUpdateActInvolved();
-    let s_type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
+    let act_inv = this.actors_involved;
+    let type = this.type;
+    let s_act_inv = s.actors_involved;
+    let s_type = s.type;
+    if(updated) {
+      act_inv = this.getUpdateActInvolved();
+      type = this.getUpdatedSizeShot(this.getCurrStabShot(frame_num)[3]);
+      s_act_inv = s.getUpdateActInvolved();
+      s_type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
+    }
     if(s_type == type) {
       let b1 = true;
       for(let name of s_act_inv) {
@@ -251,7 +257,7 @@ function Shot()  {
         if(t.first_frame < frame_num && t.last_frame > frame_num) {
           let b = t.bboxes[frame_num-t.first_frame];
           let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-          var boxB = getBBoxShotAdapted(this.aspect_ratio, undefined, shot_factor, curr_bbox, b.center_x, b.center_y);
+          var boxB = getBBoxShotAdapted(this.aspect_ratio, undefined, shot_factor, false, curr_bbox, b.center_x, b.center_y);
           x_centers.push((boxB[0]+boxB[2])/2);
           y_centers.push((boxB[1]+boxB[3])/2);
           if(bbox.length > 0) {
@@ -281,8 +287,8 @@ function Shot()  {
             var boxB;
             if(keypoints_tab[detections_track[frame_num-first_frame]]) {
               boxB = getBBoxShotAdapted(this.aspect_ratio, keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor);
-              // let box_side = getBBox(keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'],0.05);
-              // boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
+              let box_side = getBBox(keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints']);
+              boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
             }
             if(boxB && bbox) {
               if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
@@ -301,9 +307,9 @@ function Shot()  {
           if(t.first_frame < frame_num && t.last_frame > frame_num) {
             let b = t.bboxes[frame_num-t.first_frame];
             let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-            var boxB = getBBoxShotAdapted(this.aspect_ratio,undefined, shot_factor, curr_bbox, b.center_x, b.center_y);
-            // let box_side = curr_bbox;
-            // boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
+            var boxB = getBBoxShotAdapted(this.aspect_ratio,undefined, shot_factor, false, curr_bbox, b.center_x, b.center_y);
+            let box_side = curr_bbox;
+            boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
             if(boxB && bbox) {
               if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
                 x_centers.push((boxB[0]+boxB[2])/2);
@@ -430,7 +436,7 @@ function Shot()  {
         if(t.first_frame < f_n && t.last_frame > f_n) {
           let b = t.bboxes[f_n-t.first_frame];
           let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-          var boxB = getBBoxShotAdapted(undefined, 1/4, curr_bbox, b.center_x, b.center_y);
+          var boxB = getBBoxShotAdapted(undefined, 1/4, false, curr_bbox, b.center_x, b.center_y);
           if(bbox.length > 0) {
             bbox[0] = min(bbox[0], boxB[0]);
             bbox[1] = min(bbox[1], boxB[1]);
@@ -640,7 +646,7 @@ function Shot()  {
       if(this.actors_involved.length<1) {
         this.bboxes.push([0,0,original_width,original_height]);
       } else {
-        var bbox = this.getCurrBBoxShot(this.aspect_ratio, f_num, frames_data);
+        var bbox = getBBoxShot(this.type, this.aspect_ratio, f_num);//this.getCurrBBoxShot(this.aspect_ratio, f_num, frames_data);
         if(bbox) {
           // if(curr && abs(curr[0]-bbox[0]) > 5) {
           //   let off = abs(curr[0]-bbox[0])/2;
@@ -711,7 +717,6 @@ function Shot()  {
     // }
     // let index = this.bboxes.findIndex(Number.isNaN)
     // console.log(index)
-    // console.log(this.bboxes);
     if(this.actors_involved.length>=1) {
       var tab = [];
       for(let a of this.actors_involved) {

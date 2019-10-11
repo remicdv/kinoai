@@ -200,7 +200,7 @@ function getShotsFromActs() {
         break;
       }
     }
-    if(b && s.actors_involved.length == 1) {
+    if(b && s.actors_involved.length == 1 && s.aspect_ratio == aspect_ratio) {
       s.on = true;
       printed_shots.push(s);
     } else {
@@ -214,26 +214,44 @@ function getShotsFromActs() {
   return printed_shots;
 }
 // Get the factor scale factor based on the types
-function getFactor(type) {
+function getFactor(type, prev=false) {
   var shot_factor = 1;
   switch (type){
     case 'BCU':
-      shot_factor = 1/7;
+      if(!prev)
+        shot_factor = 1/7;
+      else
+        shot_factor = 1/9;
       break;
     case 'CU':
-      shot_factor = 1/5;
+      if(!prev)
+        shot_factor = 1/5;
+      else
+        shot_factor = 1/7;
       break;
     case 'MCU':
-      shot_factor = 1/3;
+      if(!prev)
+        shot_factor = 1/3;
+      else
+        shot_factor = 1/5;
       break;
     case 'MS':
-      shot_factor = 1/2;
+      if(!prev)
+        shot_factor = 1/2;
+      else
+        shot_factor = 1/3;
       break;
     case 'MLS':
-      shot_factor = 2/3;
+      if(!prev)
+        shot_factor = 2/3;
+      else
+        shot_factor = 1/2;
       break;
     case 'FS':
-      shot_factor = 1;
+      if(!prev)
+        shot_factor = 1;
+      else
+        shot_factor = 2/3;
       break;
     default:
       shot_factor = 1;
@@ -295,7 +313,7 @@ function getCenter(keypoints) {
 }
 
 //Get the shot bounding box following the specification for one specific actor
-function getBBoxShotAdapted(aspectRatio, keypoints, shot_factor, curr_bbox = undefined, c_x = undefined, c_y = undefined) {
+function getBBoxShotAdapted(aspectRatio, keypoints, shot_factor, check_collide = false, curr_bbox = undefined, c_x = undefined, c_y = undefined) {
   var cx;
   var cy;
   var oppbbox;
@@ -352,37 +370,129 @@ function getBBoxShotAdapted(aspectRatio, keypoints, shot_factor, curr_bbox = und
     bbox[3] += shot_height/8;//(3/shot_factor);
   } else {
     var offset = [cx - oppbbox[0], cy - oppbbox[1], oppbbox[2] - cx, oppbbox[3] - cy];
-    var shot_height = oppbbox[3] - oppbbox[1];
+    var shot_height = Math.max(oppbbox[3] - oppbbox[1],oppbbox[2] - oppbbox[0]);
     var bbox = [0,0,0,0];
     //left
     bbox[0] = oppbbox[0];
     //top
-    bbox[1] = cy - offset[1];
+    bbox[1] = cy - (shot_height / 8);
     //right
     bbox[2] = oppbbox[2];
     //bottom ===> bottom = center y - top offset + (top offset - bottom offset) / shot_factor
     bbox[3] = bbox[1] + shot_height * shot_factor;
 
-    bbox[1] -= shot_height/3;
-    bbox[3] += shot_height/3;
-
+    bbox[1] -= (bbox[3] - bbox[1])/3;
+    bbox[3] += (bbox[3] - bbox[1])/3;
+    // console.log(shot_height, cx, cy, (bbox[3] - bbox[1]));
   }
 
   bbox = [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])];
 
-  // if(aspectRatio > 1) {
-    // enlarge width or reduce width
+  // enlarge width or reduce width
+  if(!check_collide || aspectRatio * (bbox[3] - bbox[1]) < bbox[2]-bbox[0]) {
     halfdim = aspectRatio * (bbox[3] - bbox[1]) / 2;
     bbox[0] = cx - halfdim;
     bbox[2] = cx + halfdim;
-  // } else {
-    // enlarge height or reduce height
-    // halfdim = (1 / aspectRatio) * (bbox[2] - bbox[0]) / 2;
-    // bbox[1] = cy - halfdim;
-    // bbox[3] = cy + halfdim;
-  // }
-  // console.log(bbox);
+  }
 
+  return bbox;
+}
+
+function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSize, fr_num) {
+  let gaze_vect;
+  let bbox = [];
+  let x_centers = [];
+  let y_centers = [];
+  let k=0;
+  for(let act of actors_involved) {
+    for(let t of act.tracks) {
+      var keypointsB = frames_data[fr_num];
+      var detections_track = t.detections;
+      var first_frame = t.first_frame;
+      let keypoints_tab = keypointsB[detections_track[fr_num-first_frame]];
+      if(first_frame < fr_num && detections_track.length > (fr_num-first_frame) && keypoints_tab) {
+        var boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor);
+        if(!gaze_vect) {
+          gaze_vect = getGazevect(keypointsB[detections_track[fr_num-first_frame]]['KeyPoints']);
+          let vel = act.getVelocityVect(fr_num);
+          if(vel) {
+            gaze_vect = p5.Vector.add(gaze_vect, vel);
+          }
+        } else {
+          gaze_vect = p5.Vector.add(gaze_vect, getGazevect(keypointsB[detections_track[fr_num-first_frame]]['KeyPoints']));
+        }
+        x_centers.push((boxB[0]+boxB[2])/2);
+        y_centers.push((boxB[1]+boxB[3])/2);
+        if(k==0) {
+          bbox = boxB;
+          k++;
+        }
+        bbox[0] = min(bbox[0], boxB[0]);
+        bbox[1] = min(bbox[1], boxB[1]);
+        bbox[2] = max(bbox[2], boxB[2]);
+        bbox[3] = max(bbox[3], boxB[3]);
+      }
+    }
+    for(let t of act.track_bbox_shot) {
+      if(t.first_frame < fr_num && t.last_frame > fr_num) {
+        let b = t.bboxes[fr_num-t.first_frame];
+        let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
+        var boxB = getBBoxShotAdapted(aspectRatio, undefined, shot_factor, false, curr_bbox, b.center_x, b.center_y);
+        x_centers.push((boxB[0]+boxB[2])/2);
+        y_centers.push((boxB[1]+boxB[3])/2);
+        if(bbox.length > 0) {
+          bbox[0] = min(bbox[0], boxB[0]);
+          bbox[1] = min(bbox[1], boxB[1]);
+          bbox[2] = max(bbox[2], boxB[2]);
+          bbox[3] = max(bbox[3], boxB[3]);
+        } else {
+          bbox = boxB;
+          k++;
+        }
+      }
+    }
+  }
+
+  bbox = getAdaptedBBox(bbox, aspectRatio);
+
+  if(gaze_vect && actors_involved.length==1) {
+    let s_gaze = abs((gaze_vect.x*shot_factor)/100);
+    let off = gaze_vect.normalize().x*((bbox[2]-bbox[0])*s_gaze);
+    // console.log(off);
+    bbox = [int(bbox[0]+off), bbox[1], int(bbox[2]+off), bbox[3]];
+  }
+
+  bbox = [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])];
+
+  if((bbox[3] - bbox[1])>int(imageSize[3])) {
+    let s = (1/((bbox[3] - bbox[1])/int(imageSize[3]*0.9)));
+    let mid = int((x_centers.reduce((pv, cv) => pv + cv, 0))/x_centers.length);
+    let half = int((int(bbox[2]*s)-int(bbox[0]*s))/2);
+    bbox = [mid-half,int(bbox[1]*s),mid+half,int(bbox[3]*s)];
+  } else if(bbox[2] - bbox[0] > imageSize[2]) {
+    let s = 1/((bbox[2] - bbox[0])/ imageSize[2]);
+    let mid = int((y_centers.reduce((pv, cv) => pv + cv, 0))/y_centers.length);
+    let half = int((int(bbox[3]*s)-int(bbox[1]*s))/2);
+    bbox = [int(bbox[0]*s),mid-half,int(bbox[2]*s),mid+half];
+  }
+
+  return bbox;
+}
+
+function getAdaptedBBox(bbox, aspectRatio) {
+  if ((bbox[2] - bbox[0]) < aspectRatio * (bbox[3] - bbox[1])){
+    // enlarge width
+    halfdim = aspectRatio * (bbox[3] - bbox[1]) / 2;
+    center = (bbox[0] + bbox[2]) / 2;
+    bbox[0] = center - halfdim;
+    bbox[2] = center + halfdim;
+  } else {
+    // enlarge height
+    halfdim = (1 / aspectRatio) * (bbox[2] - bbox[0]) / 2;
+    center = (bbox[1] + bbox[3]) / 2;
+    bbox[1] = center - halfdim;
+    bbox[3] = center + halfdim;
+  }
   return bbox;
 }
 
@@ -407,186 +517,88 @@ function getGazevect(keypoints) {
   }
 }
 
+function getActorsBBoxIntersect(bbox, not_involved, aspectRatio, shot_factor, fr_num) {
+  let bboxes_intersect = [];
+  for(let act of not_involved) {
+    for(let t of act.tracks) {
+      let keypointsB = frames_data[fr_num];
+      let detections_track = t.detections;
+      let first_frame = t.first_frame;
+      let keypoints_tab = keypointsB[detections_track[fr_num-first_frame]];
+      if(first_frame < fr_num && detections_track.length > (fr_num-first_frame) && keypoints_tab) {
+        let boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor, true);
+        if(boxB && bbox) {
+          if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
+            bboxes_intersect.push(boxB);
+          }
+        }
+      }
+    }
+    for(let t of act.track_bbox_shot) {
+      if(t.first_frame < fr_num && t.last_frame > fr_num) {
+        let b = t.bboxes[fr_num-t.first_frame];
+        let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
+        let boxB = getBBoxShotAdapted(aspectRatio, undefined, shot_factor, true, curr_bbox, b.center_x, b.center_y);
+        if(boxB && bbox) {
+          if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
+            bboxes_intersect.push(boxB);
+          }
+        }
+      }
+    }
+  }
+  return bboxes_intersect;
+}
+
+function updateBBox(bbox, bboxes, aspect_ratio) {
+  for(let b of bboxes) {
+    bbox[0] = min(b[0],int(bbox[0]*0.9));
+    bbox[2] = max(b[2],int(bbox[2]*1.1));
+  }
+  bbox = getAdaptedBBox(bbox, aspect_ratio);
+  return bbox;
+}
+
 // Get the bounding box shot for the actors on stage
-function getBBoxShot(shotType, aspectRatio) {
-  var not_involved = [];
+function getBBoxShot(shotType, aspectRatio, fr_num=undefined) {
+  if(!fr_num) {
+    fr_num = frame_num
+  }
+  let not_involved = [];
+  let involved = [];
   for(let a of actors_timeline) {
     if(!a.on){
       not_involved.push(a);
+    } else {
+      involved.push(a);
     }
   }
-  var imageSize = [0, 0, Number(original_width), Number(original_height)];
-  var shot_factor = getFactor(shotType);
+  let imageSize = [0, 0, Number(original_width), Number(original_height)];
+  let shot_factor = getFactor(shotType);
+  let lim_shot_factor = getFactor(shotType, true);
+  let inter_shot_factor = (lim_shot_factor+shot_factor)/2;
 
-  var bbox = [];
-  let k = 0;
-  let x_centers = [];
-  let y_centers = [];
-  var gaze_vect;
-  for(let act of actors_timeline) {
-    if(act.on) {
-      for(let t of act.tracks) {
-        var keypointsB = frames_data[frame_num];
-        var detections_track = t.detections;
-        var first_frame = t.first_frame;
-        let keypoints_tab = keypointsB[detections_track[frame_num-first_frame]];
-        if(first_frame < frame_num && detections_track.length > (frame_num-first_frame) && keypoints_tab) {
-          var boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor);
-          if(!gaze_vect) {
-            gaze_vect = getGazevect(keypointsB[detections_track[frame_num-first_frame]]['KeyPoints']);
-            let vel = act.getVelocityVect(frame_num);
-            if(vel) {
-              gaze_vect = p5.Vector.add(gaze_vect, vel);
-            }
-          } else {
-            gaze_vect = p5.Vector.add(gaze_vect, getGazevect(keypointsB[detections_track[frame_num-first_frame]]['KeyPoints']));
-          }
-          x_centers.push((boxB[0]+boxB[2])/2);
-          y_centers.push((boxB[1]+boxB[3])/2);
-          if(k==0) {
-            bbox = boxB;
-            k++;
-          }
-          bbox[0] = min(bbox[0], boxB[0]);
-          bbox[1] = min(bbox[1], boxB[1]);
-          bbox[2] = max(bbox[2], boxB[2]);
-          bbox[3] = max(bbox[3], boxB[3]);
-        }
-      }
-      for(let t of act.track_bbox_shot) {
-        if(t.first_frame < frame_num && t.last_frame > frame_num) {
-          let b = t.bboxes[frame_num-t.first_frame];
-          let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-          var boxB = getBBoxShotAdapted(aspectRatio, undefined, shot_factor, curr_bbox, b.center_x, b.center_y);
-          x_centers.push((boxB[0]+boxB[2])/2);
-          y_centers.push((boxB[1]+boxB[3])/2);
-          if(bbox.length > 0) {
-            bbox[0] = min(bbox[0], boxB[0]);
-            bbox[1] = min(bbox[1], boxB[1]);
-            bbox[2] = max(bbox[2], boxB[2]);
-            bbox[3] = max(bbox[3], boxB[3]);
-          } else {
-            bbox = boxB;
-            k++;
-          }
-        }
-      }
-    }
-  }
-
-  if ((bbox[2] - bbox[0]) < aspectRatio * (bbox[3] - bbox[1])){
-    // enlarge width
-    halfdim = aspectRatio * (bbox[3] - bbox[1]) / 2;
-    center = (bbox[0] + bbox[2]) / 2;
-    bbox[0] = center - halfdim;
-    bbox[2] = center + halfdim;
-  } else {
-    // enlarge height
-    halfdim = (1 / aspectRatio) * (bbox[2] - bbox[0]) / 2;
-    center = (bbox[1] + bbox[3]) / 2;
-    bbox[1] = center - halfdim;
-    bbox[3] = center + halfdim;
-  }
+  let bbox;
 
   if(is_intersect) {
-    for(let a of not_involved) {
-      for(let t of a.tracks) {
-        var keypoints_tab = frames_data[frame_num];
-        var detections_track = t.detections;
-        var first_frame = t.first_frame;
-        let keypoints= keypoints_tab[detections_track[frame_num-first_frame]];
-        if(first_frame < frame_num && detections_track.length > (frame_num-first_frame) && keypoints) {
-          var boxB = getBBoxShotAdapted(aspectRatio, keypoints['KeyPoints'], shot_factor);
-          let box_side = getBBox(keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'],0.05);
-          boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
-          if(boxB && bbox) {
-            if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
-              bbox[0] = min(bbox[0], boxB[0]);
-              bbox[1] = min(bbox[1], boxB[1]);
-              bbox[2] = max(bbox[2], boxB[2]);
-              bbox[3] = max(bbox[3], boxB[3]);
-            }
-          }
-        }
+    let i=0;
+    for(let f of [lim_shot_factor, inter_shot_factor, shot_factor]) {
+      let new_bbox = getBBoxShotInvolved(involved, aspectRatio, f, imageSize, fr_num);
+      let bboxes_intersect = getActorsBBoxIntersect(new_bbox, not_involved, aspectRatio, f, fr_num);
+      if(bboxes_intersect.length>0 && i>0) {
+        break;
+      } else if (bboxes_intersect.length>0 && i==0) {
+        bbox = updateBBox(new_bbox, bboxes_intersect, aspectRatio);
+        break;
       }
-      for(let t of a.track_bbox_shot) {
-        if(t.first_frame < frame_num && t.last_frame > frame_num) {
-          let b = t.bboxes[frame_num-t.first_frame];
-          let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-          var boxB = getBBoxShotAdapted(aspectRatio,undefined, shot_factor, curr_bbox, b.center_x, b.center_y);
-          let box_side = curr_bbox;
-          boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
-          if(boxB && bbox) {
-            if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
-              bbox[0] = min(bbox[0], boxB[0]);
-              bbox[1] = min(bbox[1], boxB[1]);
-              bbox[2] = max(bbox[2], boxB[2]);
-              bbox[3] = max(bbox[3], boxB[3]);
-            }
-          }
-        }
-      }
+      i++;
+      bbox = new_bbox;
     }
-
-    if ((bbox[2] - bbox[0]) < aspectRatio * (bbox[3] - bbox[1])){
-      // enlarge width
-      halfdim = aspectRatio * (bbox[3] - bbox[1]) / 2;
-      center = (bbox[0] + bbox[2]) / 2;
-      bbox[0] = center - halfdim;
-      bbox[2] = center + halfdim;
-    } else {
-      // enlarge height
-      halfdim = (1 / aspectRatio) * (bbox[2] - bbox[0]) / 2;
-      center = (bbox[1] + bbox[3]) / 2;
-      bbox[1] = center - halfdim;
-      bbox[3] = center + halfdim;
-    }
+  } else {
+    bbox = getBBoxShotInvolved(involved, aspectRatio, shot_factor, imageSize, fr_num);
   }
 
-  bbox = [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])];
-
-  if((bbox[3] - bbox[1])>int(imageSize[3]*0.9)) {
-    let s = (1/((bbox[3] - bbox[1])/int(imageSize[3]*0.9)));
-    let mid = int((x_centers.reduce((pv, cv) => pv + cv, 0))/x_centers.length);
-    let half = int((int(bbox[2]*s)-int(bbox[0]*s))/2);
-    bbox = [mid-half,int(bbox[1]*s),mid+half,int(bbox[3]*s)];
-  } else if(bbox[2] - bbox[0] > imageSize[2]) {
-    let s = 1/((bbox[2] - bbox[0])/ imageSize[2]);
-    let mid = int((y_centers.reduce((pv, cv) => pv + cv, 0))/y_centers.length);
-    let half = int((int(bbox[3]*s)-int(bbox[1]*s))/2);
-    bbox = [int(bbox[0]*s),mid-half,int(bbox[2]*s),mid+half];
-  }
-
-  if(gaze_vect) {
-    let s_gaze = abs((gaze_vect.x*shot_factor)/100);
-    let off = gaze_vect.normalize().x*((bbox[2]-bbox[0])*s_gaze);
-    // console.log(off);
-    bbox = [int(bbox[0]+off), bbox[1], int(bbox[2]+off), bbox[3]];
-  }
-
-  var off_left=0;
-  var off_top=0;
-  var off_right=0;
-  var off_bottom=0;
-
-  if(bbox[0]<imageSize[0]) {
-     off_left = imageSize[0] - bbox[0];
-  }
-  if(bbox[1]<imageSize[1]) {
-    off_top = imageSize[1] - bbox[1];
-  }
-  if(bbox[2]>imageSize[2]) {
-    off_right = bbox[2]- imageSize[2];
-  }
-  if(bbox[3]>imageSize[3]) {
-    off_bottom = bbox[3]- imageSize[3];
-  }
-  // console.log(bbox);
-  bbox[0] = bbox[0] + off_left - off_right;
-  bbox[1] = bbox[1] + off_top - off_bottom;
-  bbox[2] = bbox[2] + off_left - off_right;
-  bbox[3] = bbox[3] + off_top - off_bottom;
-  // console.log(bbox, off_left, off_right, off_top, off_bottom, round_prec((bbox[2]-bbox[0])/(bbox[3]-bbox[1]),2));
+  bbox.forEach(function(item, i) {if(item==undefined) bbox[i]=NaN;});
   return bbox;
 }
 
@@ -992,6 +1004,7 @@ function updateNoteBook() {
     div_creation.size(150);
     for(let a of actors_timeline) {
       a.on = false;
+      a.elem.style('margin','5% 0 5% 0');
       div_creation.child(a.elem.elt);
     }
   }else {
@@ -1172,6 +1185,20 @@ function saveShot() {
   }
   shots.sort(sortShotsByName);
   shots.sort(sortShotsByType);
+
+  is_show_shots = true;
+  show_shots.checked(is_show_shots);
+
+  is_shot_creation = false;
+  shot_creation.checked(is_shot_creation);
+  for(let a of actors_timeline) {
+    a.elem.remove();
+    a.elem = createElement('h3', a.actor_name);
+    a.elem.elt.contentEditable = 'true';
+    a.elem.id('editor');
+    div_actors_timeline.child(a.elem);
+  }
+
 }
 
 function setCursor() {
@@ -1727,7 +1754,7 @@ function callbackReframe(data) {
 function reframeRequest() {
   $.post({
     url: "reframeMov",
-    data: {'abs_path': abs_path, 'bboxes':JSON.stringify(shots_timeline.compressBBoxes()), 'width':Number(original_width)},
+    data: {'abs_path': abs_path, 'bboxes':JSON.stringify(shots_timeline.compressBBoxes()), 'width':Number(original_width), 'aspect_ratio':shots_timeline.getAspectRatio()},
     dataType: 'json',
     success: function (data) {
       console.log(data);
@@ -1769,6 +1796,7 @@ function loadSubtile() {
         div_creation.size(150);
         for(let a of actors_timeline) {
           a.on = false;
+          a.elem.style('margin','5% 0 5% 0');
           div_creation.child(a.elem.elt);
         }
         is_note_book = true;
@@ -2536,17 +2564,30 @@ function smoothDetections(off) {
 function createAllShots() {
   for(let s_t of ['CU', 'MS', 'FS']) {
     for(let act of actors_timeline) {
+      for(let act of actors_timeline) {
+        act.on = false;
+      }
       let shot = new Shot();
+      act.on = true;
       shot.actors_involved.push(act);
       shot.type = s_t;
       shot.aspect_ratio = aspect_ratio;
-      shot.start_frame = 0;
-      shot.end_frame = Math.round(frame_rate*video.duration());
-      shot.calcBboxes(aspect_ratio);
-      shots.push(shot);
-      if(shot.actors_involved.length>=1) {
-        add_shot.push(shot);
-        shot.in_stabilize = true;
+      let b = false;
+      for(let s of shots) {
+        if(s.equalTo(shot, false)) {
+          b = true;
+          break;
+        }
+      }
+      if(!b) {
+        shot.start_frame = 0;
+        shot.end_frame = Math.round(frame_rate*video.duration());
+        shot.calcBboxes(aspect_ratio);
+        shots.push(shot);
+        if(shot.actors_involved.length>=1) {
+          add_shot.push(shot);
+          shot.in_stabilize = true;
+        }
       }
     }
   }
@@ -2961,7 +3002,7 @@ function draw() {
   can.size(windowWidth, windowHeight-can.elt.offsetTop-5);
   editing_button.setPosition(act_input.position().x+act_input.elt.offsetWidth+15,viewer_height+10);
   crop_button.setPosition(editing_button.x+30,viewer_height+10);
-  shots_timeline.y = viewer_height+40;
+  shots_timeline.y = viewer_height+60;
   hidden_state.y = viewer_height+15;
   offstage_state.y = viewer_height+15;
   if(is_annotation) {
@@ -3506,8 +3547,7 @@ function mouseDragged() {
   let b = false;
   if(!is_annotation) {
     for(let act of actors_timeline) {
-      act.dragExtTrack(mouseX, mouseY);
-      if(act.t_dragged) {
+      if(act.dragExtTrack(mouseX, mouseY) && act.t_dragged) {
         let unit = act.w/annotation_timeline.total_frame;
         video.time((annotation_timeline.first+(mouseX-act.x)/unit)/frame_rate);
         img_hd = undefined;

@@ -103,24 +103,22 @@
   var currentPlayer = list_player[0];
   var curr_id = list_id[0];
   var curr_ind = 0;
+  var prev_width = 1;
+  var prev_height = 1;
   function setup() {
     canvas = createCanvas(video.width, video.height);
-    $('.column.left h3').each(function() {
-      $(this).height((262-18)/2);
-      $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
-      $(this).css('overflow','auto');
-    });
-    $('.column.left .paragraph').each(function() {
-      $(this).height((262-18)/2);
-      $(this).css('overflow','auto');
-    });
-    for(let n of tab_notes) {
-      document.getElementById('par_'+n.id+'.0').innerText = n.text;
-    }
   }
   var scale_ratio = video.elt.videoWidth/1024;
+  var aspect_ratio = video.elt.videoWidth/video.elt.videoHeight;
   function draw() {
+
+    if(prev_width!=windowWidth || prev_height!=windowHeight) {
+      resizeImgAndPlayer();
+      prev_width=windowWidth;
+      prev_height=windowHeight;
+    }
     scale_ratio = video.elt.videoWidth/1024;
+    aspect_ratio = video.elt.videoWidth/video.elt.videoHeight;
     var bbox = [0,0,video.elt.videoWidth,video.elt.videoHeight];
     if(!currentPlayer.isPaused()){
       let fr = Math.round(currentPlayer.getVideoElement().currentTime * 24);
@@ -195,4 +193,35 @@
       return false;
     }
   });
+
+  function resizeImgAndPlayer() {
+    let width = document.getElementsByClassName('column center')[0].offsetWidth-10;
+    let height = Math.floor(width / aspect_ratio);
+    if(!curr_id) {
+      curr_id = list_id[0];
+    }
+    document.getElementById('videoPlayer_'+curr_id).width = width;
+    document.getElementById('videoPlayer_'+curr_id).height = height;
+    canvas.size(width, height);
+    for(let class_name of ['lazyload', 'full']) {
+      let images = document.getElementsByClassName(class_name);
+      for(let i=0; i < images.length; i++){
+        let img = images[i];
+        img.width = width;
+        img.height = height;
+      }
+    }
+    $('.column.left h3').each(function() {
+      $(this).height((height+2-18)/2);
+      $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
+      $(this).css('overflow','auto');
+    });
+    $('.column.left .paragraph').each(function() {
+      $(this).height((height+2-18)/2);
+      $(this).css('overflow','auto');
+    });
+    for(let n of tab_notes) {
+      document.getElementById('par_'+n.id+'.0').innerText = n.text;
+    }
+  }
 </script>

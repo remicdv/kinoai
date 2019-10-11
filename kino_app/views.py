@@ -781,6 +781,16 @@ def crop(image):
                     y_off=0
                 blank_image[y_off:y_off+height, 0:width]= img
             return blank_image
+    elif crop.counter >= len(crop.bboxes):
+        bbox = crop.bboxes[len(crop.bboxes)-1]
+        crop.counter += 1
+        x = int(bbox[0])
+        y = int(bbox[1])
+        w = int(math.ceil((bbox[2] - bbox[0])/2)*2)
+        h = int(math.ceil((bbox[3] - bbox[1])/2)*2)
+        # print(w/h, crop.size[0]/crop.size[1], image.dtype)
+        if math.isclose((bbox[2] - bbox[0])/(bbox[3] - bbox[1]), crop.size[0]/crop.size[1], rel_tol=1e-2):
+            return cv2.resize(image[y:y+h, x:x+w],(crop.size[0],crop.size[1]),interpolation=cv2.INTER_LANCZOS4)
     else:
         return image
 
@@ -841,16 +851,17 @@ def reframeMov(request):
     bbox_string = request.POST.get('bboxes','')
     abs_path = request.POST.get('abs_path','')
     width = int(request.POST.get('width',''))
+    aspect_ratio = float(request.POST.get('aspect_ratio',''))
     bbox = np.array(json.loads(bbox_string))
     videoname = abs_path+'/original_hevc.mov'
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
     factor = hevc_w / width
-    print(hevc_w, factor)
+    print(hevc_w, factor, aspect_ratio)
     bbox[:,] *= factor
 
     res = bbox[:,2] - bbox[:,0]
-    max = int(res.max())
+    max = int(sum(res)/len(res))
     scale_factor = 1
     if max > 0:
         scale_factor = 4
@@ -867,7 +878,15 @@ def reframeMov(request):
     out_vid = abs_path+'/output-video.mp4'
     print(videoname)
     clip = VideoFileClip(videoname)
-    clip.size = [int(clip.size[0]/scale_factor),int(clip.size[1]/scale_factor)]
+    width = clip.size[0]
+    height = clip.size[1]
+    if aspect_ratio < clip.size[0]/clip.size[1]:
+        height = clip.size[1]
+        width = height*aspect_ratio
+    elif aspect_ratio > clip.size[0]/clip.size[1]:
+        width = clip.size[0]
+        height = width*aspect_ratio
+    clip.size = [int(width/scale_factor),int(height/scale_factor)]
     print(clip.size)
     crop.size = clip.size
 
