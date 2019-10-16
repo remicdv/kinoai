@@ -104,7 +104,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       s.end = next.start -1;
       // next.bboxes = this.getBBoxes(next, next.bboxes);
     } else {
-      s.end_frame = Math.round(frame_rate*this.duration);
+      s.end_frame = annotation_timeline.last;//Math.round(frame_rate*this.duration);
       s.end = this.x+this.w;
     }
     var prec = this.getPrec(s);

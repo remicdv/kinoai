@@ -606,27 +606,14 @@ function Shot()  {
     if(this.bboxes[act_in] && this.bboxes[act_in] != [0,0,0,0]) {
       bbox_in = this.bboxes[act_in];
     }
-    // console.log(bbox_out, act_out, bbox_in, act_in);
     if(bbox_in && bbox_out) {
       let bbox = [];
       bbox[0] = min(bbox_out[0], bbox_in[0]);
       bbox[1] = min(bbox_out[1], bbox_in[1]);
       bbox[2] = max(bbox_out[2], bbox_in[2]);
       bbox[3] = max(bbox_out[3], bbox_in[3]);
-      if ((bbox[2] - bbox[0]) < (bbox[3] - bbox[1])) {
-        // enlarge width
-        halfdim = (bbox[3] - bbox[1]) / 2;
-        center = (bbox[2] + bbox[0]) / 2;
-        bbox[0] = center - halfdim;
-        bbox[2] = center + halfdim;
-      } else {
-        // enlarge height
-        halfdim = (bbox[2] - bbox[0]) / 2;
-        center = (bbox[3] + bbox[1]) / 2;
-        bbox[1] = center - halfdim;
-        bbox[3] = center + halfdim;
-      }
-      return this.adaptAspectRatio(bbox, [0,0,Number(original_width), Number(original_height)]);
+      bbox = getAdaptedBBox(bbox, this.aspect_ratio);
+      return bbox;
     } else if(bbox_in && !bbox_out) {
       return bbox_in;
     } else if(!bbox_in && bbox_out) {
@@ -641,8 +628,8 @@ function Shot()  {
     var mask = [];
     let curr;
     let curr_mask = [];
-    for(var i=0; i< this.end_frame- this.start_frame; i++) {
-      var f_num = this.start_frame + i;
+    for(var i=1; i<= total_frame; i++) {
+      var f_num = i;
       if(this.actors_involved.length<1) {
         this.bboxes.push([0,0,original_width,original_height]);
       } else {
@@ -662,6 +649,7 @@ function Shot()  {
           if(index!=-1) {
             this.bboxes.push([0,0,0,0]);
             mask.push(f_num);
+            // console.log(f_num);
             curr = undefined;
           } else {
             // let w = int((bbox[2]-bbox[0])*0.05);
@@ -690,18 +678,20 @@ function Shot()  {
     }
     curr_mask = [];
     for(let i=0; i< mask.length; i++) {
-      if(mask[i].length>10) {
+      // if(mask[i].length>10) {
         curr_mask.push(mask[i]);
-        mask.splice(i,1);
-      }
+        // mask.splice(i,1);
+      // }
     }
-    mask = [].concat.apply([], mask);
+    mask = [];//.concat.apply([], mask);
+    // console.log(curr_mask);
     for(let c of curr_mask) {
-      let in_out_bbox = this.getInOutBBox(c[0]-1, c[c.length-1]+1);
+      let in_out_bbox = this.getInOutBBox(c[0]-2, c[c.length-1]);
+      // console.log(in_out_bbox, this.bboxes[c[0]-2], this.bboxes[c[c.length-1]]);
       if(in_out_bbox) {
         // console.log(in_out_bbox, (in_out_bbox[2]-in_out_bbox[0])/(in_out_bbox[3]-in_out_bbox[1]));
         for(f_num of c) {
-          this.bboxes[f_num-this.start_frame] = in_out_bbox;
+          this.bboxes[f_num-1] = in_out_bbox;
         }
       }
     }
@@ -716,7 +706,7 @@ function Shot()  {
     //   }
     // }
     // let index = this.bboxes.findIndex(Number.isNaN)
-    // console.log(index)
+    // console.log(this.bboxes)
     if(this.actors_involved.length>=1) {
       var tab = [];
       for(let a of this.actors_involved) {

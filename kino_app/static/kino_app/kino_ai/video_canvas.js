@@ -493,7 +493,7 @@ function getAdaptedBBox(bbox, aspectRatio) {
     bbox[1] = center - halfdim;
     bbox[3] = center + halfdim;
   }
-  return bbox;
+  return [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])];
 }
 
 // Get the actor gaze vector from open pose keypoints
@@ -519,6 +519,8 @@ function getGazevect(keypoints) {
 
 function getActorsBBoxIntersect(bbox, not_involved, aspectRatio, shot_factor, fr_num) {
   let bboxes_intersect = [];
+  let lim_x_right = Math.round(original_width);
+  let lim_x_left = 0;
   for(let act of not_involved) {
     for(let t of act.tracks) {
       let keypointsB = frames_data[fr_num];
@@ -529,7 +531,13 @@ function getActorsBBoxIntersect(bbox, not_involved, aspectRatio, shot_factor, fr
         let boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor, true);
         if(boxB && bbox) {
           if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
-            bboxes_intersect.push(boxB);
+            bboxes_intersect.push({'bbox':boxB,'x_center':(boxB[0]+boxB[2])/2,'y_center':(boxB[1]+boxB[3])/2,'act':act});
+          } else {
+            if(boxB[2] < bbox[0] && boxB[2]>lim_x_left) {
+              lim_x_left = boxB[2];
+            } else if(boxB[0] > bbox[2] && boxB[0]<lim_x_right) {
+              lim_x_right = boxB[0];
+            }
           }
         }
       }
@@ -541,19 +549,25 @@ function getActorsBBoxIntersect(bbox, not_involved, aspectRatio, shot_factor, fr
         let boxB = getBBoxShotAdapted(aspectRatio, undefined, shot_factor, true, curr_bbox, b.center_x, b.center_y);
         if(boxB && bbox) {
           if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
-            bboxes_intersect.push(boxB);
+            bboxes_intersect.push({'bbox':boxB,'x_center':b.center_x,'y_center':b.center_y,'act':act});
+          } else {
+            if(boxB[2] < bbox[0] && boxB[2]>lim_x_left) {
+              lim_x_left = boxB[2];
+            } else if(boxB[0] > bbox[2] && boxB[0]<lim_x_right) {
+              lim_x_right = boxB[0];
+            }
           }
         }
       }
     }
   }
-  return bboxes_intersect;
+  return {'bboxes_intersect':bboxes_intersect,'lim_x_left':lim_x_left,'lim_x_right':lim_x_right};
 }
 
 function updateBBox(bbox, bboxes, aspect_ratio) {
   for(let b of bboxes) {
-    bbox[0] = min(b[0],int(bbox[0]*0.9));
-    bbox[2] = max(b[2],int(bbox[2]*1.1));
+    bbox[0] = min(int(b.bbox[0]*0.9),bbox[0]);
+    bbox[2] = max(int(b.bbox[2]*1.1),bbox[2]);
   }
   bbox = getAdaptedBBox(bbox, aspect_ratio);
   return bbox;
@@ -561,8 +575,11 @@ function updateBBox(bbox, bboxes, aspect_ratio) {
 
 // Get the bounding box shot for the actors on stage
 function getBBoxShot(shotType, aspectRatio, fr_num=undefined) {
+  let draw = true;
   if(!fr_num) {
-    fr_num = frame_num
+    fr_num = frame_num;
+  } else {
+    draw = false;
   }
   let not_involved = [];
   let involved = [];
@@ -584,11 +601,15 @@ function getBBoxShot(shotType, aspectRatio, fr_num=undefined) {
     let i=0;
     for(let f of [lim_shot_factor, inter_shot_factor, shot_factor]) {
       let new_bbox = getBBoxShotInvolved(involved, aspectRatio, f, imageSize, fr_num);
-      let bboxes_intersect = getActorsBBoxIntersect(new_bbox, not_involved, aspectRatio, f, fr_num);
+      let bboxes_intersect = getActorsBBoxIntersect(new_bbox, not_involved, aspectRatio, f, fr_num).bboxes_intersect;
       if(bboxes_intersect.length>0 && i>0) {
         break;
       } else if (bboxes_intersect.length>0 && i==0) {
-        bbox = updateBBox(new_bbox, bboxes_intersect, aspectRatio);
+        for(let b of bboxes_intersect) {
+          involved.push(b.act);
+        }
+        // bbox = updateBBox(new_bbox, bboxes_intersect, aspectRatio);
+        bbox = getBBoxShotInvolved(involved, aspectRatio, f, imageSize, fr_num);
         break;
       }
       i++;
@@ -597,8 +618,11 @@ function getBBoxShot(shotType, aspectRatio, fr_num=undefined) {
   } else {
     bbox = getBBoxShotInvolved(involved, aspectRatio, shot_factor, imageSize, fr_num);
   }
+  // bbox.forEach(function(item, i) {if(item==undefined) bbox=undefined;});
+  if(!draw && bbox.indexOf(undefined)!=-1) {
+    return undefined;
+  }
 
-  bbox.forEach(function(item, i) {if(item==undefined) bbox[i]=NaN;});
   return bbox;
 }
 
@@ -3687,8 +3711,9 @@ function keyPressed() {
   }
 
   if(keyCode===46) {
-    if(!is_note_book && is_show_shots) {
-      removeShot();
+    if(!is_note_book) {
+      if(is_show_shots)
+        removeShot();
       if(!editing_button.on) {
         removeTracklet();
       } else {

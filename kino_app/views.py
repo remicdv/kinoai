@@ -855,6 +855,7 @@ def reframeMov(request):
     bbox = np.array(json.loads(bbox_string))
     videoname = abs_path+'/original_hevc.mov'
 
+
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
     factor = hevc_w / width
     print(hevc_w, factor, aspect_ratio)

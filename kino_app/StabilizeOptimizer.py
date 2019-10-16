@@ -209,7 +209,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
         chunk_size = chunk_end - chunk_start
         full_chunk_end = min(n, chunk_start + full_chunk_n)
         full_chunk_size = full_chunk_end - chunk_start
-        print("chunk:", chunk_start, chunk_end, full_chunk_end)
+        # print("chunk:", chunk_start, chunk_end, full_chunk_end)
 
         x = cvx.Variable(full_chunk_size)
         y = cvx.Variable(full_chunk_size)
@@ -268,7 +268,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
 
         if lambda1 != 0.:
             lambda1Factor = lambda1 * fps / imageHeight
-            print("lambda 1 ",lambda1Factor)
+            # print("lambda 1 ",lambda1Factor)
             if n > 1:
                 expr += lambda1Factor * \
                     (cvx.tv(x) + cvx.tv(y) + cvx.tv(h) * zoomSmooth)
@@ -281,7 +281,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
 
         if lambda2 != 0.:
             lambda2Factor = lambda2 * fps * fps * fps / imageHeight
-            print("lambda 2 ",lambda2Factor)
+            # print("lambda 2 ",lambda2Factor)
 
             if n > 2:
                 expr += lambda2Factor * (cvx.norm(x[3:] - 3*x[2:full_chunk_size-1] + 3*x[1:full_chunk_size-2] - x[0:full_chunk_size-3], 1) +
@@ -346,8 +346,8 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
         obj = cvx.Minimize(expr)
 
         #print expr
-        print("H=%d, W=%d lambda1=%f lambda2=%f zoomSmooth=%f fps=%f imageHeight=%f" % (
-            imageHeight, imageWidth, lambda1, lambda2, zoomSmooth, fps, imageHeight))
+        # print("H=%d, W=%d lambda1=%f lambda2=%f zoomSmooth=%f fps=%f imageHeight=%f" % (
+        #     imageHeight, imageWidth, lambda1, lambda2, zoomSmooth, fps, imageHeight))
         # note that the following constraints are tricked (see above) at noDataFrames, using negative values for half_width and half_height
         constraints = [h >= 0,
                        (x - aspectRatio * h) >= 0,
@@ -369,7 +369,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
             try:
                 # ECOS, the default solver, is much better at solving our problems, especially at handling frames where the actor is not visible
                 # all tolerances are multiplied by 10
-                result = prob.solve(solver=cvx.ECOS, verbose=True, abstol = 1e-6, reltol = 1e-5, abstol_inacc = 5e-4, reltol_inacc = 5e-4, feastol_inacc = 1e-3)
+                result = prob.solve(solver=cvx.ECOS, verbose=False, abstol = 1e-6, reltol = 1e-5, abstol_inacc = 5e-4, reltol_inacc = 5e-4, feastol_inacc = 1e-3)
             except cvx.SolverError as e:
                 tryagain = True
                 tryreason = str(e)
@@ -377,7 +377,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
         if tryagain or prob.status == cvx.INFEASIBLE or prob.status == cvx.UNBOUNDED:
             tryagain = False
             try:
-                result = prob.solve(solver=cvx.SCS, verbose=True, max_iters = 2500, eps = 1e-2)
+                result = prob.solve(solver=cvx.SCS, verbose=False, max_iters = 2500, eps = 1e-2)
             except cvx.SolverError as e:
                 tryagain = True
                 tryreason = str(e)
@@ -385,7 +385,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
         if tryagain or prob.status == cvx.INFEASIBLE or prob.status == cvx.UNBOUNDED:
             tryagain = False
             try:
-                result = prob.solve(solver=cvx.CVXOPT, verbose=True, abstol = 1e-6, reltol = 1e-5, feastol = 1e-6)
+                result = prob.solve(solver=cvx.CVXOPT, verbose=False, abstol = 1e-6, reltol = 1e-5, feastol = 1e-6)
             except cvx.SolverError as e:
                 tryagain = True
                 tryreason = str(e)
@@ -394,7 +394,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
             tryagain = False
             try:
                 result = prob.solve(
-                    solver=cvx.CVXOPT, kktsolver=cvx.ROBUST_KKTSOLVER, verbose=True, abstol = 1e-6, reltol = 1e-5, feastol = 1e-6)
+                    solver=cvx.CVXOPT, kktsolver=cvx.ROBUST_KKTSOLVER, verbose=False, abstol = 1e-6, reltol = 1e-5, feastol = 1e-6)
             except cvx.SolverError as e:
                 tryagain = True
                 tryreason = str(e)
@@ -405,7 +405,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
             raise cvx.SolverError('Problem is infeasible or unbounded')
 
         #raise ValueError('Yeah!')
-        print("result=", result, "\n")
+        # print("result=", result, "\n")
         if full_chunk_end >= n:
             # last chunk - get the full chunk
             optimised_xcenter[chunk_start:full_chunk_end] = x.value.reshape(
