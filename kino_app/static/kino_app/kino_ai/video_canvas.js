@@ -1199,30 +1199,41 @@ function saveShot() {
 
   shot.type = shot_type;
 
-  shot.calcBboxes(aspect_ratio);
-
-  shots.push(shot);
-
-  if(shot.actors_involved.length>=1) {
-    add_shot.push(shot);
-    shot.in_stabilize = true;
-  }
-  shots.sort(sortShotsByName);
-  shots.sort(sortShotsByType);
-
-  is_show_shots = true;
-  show_shots.checked(is_show_shots);
-
-  is_shot_creation = false;
-  shot_creation.checked(is_shot_creation);
-  for(let a of actors_timeline) {
-    a.elem.remove();
-    a.elem = createElement('h3', a.actor_name);
-    a.elem.elt.contentEditable = 'true';
-    a.elem.id('editor');
-    div_actors_timeline.child(a.elem);
+  let b = false;
+  for(let s of shots) {
+    if(s.equalTo(shot, false)) {
+      b = true;
+      break;
+    }
   }
 
+  if(!b) {
+    shot.calcBboxes(aspect_ratio);
+
+    shots.push(shot);
+
+    if(shot.actors_involved.length>=1) {
+      add_shot.push(shot);
+      shot.in_stabilize = true;
+    }
+    shots.sort(sortShotsByName);
+    shots.sort(sortShotsByType);
+
+    is_show_shots = true;
+    show_shots.checked(is_show_shots);
+
+    is_shot_creation = false;
+    shot_creation.checked(is_shot_creation);
+    for(let a of actors_timeline) {
+      a.elem.remove();
+      a.elem = createElement('h3', a.actor_name);
+      a.elem.elt.contentEditable = 'true';
+      a.elem.id('editor');
+      div_actors_timeline.child(a.elem);
+    }
+  } else {
+    alert('already created');
+  }
 }
 
 function setCursor() {

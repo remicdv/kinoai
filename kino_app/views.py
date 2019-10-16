@@ -853,7 +853,7 @@ def reframeMov(request):
     width = int(request.POST.get('width',''))
     aspect_ratio = float(request.POST.get('aspect_ratio',''))
     bbox = np.array(json.loads(bbox_string))
-    videoname = abs_path+'/original_hevc.mov'
+    videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_1'+'/10-20.mov'
 
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
