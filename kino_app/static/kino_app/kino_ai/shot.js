@@ -673,7 +673,7 @@ function Shot()  {
         }
       }
     }
-    if(curr_mask.length>1) {
+    if(curr_mask.length>=1) {
         mask.push(curr_mask);
     }
     curr_mask = [];

@@ -112,13 +112,14 @@
   var aspect_ratio = video.elt.videoWidth/video.elt.videoHeight;
   function draw() {
 
-    if(prev_width!=windowWidth || prev_height!=windowHeight) {
-      resizeImgAndPlayer();
-      prev_width=windowWidth;
-      prev_height=windowHeight;
-    }
     scale_ratio = video.elt.videoWidth/1024;
     aspect_ratio = video.elt.videoWidth/video.elt.videoHeight;
+    if(prev_width!=windowWidth || prev_height!=windowHeight) {
+      if(resizeImgAndPlayer()) {
+        prev_width=windowWidth;
+        prev_height=windowHeight;
+      }
+    }
     var bbox = [0,0,video.elt.videoWidth,video.elt.videoHeight];
     if(!currentPlayer.isPaused()){
       let fr = Math.round(currentPlayer.getVideoElement().currentTime * 24);
@@ -168,6 +169,7 @@
     $('#div_player_'+curr_id).css({top:$( this ).position().top, left:$( this ).position().left});
     currentPlayer.getVideoElement().currentTime = start;
     currentPlayer.play();
+    prev_width=1;
   });
 
   $(document).bind('keydown', function(e) {
@@ -195,33 +197,38 @@
   });
 
   function resizeImgAndPlayer() {
-    let width = document.getElementsByClassName('column center')[0].offsetWidth-10;
-    let height = Math.floor(width / aspect_ratio);
-    if(!curr_id) {
-      curr_id = list_id[0];
-    }
-    document.getElementById('videoPlayer_'+curr_id).width = width;
-    document.getElementById('videoPlayer_'+curr_id).height = height;
-    canvas.size(width, height);
-    for(let class_name of ['lazyload', 'full']) {
-      let images = document.getElementsByClassName(class_name);
-      for(let i=0; i < images.length; i++){
-        let img = images[i];
-        img.width = width;
-        img.height = height;
+    if(aspect_ratio) {
+      let width = document.getElementsByClassName('column center')[0].offsetWidth-10;
+      let height = Math.floor(width / aspect_ratio);
+      if(!curr_id) {
+        curr_id = list_id[0];
       }
-    }
-    $('.column.left h3').each(function() {
-      $(this).height((height+2-18)/2);
-      $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
-      $(this).css('overflow','auto');
-    });
-    $('.column.left .paragraph').each(function() {
-      $(this).height((height+2-18)/2);
-      $(this).css('overflow','auto');
-    });
-    for(let n of tab_notes) {
-      document.getElementById('par_'+n.id+'.0').innerText = n.text;
+      document.getElementById('videoPlayer_'+curr_id).width = width;
+      document.getElementById('videoPlayer_'+curr_id).height = height;
+      canvas.size(width, height);
+      for(let class_name of ['lazyload', 'full']) {
+        let images = document.getElementsByClassName(class_name);
+        for(let i=0; i < images.length; i++){
+          let img = images[i];
+          img.width = width;
+          img.height = height;
+        }
+      }
+      $('.column.left h3').each(function() {
+        $(this).height((height+2-18)/2);
+        $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
+        $(this).css('overflow','auto');
+      });
+      $('.column.left .paragraph').each(function() {
+        $(this).height((height+2-18)/2);
+        $(this).css('overflow','auto');
+      });
+      for(let n of tab_notes) {
+        document.getElementById('par_'+n.id+'.0').innerText = n.text;
+      }
+      return true;
+    } else {
+      return false;
     }
   }
 </script>

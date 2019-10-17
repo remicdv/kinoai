@@ -406,10 +406,13 @@ function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSiz
   let k=0;
   for(let act of actors_involved) {
     for(let t of act.tracks) {
-      var keypointsB = frames_data[fr_num];
-      var detections_track = t.detections;
-      var first_frame = t.first_frame;
-      let keypoints_tab = keypointsB[detections_track[fr_num-first_frame]];
+      let keypointsB = frames_data[fr_num];
+      let detections_track = t.detections;
+      let first_frame = t.first_frame;
+      let keypoints_tab;
+      if(keypointsB != null && keypointsB != undefined) {
+        keypoints_tab = keypointsB[detections_track[fr_num-first_frame]];
+      }
       if(first_frame < fr_num && detections_track.length > (fr_num-first_frame) && keypoints_tab) {
         var boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor);
         if(!gaze_vect) {
@@ -526,7 +529,10 @@ function getActorsBBoxIntersect(bbox, not_involved, aspectRatio, shot_factor, fr
       let keypointsB = frames_data[fr_num];
       let detections_track = t.detections;
       let first_frame = t.first_frame;
-      let keypoints_tab = keypointsB[detections_track[fr_num-first_frame]];
+      let keypoints_tab;
+      if(keypointsB != null && keypointsB != undefined) {
+        keypoints_tab = keypointsB[detections_track[fr_num-first_frame]];
+      }
       if(first_frame < fr_num && detections_track.length > (fr_num-first_frame) && keypoints_tab) {
         let boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor, true);
         if(boxB && bbox) {
