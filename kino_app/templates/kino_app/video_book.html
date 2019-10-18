@@ -134,10 +134,10 @@
     updatePlayer();
   }
   function updatePlayer() {
-      if(end && start && (currentPlayer.getVideoElement().currentTime > end || currentPlayer.getVideoElement().currentTime < start)) {
-        currentPlayer.getVideoElement().currentTime = start;
-        currentPlayer.pause();
-      }
+    if(end && (start || start==0) && (currentPlayer.getVideoElement().currentTime > end || currentPlayer.getVideoElement().currentTime < start)) {
+      currentPlayer.getVideoElement().currentTime = start;
+      currentPlayer.pause();
+    }
   }
 
   $('.full').click(function() {
@@ -157,10 +157,10 @@
     let time = parseInt($(this)[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
 
     start = time;
-    time+=+600*curr_ind;
+    time+=600*curr_ind;
     if($(this).next().length >0) {
       // end = parseInt($(this).next()[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
-      end = parseInt(document.getElementById('time_'+time+'.0').innerText.split('-')[1].split(':')[0])*60 + parseInt(document.getElementById('time_'+time+'.0').innerText.split('-')[1].split(':')[1]);
+      end = parseInt(document.getElementById('time_'+time).innerText.split('-')[1].split(':')[0])*60 + parseInt(document.getElementById('time_'+time).innerText.split('-')[1].split(':')[1]);
       if(curr_ind!=0)
         end = end%(600*curr_ind);
     } else {
@@ -179,8 +179,8 @@
       var note_tab = [];
       for(let sub_tab of tab_json) {
         for(let t of sub_tab) {
-          t.text = document.getElementById(t.id+'.0').innerText;
-          note_tab.push({'id':t.id,'text':document.getElementById('par_'+t.id+'.0').innerText});
+          t.text = document.getElementById(t.id).innerText;
+          note_tab.push({'id':t.id,'text':document.getElementById('par_'+t.id).innerText});
         }
       }
       $.post({
@@ -224,7 +224,7 @@
         $(this).css('overflow','auto');
       });
       for(let n of tab_notes) {
-        document.getElementById('par_'+n.id+'.0').innerText = n.text;
+        document.getElementById('par_'+n.id).innerText = n.text;
       }
       return true;
     } else {

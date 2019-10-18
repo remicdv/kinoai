@@ -474,7 +474,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
         break;
       }
     }
-    console.log(curr_a_s);
+    // console.log(curr_a_s);
     return curr_a_s;
   }
 
@@ -484,7 +484,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       if(t.mode = "showing") {
         for(let c of t.cues) {
           let key_frame = {};
-          key_frame.Time = c.startTime;
+          key_frame.Time = parseInt(c.startTime);
           let f_n = (c.startTime+1)*frame_rate;
           let b = this.getCurrStabShotNoScale(f_n);
           if(b) {

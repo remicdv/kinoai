@@ -345,7 +345,7 @@ def video_book(request, id):
     for s in full_script:
         tab = parser_vtt(s)
         for t in tab:
-            t['id'] = t['start']+cpt*600
+            t['id'] = int(t['start']+cpt*600)
             start = '{min:02d}'.format(min=cpt*10+(math.floor(int(t['start'])/60)%60))+':'+'{sec:02d}'.format(sec=math.floor(int(t['start'])%60))
             end = '{min:02d}'.format(min=cpt*10+(math.floor(int(t['end'])/60)%60))+':'+'{sec:02d}'.format(sec=math.floor(int(t['end'])%60))
             t['start'] = start

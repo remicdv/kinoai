@@ -84,7 +84,7 @@ function Player(tempX, tempY, tempW, tempH, tempDur, tempRate, tempXCursor = 0) 
         let final_text = "";
         for(let c of t.cues) {
           if(video.time() >= c.startTime && video.time() <= c.endTime) {
-            final_text += (c.text+"\n");
+            final_text += (c.text);
           }
         }
         push();
