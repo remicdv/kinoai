@@ -2,6 +2,9 @@
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/noting_app.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
+<script src="{% static 'kino_app/p5.min.js' %}"></script>
+<script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
+<script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
 
 <div id='header_info'>
 
@@ -94,7 +97,7 @@ function updateEvent() {
       note.IndexTime = tab_ind_time;
       notes.push(note);
       newNote.innerText = text;
-      timeCode.innerText = start + ' -- '+end;
+      timeCode.innerText = start + ' - '+end;
       let div = document.createElement('div');
       div.append(timeCode);
       div.append(newNote);

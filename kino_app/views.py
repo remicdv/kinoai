@@ -148,6 +148,7 @@ class IndexView(generic.ListView):
         old_user = len(FolderPath.objects.filter(owner=request.user))
         list_user = list_files(user_folder, request.user)
         list_dir_name_user = os.listdir(user_folder)
+        list_dir_name_user.sort()
         extractImagesAndDelete(list_user, old_user, request.user)
         if request.user is None or request.user.is_authenticated == False:
             print(settings.LOGIN_URL)
@@ -460,6 +461,42 @@ def save_note(request):
     print(json_notes)
     with open(abs_path+'/'+str(request.user.username)+'_note.json', 'w') as fp:
         json.dump(json_notes, fp, indent=2)
+    return HttpResponse('')
+
+def get_queryset_from_name(old):
+    list_path = FolderPath.objects.filter(path__icontains=old)
+    remove_path = []
+    for folder in list_path:
+        name = folder.path.split('/')[1]
+        if name != old:
+            remove_path.append(folder.path)
+    for p in remove_path:
+        list_path = list_path.exclude(path=p)
+
+    return list_path
+
+@csrf_exempt
+def modified_path(request):
+    path_modified = json.loads(request.POST.get('path_modified',''))
+    print(path_modified)
+    for path in path_modified:
+        old = path['old']
+        new = path['new'].replace(" ", "_")
+        list_path = get_queryset_from_name(old)
+        test_new_name = get_queryset_from_name(new)
+        if len(test_new_name) == 0:
+            path_index_images = list_path[0].abs_path.replace('data','index_images').split('/part')[0]
+            new_path_index = path_index_images.replace(old,new)
+            path_data_folder = list_path[0].abs_path.split('/part')[0]
+            new_path_data = path_data_folder.replace(old,new)
+            os.rename(path_index_images, new_path_index)
+            os.rename(path_data_folder, new_path_data)
+            for folder in list_path:
+                folder.abs_path = folder.abs_path.replace(old,new)
+                folder.path = folder.path.replace(old,new)
+                folder.save()
+        else:
+            print('already')
     return HttpResponse('')
 
 @csrf_exempt
@@ -853,7 +890,7 @@ def reframeMov(request):
     width = int(request.POST.get('width',''))
     aspect_ratio = float(request.POST.get('aspect_ratio',''))
     bbox = np.array(json.loads(bbox_string))
-    videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_1'+'/10-20.mov'
+    videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_1'+'/10-20.mov'#
 
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))

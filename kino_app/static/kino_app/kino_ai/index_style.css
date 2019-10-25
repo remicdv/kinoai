@@ -114,7 +114,8 @@ li:last-child {
 }
 
 
-li a {
+li a{
+  cursor: pointer;
   text-decoration: none;
   vertical-align: middle;
   color: #000;
@@ -127,7 +128,15 @@ li a {
   transition: font-size 0.3s ease, background-color 0.3s ease;
 }
 
-li a:hover {
+li p {
+  vertical-align: middle;
+  color: #000;
+  display: block;
+  text-align: center;
+  margin: 0;
+}
+
+li a:hover, li p:hover {
   color:#5101DE;
   background: #f6f6f6;
 }
@@ -136,6 +145,8 @@ li a:hover {
   background-color: #2E5C9C;
   padding: 10;
   color: white;
+  text-decoration: none;
+  cursor: pointer;
 }
 
 #tabs {

@@ -770,27 +770,27 @@ function getShotsOnStage() {
 // Extract a Json file with the list of actors on stage at each frame
 function getListOnStage() {
   let ret = [];
-  // for(let i=1; i<total_frame+1; i++) {
-  //   ret.push(getActOnStage(i));
-  // }
-  // createStringDict(ret).saveJSON('actors_on_stage');
-  for(let act of actors_timeline) {
-    // ret.push(act.extractMovement());
-    let tab = [];
-    let curr = [];
-    for(let obj of act.extractMovement()) {
-      if(obj.Mvt != 0) {
-        curr.push(obj.Frame)
-      } else {
-        if(curr.length > 3) {
-          tab.push(curr);
-        }
-        curr = [];
-      }
-    }
-    ret.push(tab);
+  for(let i=1; i<total_frame+1; i++) {
+    ret.push(getActOnStage(i));
   }
-  console.log(ret);
+  createStringDict(ret).saveJSON('actors_on_stage');
+  // for(let act of actors_timeline) {
+  //   // ret.push(act.extractMovement());
+  //   let tab = [];
+  //   let curr = [];
+  //   for(let obj of act.extractMovement()) {
+  //     if(obj.Mvt != 0) {
+  //       curr.push(obj.Frame)
+  //     } else {
+  //       if(curr.length > 3) {
+  //         tab.push(curr);
+  //       }
+  //       curr = [];
+  //     }
+  //   }
+  //   ret.push(tab);
+  // }
+  // console.log(ret);
 }
 
 //Transform a p5vect to classic vector
@@ -1579,6 +1579,13 @@ function hideAllElt() {
   for(let act of actors_timeline) {
     act.elem.hide();
   }
+  hideNoteBook();
+  note_editor.update(false);
+  if(div_sub) {
+    $("#div_sub").remove();
+    div_sub = undefined;
+    tab_sub = [];
+  }
 }
 
 // Show all hmtl elements
@@ -1595,6 +1602,10 @@ function showAllElt() {
   }
   for(let act of actors_timeline) {
     act.elem.show();
+  }
+  if(is_note_book) {
+    note_editor.update(true);
+    showNoteBook();
   }
 }
 
@@ -2151,6 +2162,10 @@ function drawBBox(keypoints, t) {
 
 // Draw the actor movement on stage from the tracklet beginning  until the current frame
 function drawTrackOn() {
+  push();
+  colorMode(HSB);
+  let from = color(120, 100, 20);
+  let to = color(120, 100, 80);
   for(let t of tracklets_line) {
     var detections_track = t.detections;
     if(t.on) {
@@ -2162,7 +2177,8 @@ function drawTrackOn() {
             if(keypoints[detections_track[j-t.first_frame]]) {
               var center = getCenter(keypoints[detections_track[j-t.first_frame]]['KeyPoints']);
               push();
-              fill(100,211,82);
+              let color = lerpColor(from, to, j/(frame_num-t.first_frame));
+              fill(color);
               ellipse(center[0],center[1],3);
               pop();
             }
@@ -2171,6 +2187,7 @@ function drawTrackOn() {
       }
     }
   }
+  pop();
 }
 
 // Draw a colored rectangle on the player based on the shots specification (only when the actors involved in the shots are on stage)
@@ -2920,11 +2937,11 @@ function setup() {
     html_elements.push(reset_pos);
     reset_pos.mousePressed(resetPos);
 
-    // get_actors_on_stage = createButton('Actors On Stage');
-    // get_actors_on_stage.mouseOver(processToolTip('Download JSON with actors on stage for each frame'));
-    // get_actors_on_stage.mouseOut(processToolTip(''));
-    // html_elements.push(get_actors_on_stage);
-    // get_actors_on_stage.mousePressed(getListOnStage);
+    get_actors_on_stage = createButton('Actors On Stage');
+    get_actors_on_stage.mouseOver(processToolTip('Download JSON with actors on stage for each frame'));
+    get_actors_on_stage.mouseOut(processToolTip(''));
+    html_elements.push(get_actors_on_stage);
+    get_actors_on_stage.mousePressed(getListOnStage);
 
     get_meta_data = createButton('Meta Data');
     get_meta_data.mouseOver(processToolTip('Download JSON with meta data informations for each frame'));
@@ -3035,6 +3052,7 @@ function setup() {
 
 function draw() {
 
+  // frameRate(frame_rate);
   image_frame = p5ImageFromDash();
   var x_vid = 0;
   var y_vid = 0;
@@ -3109,13 +3127,13 @@ function draw() {
     }
     viewer_width = mid_width;
     viewer_height = windowHeight*((1/2)*viewer_scale);
-    // if(viewer_height*aspect_ratio>mid_width){
-    //   vid_h = mid_width/aspect_ratio;
-    //   vid_w = mid_width;
-    // } else {
+    if(viewer_height*aspect_ratio>mid_width){
+      vid_h = mid_width/aspect_ratio;
+      vid_w = mid_width;
+    } else {
       vid_h = viewer_height;
       vid_w = vid_h*aspect_ratio;
-    // }
+    }
     x_off = (mid_width - vid_w)/2;
     y_off = (viewer_height-vid_h)/2;
     background(255);
@@ -3135,7 +3153,6 @@ function draw() {
     tool_tip.p.style('border','1px solid grey');
     tool_tip.p.position(mouseX, can.elt.offsetTop+mouseY);
   }
-  // frameRate(frame_rate);
 
   push();
   let x = x_off;

@@ -12,6 +12,7 @@ urlpatterns = [
     path('video_book/<int:id>', views.video_book, name='video_book'),
     path('video_book/save_note_video', views.save_note_video, name='save_note_video'),
     path('noting_app', views.noting_app, name='noting_app'),
+    path('modified_path', views.modified_path, name='modified_path'),
     path('video_editing/<int:id>', views.video_editing, name='video_editing'),
     path('video_editing/get_data_detec', views.get_data_detec, name='get_data_detec'),
     path('video_editing/submit', views.submit, name='submit'),

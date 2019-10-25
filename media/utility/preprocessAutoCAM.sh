@@ -6,45 +6,16 @@ if [ ! -f "$CONFIG" ]; then
     echo "Please create file $CONFIG in the video directory, containing for example:"
     cat <<EOF
 takes=(
-    "NJAINF_S004_S001_T004.MOV;take04"
-    "NJAINF_S004_S001_T008.MOV;take08"
-    "NJAINF_S004_S001_T012.MOV;take12"
+    "video_name.mov;take01"
     )
 parts=(
-    "NJAINF_S004_S001_T004.MOV;take04;part01;00:00:30;00:10:00"
-    "NJAINF_S004_S001_T004.MOV;take04;part02;00:50:00;00:10:00"
-    "NJAINF_S004_S001_T004.MOV;take04;part03;01:00:00;00:10:00"
-    "NJAINF_S004_S001_T008.MOV;take08;part01;00:00:00;00:10:00"
-    "NJAINF_S004_S001_T012.MOV;take12;part01;00:41:00;00:06:00"
+    "video_name.mov;take01;part01;00:00:00;00:10:00"
+    "video_name.mov;take01;part02;00:10:00;00:10:00"
 )
 EOF
 fi
 
 . "$CONFIG"
-
-# array of : "video_file;take_dir"
-# do NOT use spaces in file or dir names
-#
-# example:
-# takes=(
-#     "NJAINF_S004_S001_T004.MOV;take04"
-#     "NJAINF_S004_S001_T008.MOV;take08"
-#     "NJAINF_S004_S001_T012.MOV;take12"
-#     )
-
-# Array of : "video_file;take_dir;part_dir;start_time;duration"
-# When generating previews, this may be empty if no part is yes defined.
-#
-# start_time and duration are in the form HH:MM:SS
-#
-# example:
-# parts=(
-#     "NJAINF_S004_S001_T004.MOV;take04;part01;00:00:30;00:10:00"
-#     "NJAINF_S004_S001_T004.MOV;take04;part02;00:50:00;00:10:00"
-#     "NJAINF_S004_S001_T004.MOV;take04;part03;01:00:00;00:10:00"
-#     "NJAINF_S004_S001_T008.MOV;take08;part01;00:00:00;00:10:00"
-#     "NJAINF_S004_S001_T012.MOV;take12;part01;00:41:00;00:06:00"
-# )
 
 if [[ ! "$(declare -p takes)" =~ "declare -a" ]]; then
     echo "Error: array 'takes' is not defined in $CONFIG"
@@ -135,8 +106,10 @@ for part in "${parts[@]}"; do
 		# exit
 	  #   fi
 
-  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -pix_fmt yuv420p -vf "scale=-1:540" "$take_dir/$part_dir/original540.mp4" &> "$take_dir/$part_dir/original540.mp4.log"
-  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -pix_fmt yuv420p -vf "scale=-1:1080" "$take_dir/$part_dir/original1080.mp4" &> "$take_dir/$part_dir/original1080.mp4.log"
+  # time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -pix_fmt yuv420p -vf "scale=-1:540" "$take_dir/$part_dir/original540.mp4" &> "$take_dir/$part_dir/original540.mp4.log"
+  # time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -pix_fmt yuv420p -vf "scale=-1:1080" "$take_dir/$part_dir/original1080.mp4" &> "$take_dir/$part_dir/original1080.mp4.log"
+  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -g 24 -keyint_min 24 -vf "scale=-1:540" "$take_dir/$part_dir/original540.mp4" &> "$take_dir/$part_dir/original540.mp4.log"
+  time ffmpeg -y -i "$take_dir/$part_dir/original_hevc.mov" -an -c:v libx264 -g 24 -keyint_min 24 -vf "scale=-1:1080" "$take_dir/$part_dir/original1080.mp4" &> "$take_dir/$part_dir/original1080.mp4.log"
 
     fi
 

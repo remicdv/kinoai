@@ -1,4 +1,5 @@
 {% load static %}
+{% load string_filter %}
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
 
@@ -23,7 +24,7 @@
 </div>
 
 <div id='tabs'>
-  <div> <input type="checkbox" id="button_default" checked> Examples<br></div>
+  <div> <input type="checkbox" id="button_default" checked> La fabrique des monstres<br></div>
    <div> <input type="checkbox" id="button_user"> My Videos<br></div>
 </div>
 <a id='book' href="">Video book</a>
@@ -44,7 +45,7 @@ var previous = "{{ request.session.previous_name }}";
     <script>
     default_list.push("/media/kino_app/index_images/shots/{{name}}/part01/");
     </script>
-      <li class='def_list default' id="{{name}}"><a><img hidden margin=0 class="sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/shots/{{name}}/part01/poster0.jpg"><br>{{ name }}</a></li>
+      <li class='def_list default' id="{{name}}"><a><img hidden margin=0 class="sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/shots/{{name}}/part01/poster0.jpg"></a><p contenteditable="true" spellcheck="false">{{ name|replace_underscore }}</p></li>
   {% endfor %}
   </ul>
 {% endif %}
@@ -72,7 +73,7 @@ var previous = "{{ request.session.previous_name }}";
       <script>
       user_default_list.push("/media/kino_app/index_images/{{user.username}}/{{name}}/part01/");
       </script>
-        <li class='def_list user' id="{{name}}"><a><img hidden margin=0 class="user_sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{user.username}}/{{name}}/part01/poster0.jpg"><br>{{ name }}</a></li>
+        <li class='def_list user' id="{{name}}"><a><img hidden margin=0 class="user_sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{user.username}}/{{name}}/part01/poster0.jpg"></a><p contenteditable="true" spellcheck="false">{{ name|replace_underscore }}</p></li>
     {% endfor %}
     </ul>
   {% endif %}
@@ -132,16 +133,16 @@ var previous = "{{ request.session.previous_name }}";
     let name = $(this)[0].firstChild.innerText.split('/')[$(this)[0].firstChild.innerText.split('/').length-1];
     $(this)[0].firstChild.innerHTML = first_part[0]+'<br>'+name;
   });
-  $('.def_list.default').click(function() {
-    name_clicked = this.id;
+  $('.def_list.default a').click(function() {
+    name_clicked = $(this).parent()[0].id;
     $('#list_def').hide();
     $('#list').show();
     document.getElementById('button_default').checked = false;
     clickDef();
   });
 
-  $('.def_list.user').click(function() {
-    name_clicked = this.id;
+  $('.def_list.user a').click(function() {
+    name_clicked = $(this).parent()[0].id;
     $('#user_list_def').hide();
     $('#user_list').show();
     document.getElementById('button_user').checked = false;
@@ -312,6 +313,41 @@ var previous = "{{ request.session.previous_name }}";
       }
     }
   }
+
+  $(document).bind('keydown', function(e) {
+    if(e.ctrlKey && (e.which == 83)) {
+      e.preventDefault();
+      console.log('ctrl s = save');
+      var path_modified = [];
+      $('.def_list.default p').each(function() {
+        let path = {};
+        name_clicked = $(this).parent()[0].id;
+        if(name_clicked != this.innerText) {
+          path.old = name_clicked;
+          path.new = this.innerText;
+          path_modified.push(path);
+        }
+      });
+      $('.def_list.user p').each(function() {
+        let path = {};
+        name_clicked = $(this).parent()[0].id;
+        if(name_clicked != this.innerText) {
+          path.old = name_clicked;
+          path.new = this.innerText;
+          path_modified.push(path);
+        }
+      });
+      $.post({
+        url: "modified_path",
+        data: {'path_modified': JSON.stringify(path_modified)},
+        dataType: 'json',
+        success: function (data) {
+        }
+      });
+      keyDown = undefined;
+      return false;
+    }
+  });
 
  var logo = document.getElementById("logo");
  var t = setInterval(oneSecondFunction, 1000);
