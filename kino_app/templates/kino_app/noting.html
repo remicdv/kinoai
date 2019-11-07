@@ -17,6 +17,9 @@
 <div id="add_note">
   <p>Add note : </p>
   <input type="text" id="input_add"/>
+
+  <button id='save_subs'>Download subs</button>
+  <button id='save_notes'>Download notes</button>
 </div>
 
 <div id='created_notes'>
@@ -90,6 +93,7 @@ function updateEvent() {
       timeCode.style.width = 165;
       let newNote = document.createElement('p');
       newNote.contentEditable = true;
+      newNote.spellcheck = false;
       let note = {};
       note.Start = start;
       note.End = end;
@@ -149,6 +153,86 @@ function getLastLine(tab) {
   }
   return text;
 }
+
+function to_seconds(string) {
+  let tab = string.split(':');
+  return parseInt(tab[0])*3600+parseInt(tab[1])*60+parseInt(tab[2]);
+}
+
+function to_string(seconds) {
+  let hour = Math.floor(seconds/3600);
+  return hour*60+Math.floor((seconds/60)%60)+':'+Math.floor(seconds%60);
+}
+
+function getNote(subs=false) {
+  let notes = [];
+  let wraps = document.getElementsByClassName('wrap_notes');
+  for(let w of wraps) {
+    let note = {};
+    note.Title = w.children[0].children[1].innerText.split(Date().split(' ')[0])[0].split(' ')[0];
+    let seconds_offset = to_seconds(w.children[0].children[1].innerText.split(' ')[w.children[0].children[1].innerText.split(' ').length-1])
+    if (w.children[1].children[0].children.length >= 1) {
+      seconds_offset = to_seconds(w.children[1].children[0].children[0].innerText.split('-')[0]);
+    }
+    console.log(seconds_offset);
+    note.Content = []
+    let register = w.children[1].children[0].children;
+    for(let r of register) {
+      let content = {};
+      content.Start = r.children[0].innerText.split('-')[0];
+      console.log(to_string(to_seconds(content.Start)-seconds_offset));
+      content.End = r.children[0].innerText.split('-')[1];
+      console.log(to_string(to_seconds(content.End)-seconds_offset));
+      if(subs) {
+        content.Start = to_string(to_seconds(content.Start)-seconds_offset);
+        content.End = to_string(to_seconds(content.End)-seconds_offset);
+      }
+      content.Text = r.children[1].innerText;
+      note.Content.push(content);
+    }
+    notes.push(note);
+  }
+  return notes;
+}
+
+function downloadNote(tab) {
+  for(let data of tab) {
+    var a = document.createElement('a');
+    a.title = "link";
+    a.href = data['src'];
+    a.id = 'click';
+    a.download = data['title']+data['extention'];
+    console.log(document.getElementById('click'));
+    a.click();
+    a.remove();
+  }
+}
+
+
+$( "#save_notes" ).click(function() {
+  var notes = getNote();
+  $.post({
+    url: "download_notes",
+    data: {'notes': JSON.stringify(notes)},
+    dataType: 'json',
+    success: function (data) {
+      return downloadNote(data);
+    }
+  });
+});
+
+
+$( "#save_subs" ).click(function() {
+  var notes = getNote(true);
+  $.post({
+    url: "download_subs",
+    data: {'notes': JSON.stringify(notes)},
+    dataType: 'json',
+    success: function (data) {
+      return downloadNote(data);
+    }
+  });
+});
 
 setInterval(function(){
   if(Date.now()/1000 - start_time/1000 > 5) {

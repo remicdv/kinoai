@@ -2673,6 +2673,7 @@ function createAllActorsFullShot() {
     s.end_frame = Math.round(frame_rate*video.duration());
 
     s.aspect_ratio = aspect_ratio;
+    console.log(s);
 
     s.calcBboxes(aspect_ratio);
 

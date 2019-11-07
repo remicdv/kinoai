@@ -1,3 +1,3 @@
-takes=("test.mov;test")
- parts=("test.mov;test;part01;00:00:00;00:10:00"
+takes=("pres.mov;pres")
+ parts=("pres.mov;pres;part01;00:00:00;00:10:00"
 )

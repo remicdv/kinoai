@@ -439,6 +439,41 @@ def save_note_video(request):
         save_vtt(tab,s)
     return HttpResponse('')
 
+@csrf_exempt
+def download_notes(request):
+    notes = json.loads(request.POST.get('notes',''))
+    media = os.listdir('media')
+    for item in media:
+        if item.endswith(".txt"):
+            os.remove(os.path.join('media/', item))
+    response = []
+    for note in notes:
+        file = open("media/"+note['Title']+".txt","w")
+        file.write(note['Title']+'\n')
+        for content in note['Content']:
+            file.write(content['Start']+' - '+content['End']+' : '+content['Text']+'\n')
+        file.close()
+        response.append({'src':'/media/'+note['Title']+'.txt','title':note['Title'],'extention':'.txt'})
+    return HttpResponse(json.dumps(response))
+
+@csrf_exempt
+def download_subs(request):
+    notes = json.loads(request.POST.get('notes',''))
+    media = os.listdir('media')
+    for item in media:
+        if item.endswith(".vtt"):
+            os.remove(os.path.join('media/', item))
+    response = []
+    for note in notes:
+        file = open("media/"+note['Title']+".vtt","w")
+        file.write('WEBVTT\n\n')
+        for content in note['Content']:
+            file.write(content['Start']+'.000 --> '+content['End']+'.000\n'+content['Text']+'\n\n')
+        response.append({'src':'/media/'+note['Title']+'.vtt','title':note['Title'],'extention':'.vtt'})
+        file.close()
+    return HttpResponse(json.dumps(response))
+
+
 def noting_app(request):
     return render(request, 'kino_app/noting.html')
 
@@ -890,8 +925,7 @@ def reframeMov(request):
     width = int(request.POST.get('width',''))
     aspect_ratio = float(request.POST.get('aspect_ratio',''))
     bbox = np.array(json.loads(bbox_string))
-    videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_1'+'/10-20.mov'#
-
+    videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_3'+'/19janvier/pres.mov'#
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
     factor = hevc_w / width
