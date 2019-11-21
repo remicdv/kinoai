@@ -105,6 +105,17 @@
      }
      document.getElementById('par_'+n.id).innerText = n.text;
    }
+   if(tab_notes.length == 0) {
+     let par = document.getElementsByClassName('paragraph');
+     for(let p of par) {
+       p.innerText = "";
+       if(document.getElementById("note_authors").value == username) {
+         p.contentEditable = true;
+       } else {
+         p.contentEditable = false;
+       }
+     }
+   }
  }
   window.addEventListener("load", function(event) {
       lazyload();
@@ -254,8 +265,10 @@
         $(this).height((height+2-18)/2);
         $(this).css('overflow','auto');
       });
-      for(let n of tab_notes) {
-        document.getElementById('par_'+n.id).innerText = n.text;
+      if(tab_notes) {
+        for(let n of tab_notes) {
+          document.getElementById('par_'+n.id).innerText = n.text;
+        }
       }
       return true;
     } else {

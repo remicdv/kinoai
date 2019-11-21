@@ -365,6 +365,11 @@ def video_book(request, id):
         if p.path.split('/')[1] != full_vid:
             full_list = full_list.exclude(path=p.path)
 
+    if not os.path.isfile(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt'):
+        file = open(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt',"w")
+        file.write("[]")
+        file.close()
+        
     full_note = []
     for root, dirs, files in os.walk(full_list[0].abs_path):
         for file in files:
@@ -374,9 +379,6 @@ def video_book(request, id):
                     obj['Notes'] = json.load(json_file)
                 obj['Creator'] = file.split('_')[0]
                 full_note.append(obj)
-    # if os.path.isfile(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt'):
-    #     with open(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt') as json_file:
-    #         full_note = json.load(json_file)
 
     full_script = []
     full_json_shots = []
