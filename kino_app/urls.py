@@ -8,6 +8,7 @@ urlpatterns = [
     path('', views.IndexView.as_view(), name='index'),
     path('set_previous', views.set_previous, name='set_previous'),
     path('upload', views.upload_view, name='upload'),
+    path('create_project', views.create_project, name='create_project'),
     path('preprocess', views.preprocess, name='preprocess'),
     path('video_book/<int:id>', views.video_book, name='video_book'),
     path('video_book/save_note_video', views.save_note_video, name='save_note_video'),

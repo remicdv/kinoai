@@ -5,11 +5,16 @@
 <script src="{% static 'kino_app/dash.all.min.js' %}"></script>
 <script src="{% static 'kino_app/p5.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
-<script> var end, start; var list_id = []; var list_player = []; var tab_json = [];</script>
+<script> var end, start; var list_id = []; var list_player = []; var tab_json = []; var list_path = [];</script>
 
 <div id='header_info'>
+  <div id="authors">
+    <h3 style="color:white;"> Auteurs disponibles </h3>
+    <select id='note_authors' onchange="changeAuthor()"></select>
+  </div>
 <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
 <h1 id='title'>Carnet audiovisuel </h1>
+
 </div>
 
 <div id="persist-area">
@@ -26,7 +31,7 @@
   </div>
 </div>
 {% for p in path %}
-  <script>list_id.push('{{p.id}}')</script>
+  <script>list_id.push('{{p.id}}'); list_path.push("{{p.path}}")</script>
   <div id="div_player_{{p.id}}" hidden class='player_container'>
       <video id="videoPlayer_{{p.id}}" controls width="490" height="260"></video>
       <script>
@@ -47,7 +52,7 @@
         <script> var tab = [];</script>
         {% for t in sub_tab %}
           <p style="padding:0; margin:0 0 0 5;" class="timing" id="time_{{t.id}}">{{t.start}} - {{t.end}}</p>
-          <h3 style="padding:0; margin:0 0 0 5;" contenteditable="true" id="{{t.id}}">{{t.text}}</h3>
+          <h3 style="padding:0; margin:0 0 0 5;" id="{{t.id}}">{{t.text}}</h3>
           <p class="paragraph" id="par_{{t.id}}" contenteditable="true" style="padding:0; margin:0 0 0 5;"></p>
           <script> tab.push({"start":'{{t.start}}',"end":'{{t.end}}', "text":'{{t}}'.split('&#39;text&#39;: &#39;')[1].split('&#39;')[0].replace(/&quot;/g,'"'),"id":parseInt('{{t.id}}')});</script>
         {% endfor %}
@@ -62,7 +67,7 @@
     {% if crop %}
       {% for sub_crop in crop %}
         {% for c in sub_crop.tab %}
-          <img style="margin-bottom:2;" class="lazyload" data-src="/media/kino_app/images/{{sub_crop.id}}/{{c}}" src="/media/kino_app/images/{{sub_crop.id}}/{{c}}" width="490" height="260"/>
+          <img style="margin-bottom:2;" class="lazyload" data-src="/media/kino_app/data/{{sub_crop.path}}/images/{{c}}" src="/media/kino_app/data/{{sub_crop.path}}/images/{{c}}" width="490" height="260"/>
         {% endfor %}
       {% endfor %}
     {% else %}
@@ -74,7 +79,7 @@
     {% if full %}
       {% for sub_full in full %}
         {% for f in sub_full.tab %}
-          <img class="full" style="margin-bottom:2;" class="lazyload" data-src="/media/kino_app/images/{{sub_full.id}}/{{f}}" src="/media/kino_app/images/{{sub_full.id}}/{{f}}" width="490" height="260"/>
+          <img class="full" style="margin-bottom:2;" class="lazyload" data-src="/media/kino_app/data/{{sub_full.path}}/images/{{f}}" src="/media/kino_app/data/{{sub_full.path}}/images/{{f}}" width="490" height="260"/>
         {% endfor %}
       {% endfor %}
     {% else %}
@@ -85,6 +90,22 @@
 </div>
 
 <script>
+ var username = "{{username}}";
+ function changeAuthor() {
+   for(let note of tab_full_notes) {
+     if(note.Creator == document.getElementById("note_authors").value) {
+       tab_notes = note.Notes;
+     }
+   }
+   for(let n of tab_notes) {
+     if(document.getElementById("note_authors").value == username) {
+       document.getElementById('par_'+n.id).contentEditable = true;
+     } else {
+       document.getElementById('par_'+n.id).contentEditable = false;
+     }
+     document.getElementById('par_'+n.id).innerText = n.text;
+   }
+ }
   window.addEventListener("load", function(event) {
       lazyload();
   });
@@ -96,7 +117,17 @@
   var str = "{{json_shots}}";
   var data_shots = JSON.parse(str.replace(/&quot;/g,'"'));
   var json_notes = "{{json_notes}}".replace(/\n/g,"\\n").replace(/&#39;/g,"'");
-  var tab_notes = JSON.parse(json_notes.replace(/&quot;/g,'"'))
+  var tab_full_notes = JSON.parse(json_notes.replace(/&quot;/g,'"'));
+  var tab_notes;
+  let select_author = document.getElementById("note_authors");
+  for(let note of tab_full_notes) {
+    if(note.Creator == '{{username}}') {
+      tab_notes = note.Notes;
+    }
+    let option = document.createElement("option");
+    option.text = note.Creator;
+    select_author.add(option);
+  }
   var curr_data = data_shots[0];
   var video = new p5.MediaElement(list_player[0].getVideoElement());
   var canvas;
@@ -142,8 +173,8 @@
 
   $('.full').click(function() {
     for(let i=0; i<list_id.length; i++) {
-      let src = $(this)[0].currentSrc.split('/')[$(this)[0].currentSrc.split('/').length-2];
-      if(src.includes(list_id[i])) {
+      let src = $(this)[0].currentSrc.split('/')[$(this)[0].currentSrc.split('/').length-3];
+      if(list_path[i].includes(src)) {
         currentPlayer = list_player[i];
         curr_id = list_id[i];
         curr_ind = i;

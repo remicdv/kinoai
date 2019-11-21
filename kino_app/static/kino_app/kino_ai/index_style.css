@@ -3,7 +3,9 @@ body {
     padding: 0; margin: 0;
 }
 @import url(https://fonts.googleapis.com/css?family=EB+Garamond|Cardo:400italic);
-
+* {
+    font-family: Courier, monospace;
+}
 #header_info {
   background-color: #2E5C9C;
   }
@@ -40,7 +42,15 @@ h2 {
   color: white;
 }
 
-#logout {
+#infos {
+  border: 2px solid #2E5C9C;
+  width: 50%;
+  margin-left: 10;
+  padding: 10;
+  background-color: white;
+}
+
+#logout{
   font-size: 15;
   background-color: white;
   color: #2E5C9C;
@@ -57,6 +67,14 @@ h2 {
   -webkit-column-gap: 20px;
   column-count: 2;
   column-gap: 20px;
+}
+
+.input_proj {
+  font-size: 15;
+  background-color: white;
+  color: #2E5C9C;
+  border: none;
+  padding: 5;
 }
 
 .column {
@@ -90,10 +108,12 @@ li {
   float:left;
   padding-top: 10px;
   background-color: white;
-  font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
+  font: 200 20px/1.5 Courier, monospace;
   vertical-align: middle;
   margin-bottom: 5;
   width: 100%;
+  border-top: 2px solid #2E5C9C;
+  border-bottom: 2px solid #2E5C9C;
 }
 
 @media screen and (min-width: 1200px) {
@@ -107,12 +127,6 @@ li {
     width:50%;
   }
 }
-
-
-li:last-child {
-  border: none;
-}
-
 
 li a{
   cursor: pointer;
@@ -141,30 +155,22 @@ li a:hover, li p:hover {
   background: #f6f6f6;
 }
 
-#book {
-  background-color: #2E5C9C;
-  padding: 10;
-  color: white;
-  text-decoration: none;
-  cursor: pointer;
-}
-
 #tabs {
   margin-top: 5;
-  -moz-column-count: 2;
-  -moz-column-gap: 20px;
-  -webkit-column-count: 2;
-  -webkit-column-gap: 20px;
-  column-count: 2;
-  column-gap: 20px;
-  width: 49.47%;
+  height: 60px;
+  width: 100%;
 }
 
 #tabs div {
-  font: 200 20px/1.5 Helvetica, Verdana, sans-serif;
-  background-color: white;
+  /* float: left; */
+  display: inline-flex;
+  font: Courier, monospace;
+  background-color: #2E5C9C;
   margin-bottom: 5;
+  margin-left: 10;
   text-align: center;
+  padding: 10;
+  color: white;
 }
 
 
@@ -176,4 +182,20 @@ li a:hover, li p:hover {
   padding: 0;
   color:white;
   text-align: center;
+}
+
+.index_button, #book {
+  font-family : inherit;
+  font-size: 15;
+  background-color: #2E5C9C;
+  color: white;
+  padding: 14px 20px;
+  margin: 8px 10;
+  border: none;
+  cursor: pointer;
+}
+
+
+#book {
+  text-decoration: none;
 }

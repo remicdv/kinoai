@@ -18,3 +18,9 @@ class FolderPath(models.Model):
 class Detections(models.Model):
     json_data = models.TextField()
     path = models.ForeignKey(FolderPath, models.SET_NULL, blank=True, null=True,)
+
+class Project(models.Model):
+    title = models.TextField()
+    company = models.TextField()
+    date = models.DateField()
+    password = models.TextField(blank=True, null=True, default=None)

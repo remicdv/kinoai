@@ -20,14 +20,36 @@
 <div class="aside">
   <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
 </div>
-<h1>Video library </h1>
+<h1>Kino AI</h1>
 </div>
 
-<div id='tabs'>
-  <div> <input type="checkbox" id="button_default" checked> La fabrique des monstres<br></div>
-   <div> <input type="checkbox" id="button_user"> My Videos<br></div>
+<div id="projects_title" style="display:inline-flex;">
+  <button class="index_button" onclick="createProject()">Créer un nouveau projet</button>
+  <form id='form_project' action="{% url 'kino_app:create_project' %}" method="post" style="margin:20;" hidden>
+          {% csrf_token %}
+          <input type="text" name='title' placeholder="Titre" class='input_proj'/>
+          <input type="date" name='date' placeholder="Date" class='input_proj'class='input_proj'/>
+          <input type="text" name='company' placeholder="Compagnie" class='input_proj'/>
+          <input type="password" name='password' placeholder="Mot de passe" class='input_proj'/>
+          <input type="submit" name='submit' value="Create" class='input_proj' style="cursor:pointer;"/>
+      </form>
 </div>
-<a id='book' href="">Video book</a>
+  <h3 style='padding:15;margin:0;'> Projets créés</h3>
+
+{% if projects %}
+<div id='tabs'>
+  <script> var projects = []; </script>
+  {% for project in projects %}
+    <script> projects.push({'title':"{{project.Name}}", 'company':"{{project.Company}}", 'date':"{{project.Date}}"}); </script>
+    <div><input type="checkbox" class="projects_name" id="{{project.Name}}">{{project.Name|replace_underscore}}<br></div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<div id='infos' style="display:none;"></div>
+<div style='margin: 20 10;'>
+<a id='book' href="">Carnet audiovisuel</a>
+</div>
 <script>
 var default_list = [];
 var name_clicked;
@@ -39,15 +61,18 @@ var previous = "{{ request.session.previous_name }}";
 </script>
 
 <span class='default'>
-{% if names %}
-  <ul id='list_def' class='default_list'>
-  {% for name in names %}
-    <script>
-    default_list.push("/media/kino_app/index_images/shots/{{name}}/part01/");
-    </script>
-      <li class='def_list default' id="{{name}}"><a><img hidden margin=0 class="sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/shots/{{name}}/part01/poster0.jpg"></a><p contenteditable="true" spellcheck="false">{{ name|replace_underscore }}</p></li>
+{% if projects %}
+  {% for project in projects %}
+    <ul id='list_def' class='default_list'>
+    {% for name in project.List %}
+      <script>
+      default_list.push("/media/kino_app/index_images/{{project.Name}}/{{name}}/part01/");
+      </script>
+        <li class='def_list default' id="{{project.Name}}/{{name}}"><a><img hidden margin=0 class="sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{project.Name}}/{{name}}/part01/poster0.jpg"></a><p contenteditable="true" spellcheck="false">{{ name|replace_underscore }}</p></li>
+
+    {% endfor %}
+    </ul>
   {% endfor %}
-  </ul>
 {% endif %}
 
 {% if take_list %}
@@ -64,41 +89,13 @@ var previous = "{{ request.session.previous_name }}";
 {% endif %}
 </span>
 
-<span class='user_video'>
-
-  {% if user_names %}
-
-  <ul id='user_list_def' class='default_list'>
-    {% for name in user_names %}
-      <script>
-      user_default_list.push("/media/kino_app/index_images/{{user.username}}/{{name}}/part01/");
-      </script>
-        <li class='def_list user' id="{{name}}"><a><img hidden margin=0 class="user_sliding_def" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{user.username}}/{{name}}/part01/poster0.jpg"></a><p contenteditable="true" spellcheck="false">{{ name|replace_underscore }}</p></li>
-    {% endfor %}
-    </ul>
-  {% endif %}
-
-  {% if user_take_list %}
-    <ul id='user_list'>
-    {% for take in user_take_list %}
-      <script>
-      user_take_list.push("/media/kino_app/index_images/{{take.path}}/");
-      </script>
-        <li class='row_list' id="{{take.path}}"><a href="{% url 'kino_app:video_editing' take.id %}"><img hidden margin=0 class="user_sliding" border="0" onmouseover="mouseOver()" onmouseout="mouseOut()" src="/media/kino_app/index_images/{{take.path}}/poster0.jpg"><br>{{take.path}}</a></li>
-    {% endfor %}
-    </ul>
-  {% else %}
-      <p>No polls are available.</p>
-  {% endif %}
-
-</span>
 
 <script>
   var objects = [];
   var objects_def = [];
   var images = document.getElementsByClassName("sliding");
   var images_def = document.getElementsByClassName("sliding_def");
-  let off = document.getElementById('logo').offsetHeight - document.getElementById("tabs").offsetTop+5;
+  let off = document.getElementById('logo').offsetHeight - document.getElementById("projects_title").offsetTop+5;
   name_clicked = previous;
 
   $.post({
@@ -111,41 +108,31 @@ var previous = "{{ request.session.previous_name }}";
     }
   });
 
-  console.log(previous);
   document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
-  $('.user_video').find("ul, p").hide();
   $('#book').hide();
-  document.getElementById('button_default').onclick = hideShowDefault;
-  document.getElementById('button_user').onclick = hideShowUser;
 
+  for(let check of document.getElementsByClassName('projects_name')) {
+    check.onclick = hideShowDefault;
+  }
   if(!name_clicked) {
+    $('.default_list').hide();
     $('#list').hide();
   } else {
-    document.getElementById('button_default').checked = false;
-    $('#user_list_def').hide();
-    $('#user_list').show();
-    $('#list_def').hide();
+    $('.default_list').hide();
     $('#list').show();
     clickDef();
   }
+
   $('.row_list').each( function() {
     let first_part = $(this)[0].firstChild.innerHTML.split('<br>');
     let name = $(this)[0].firstChild.innerText.split('/')[$(this)[0].firstChild.innerText.split('/').length-1];
     $(this)[0].firstChild.innerHTML = first_part[0]+'<br>'+name;
   });
-  $('.def_list.default a').click(function() {
-    name_clicked = $(this).parent()[0].id;
-    $('#list_def').hide();
-    $('#list').show();
-    document.getElementById('button_default').checked = false;
-    clickDef();
-  });
 
-  $('.def_list.user a').click(function() {
-    name_clicked = $(this).parent()[0].id;
-    $('#user_list_def').hide();
-    $('#user_list').show();
-    document.getElementById('button_user').checked = false;
+  $('.def_list.default a').click(function() {
+    name_clicked = $(this).parent()[0].id.split('/')[1];
+    $('.default_list').hide();
+    $('#list').show();
     clickDef();
   });
 
@@ -156,6 +143,7 @@ var previous = "{{ request.session.previous_name }}";
         $('#book').show();
         let href = 'video_book/'+$(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1];
         $('#book').attr("href", href);
+        document.getElementById('book').style.margin =  " 20 0";
         // console.log(this.id.split('/')[1],name_clicked,$(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1], $('#book'));
       } else {
         $(this).hide();
@@ -164,34 +152,39 @@ var previous = "{{ request.session.previous_name }}";
   }
 
   function hideShowDefault() {
-    if(!document.getElementById('button_default').checked ) {
+    if(!this.checked ) {
       $('.default').find("ul, p").hide();
+      $('#book').hide();
+      $('#infos').hide();
     } else {
-      document.getElementById('button_user').checked = false;
-      $('.user_video').find("ul, p").hide();
+      $('#infos').show();
+      for(let p of projects) {
+        if(p.title == this.id) {
+          let c = document.createElement('h3');
+          c.innerText = 'Compagnie: '+p.company;
+          let d = document.createElement('h3');
+          d.innerText = 'Date de création: '+p.date;
+          while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+          document.getElementById('infos').appendChild(c);
+          document.getElementById('infos').appendChild(d);
+        }
+      }
+      var project = this.id;
+      $('.def_list').each( function() {
+        if(this.id.includes(project) && (this.id.split('/').length>1 && this.id.split('/')[0]==project)) {
+          $(this).show();
+        } else {
+          $(this).hide();
+        }
+      });
       $('.default').find("ul, p").show();
       $('#book').hide();
-      objects_def = default_def_obj;
-      objects = default_objects;
-      images = document.getElementsByClassName("sliding");
-      images_def = document.getElementsByClassName("sliding_def");
       $('#list').hide();
+      resizeFunction();
     }
-  }
-
-  function hideShowUser() {
-    if(!document.getElementById('button_user').checked ) {
-      $('.user_video').find("ul, p").hide();
-    } else {
-      document.getElementById('button_default').checked = false;
-      $('.default').find("ul, p").hide();
-      $('.user_video').find("ul, p").show();
-      $('#book').hide();
-      objects_def = user_def_obj;
-      objects = user_objects;
-      images = document.getElementsByClassName("user_sliding");
-      images_def = document.getElementsByClassName("user_sliding_def");
-      $('#user_list').hide();
+    for(let check of document.getElementsByClassName('projects_name')) {
+      if(check.id != this.id)
+        check.checked = false;
     }
   }
 
@@ -204,14 +197,6 @@ var previous = "{{ request.session.previous_name }}";
   }
   objects_def = default_def_obj;
 
-  var user_def_obj = [];
-  for(let p of user_default_list) {
-    let obj = {};
-    obj.id = 0;
-    obj.path = p;
-    user_def_obj.push(obj);
-  }
-
   var default_objects = [];
   for(let p of take_list) {
     let obj = {};
@@ -221,16 +206,18 @@ var previous = "{{ request.session.previous_name }}";
   }
   objects =default_objects;
 
-  var user_objects = [];
-  for(let p of user_take_list) {
-    let obj = {};
-    obj.id = 0;
-    obj.path = p;
-    user_objects.push(obj);
+  $('.row_list').height($('.row_list')[0].clientWidth/2+30);
+
+  var is_form_visible = false;
+  function createProject() {
+    is_form_visible = !is_form_visible;
+    if(is_form_visible)
+      $('#form_project').show();
+    else
+      $('#form_project').hide();
   }
 
-  $('.row_list').height($('.row_list')[0].clientWidth/2+30);
-  function oneSecondFunction() {
+  function resizeFunction() {
     let height, width;
     if($('.def_list:visible:first')[0]) {
       height = $('.def_list:visible:first')[0].clientWidth/2;
@@ -262,15 +249,6 @@ var previous = "{{ request.session.previous_name }}";
           let off = (height - img.height)/2;
           img.style.marginTop = off;
         }
-        // console.log(objects[i]);
-        let path = objects[i].path;
-        if(img.mouseOver) {
-          img.src = path+'poster'+objects[i].id+'.jpg';
-          objects[i].id = (objects[i].id+1)%10;
-        } else {
-          objects[i].id = 0;
-          img.src = path+'poster'+objects[i].id+'.jpg';
-        }
       }
     }
 
@@ -291,8 +269,27 @@ var previous = "{{ request.session.previous_name }}";
         let off = (height - img.height)/2;
         img.style.marginTop = off;
       }
-      // console.log(objects[i]);
+    }
+  }
+
+  var interval;
+  function overImages() {
+    for(let i=0; i < images.length; i++){
+      if(objects[i].path.includes(name_clicked)) {
+        let path = objects[i].path;
+        let img = images[i];
+        if(img.mouseOver) {
+          img.src = path+'poster'+objects[i].id+'.jpg';
+          objects[i].id = (objects[i].id+1)%10;
+        } else {
+          objects[i].id = 0;
+          img.src = path+'poster'+objects[i].id+'.jpg';
+        }
+      }
+    }
+    for(let i=0; i < images_def.length; i++){
       let path = objects_def[i].path;
+      let img = images_def[i];
       if(img.mouseOver) {
         img.src = path+'poster'+objects_def[i].id+'.jpg';
         objects_def[i].id = (objects_def[i].id+1)%10;
@@ -303,13 +300,17 @@ var previous = "{{ request.session.previous_name }}";
     }
   }
 
-  for(let name of ["sliding","sliding_def","user_sliding","user_sliding_def"]) {
+  for(let name of ["sliding","sliding_def"]) {
     for(let img of document.getElementsByClassName(name)) {
       img.onmouseover = function() {
         img.mouseOver = true;
+        // overImages();
+        interval = setInterval(overImages, 1000);
       }
       img.onmouseout = function() {
         img.mouseOver = false;
+        overImages();
+        clearInterval(interval);
       }
     }
   }
@@ -321,16 +322,7 @@ var previous = "{{ request.session.previous_name }}";
       var path_modified = [];
       $('.def_list.default p').each(function() {
         let path = {};
-        name_clicked = $(this).parent()[0].id;
-        if(name_clicked != this.innerText) {
-          path.old = name_clicked;
-          path.new = this.innerText;
-          path_modified.push(path);
-        }
-      });
-      $('.def_list.user p').each(function() {
-        let path = {};
-        name_clicked = $(this).parent()[0].id;
+        name_clicked = $(this).parent()[0].id.split('/')[1];
         if(name_clicked != this.innerText) {
           path.old = name_clicked;
           path.new = this.innerText;
@@ -350,5 +342,8 @@ var previous = "{{ request.session.previous_name }}";
   });
 
  var logo = document.getElementById("logo");
- var t = setInterval(oneSecondFunction, 1000);
+ window.onresize = resizeFunction;
+ if(previous != "") {
+   resizeFunction();
+ }
 </script>

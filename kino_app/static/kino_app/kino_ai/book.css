@@ -1,6 +1,9 @@
 body {/* 4B97FF */
     padding: 0; margin: 0;
 }
+* {
+    font-family: Courier, monospace;
+}
 
 h1 {
   background-color: #2E5C9C;
@@ -18,7 +21,7 @@ h1 {
 }
 
 h2 {
-    background-color: #2E5C9C;
+  background-color: #2E5C9C;
   color:white;
   text-align: center;
   padding-top: 0.83em;
@@ -26,6 +29,17 @@ h2 {
   margin: 0;
   margin: 10;
   margin-bottom: 0.83em;
+}
+
+#authors {
+  float:right;
+}
+select {
+  background-color: white;
+  color:#2E5C9C;
+  border : none;
+  font-size: 15;
+  padding: 5;
 }
 
 #header_info {

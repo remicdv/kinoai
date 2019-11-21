@@ -1,4 +1,5 @@
 {% load static %}
+{% load string_filter %}
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/sign_in.css' %}">
 
 <div id="img_logo">
@@ -10,10 +11,17 @@
   <div id="msg"> {{msg}} </div>
 {% endif %}
 
-<form action="{% url 'kino_app:upload' %}" method="post" enctype="multipart/form-data">
+<form action="{% url 'kino_app:upload' %}" method="post" enctype="multipart/form-data" >
   {% csrf_token %}
   <input type="file" name="fileToUpload" id="fileToUpload">
-    <input type="submit" value="Upload Video" name="submit" onClick="clickSub()">
+  {% if projects %}
+    <select name="projects">
+      {% for project in projects %}
+        <option value="{{project.title}}">{{project.title|replace_underscore}}</option>
+      {%endfor%}
+    </select>
+  {% endif %}
+  <input type="submit" value="Upload Video" name="submit" onClick="clickSub()">
 </form>
 
 <div id='wait'></div>

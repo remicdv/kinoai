@@ -4,11 +4,13 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.views import generic
 from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth.hashers import make_password, check_password, is_password_usable
 from django.contrib.auth.models import Permission, User
 from django.views.decorators.csrf import csrf_exempt
-from .models import FolderPath, Detections
+from .models import FolderPath, Detections, Project
 from django.core.files.storage import FileSystemStorage
 from django.views.decorators.cache import never_cache
+from django.utils.dateparse import parse_date
 
 import os
 import json
@@ -82,9 +84,9 @@ def list_files(startpath, user):
             dir_path = os.path.abspath(os.path.join(root, name))
             for r, dirs_in, files_in in os.walk(dir_path):
                 for name_in in dirs_in:
-                    if name_in != 'mpd':
+                    if name_in != 'mpd' and name_in != 'images':
                         ret = True
-            if name != 'mpd' and not ret:
+            if (name != 'mpd' and name != 'images') and not ret:
                 d = dir_path.split('/kino_app/data/')
                 list.append(d[1])
                 obj, created = FolderPath.objects.get_or_create(
@@ -94,10 +96,11 @@ def list_files(startpath, user):
                 )
     return list
 
-def extractImagesAndDelete(list, len_old, the_owner):
+def extractImagesAndDelete(list, len_old):
+    # print(list)
     if len(list) != len_old:
         img_folder_path = os.path.join(settings.MEDIA_ROOT, "kino_app/index_images/")
-        for p in FolderPath.objects.filter(owner=the_owner):
+        for p in FolderPath.objects.all():
             if p.path not in list:
                 print('delete ', p)
                 Detections.objects.filter(path=p).delete()
@@ -135,32 +138,39 @@ class IndexView(generic.ListView):
     @never_cache
     def get(self, request):
         print(self.request.META.get('HTTP_REFERER'))
-        path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/shots')
-        old = len(FolderPath.objects.filter(owner=None))
-        list = list_files(path, None)
-        list_dir_name = os.listdir(path)
-        list_dir_name.sort()
+        projects_name = os.listdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/data'))
+        old = len(FolderPath.objects.all())
+        list = []
+        projects = []
         print(len(list),old)
-        extractImagesAndDelete(list, old, None)
-        user_folder = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+request.user.username)
-        if not os.path.isdir(user_folder) :
-            os.makedirs(user_folder)
-        old_user = len(FolderPath.objects.filter(owner=request.user))
-        list_user = list_files(user_folder, request.user)
-        list_dir_name_user = os.listdir(user_folder)
-        list_dir_name_user.sort()
-        extractImagesAndDelete(list_user, old_user, request.user)
+        data_project = Project.objects.all().order_by('title')
+        for project_obj in data_project:
+            print(project_obj.title.replace(" ", "_"))
+            name = project_obj.title.replace(" ", "_")
+            path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+name)
+            if not os.path.isdir(path):
+                project_obj.delete()
+            else:
+                project = {}
+                project["Name"] = name
+                project["Company"] = project_obj.company
+                project["Date"] = project_obj.date
+                project["List"] = os.listdir(path)
+                list += list_files(path, None)
+                project["List"].sort()
+                projects.append(project)
+        extractImagesAndDelete(list, old)
         if request.user is None or request.user.is_authenticated == False:
             print(settings.LOGIN_URL)
             return HttpResponseRedirect(settings.LOGIN_URL)
         else:
-            return render(request, 'kino_app/index.html', {'take_list':FolderPath.objects.filter(owner=None).order_by('path'), 'names':list_dir_name, 'user_take_list':FolderPath.objects.filter(owner=request.user).order_by('path'), 'user_names':list_dir_name_user})
+            return render(request, 'kino_app/index.html', {'data_projects':data_project, 'projects':projects,'take_list':FolderPath.objects.order_by('path')})
 
 @csrf_exempt
 def set_previous(request):
     name = request.POST.get('name','')
     request.session['previous_name'] = name
-    return HttpResponseRedirect('')
+    return HttpResponse('')
 
 def launch_preprocess(name, username):
     utility = settings.MEDIA_ROOT+'/utility'
@@ -221,7 +231,7 @@ def upload_view(request):
             filename = filename.replace(" ", "_")
             os.rename(settings.MEDIA_ROOT+'/'+old,settings.MEDIA_ROOT+'/'+filename)
             uploaded_file_url = fs.url(filename)
-            if launch_preprocess(filename, request.user.username):
+            if launch_preprocess(filename, request.POST['projects'].replace(" ", "_")):
                 print('finished')
                 return redirect('kino_app:index')
             else:
@@ -231,11 +241,38 @@ def upload_view(request):
             print('not video')
             return render(request, 'kino_app/upload.html', {'msg':'Not a video'})
     else:
-        return render(request, 'kino_app/upload.html')
+        return render(request, 'kino_app/upload.html', {'projects':Project.objects.all()})
 
 def preprocess(request):
     print(request)
     return render(request, 'kino_app/process.html')
+
+def create_project(request):
+    if request.method == 'POST':
+        title = request.POST['title']
+        date = parse_date(request.POST['date'])
+        company = request.POST['company']
+        password = request.POST['password']
+        if len(Project.objects.filter(title=title))==0:
+            if password == '':
+                obj, created = Project.objects.get_or_create(
+                    title=title,
+                    company=company,
+                    date = date
+                )
+            else:
+                obj, created = Project.objects.get_or_create(
+                    title=title,
+                    company=company,
+                    date = date,
+                    password = make_password(password)
+                )
+            name = title.replace(" ", "_")
+            path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+name)
+            if not os.path.isdir(path):
+                os.mkdir(path)
+            print(obj, created)
+    return redirect('kino_app:index')
 
 # Create your views here.
 def video_editing(request, id):
@@ -329,11 +366,18 @@ def video_book(request, id):
             full_list = full_list.exclude(path=p.path)
 
     full_note = []
-    if os.path.isfile(full_list[0].abs_path+'/note.txt'):
-        with open(full_list[0].abs_path+'/note.txt') as json_file:
-            full_note = json.load(json_file)
+    for root, dirs, files in os.walk(full_list[0].abs_path):
+        for file in files:
+            if "_note.txt" in file:
+                obj = {}
+                with open(full_list[0].abs_path+'/'+file) as json_file:
+                    obj['Notes'] = json.load(json_file)
+                obj['Creator'] = file.split('_')[0]
+                full_note.append(obj)
+    # if os.path.isfile(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt'):
+    #     with open(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt') as json_file:
+    #         full_note = json.load(json_file)
 
-    print(full_note)
     full_script = []
     full_json_shots = []
     for p in full_list:
@@ -380,10 +424,9 @@ def video_book(request, id):
                 bbox_crop.append('null')
         full_data.append(bbox_crop)
 
-    images_folder = os.path.join(settings.MEDIA_ROOT, "kino_app")+'/images/'+str(id)
     full_folders = []
     for p in full_list:
-        full_folders.append(os.path.join(settings.MEDIA_ROOT, "kino_app")+'/images/'+str(p.id))
+        full_folders.append(p.abs_path+'/images/')
 
     full_crop = []
     full_full = []
@@ -405,9 +448,11 @@ def video_book(request, id):
 
     for i in range(len(full_list)):
         full_crop[i]['id'] = full_list[i].id
+        full_crop[i]['path'] = full_list[i].path
         full_full[i]['id'] = full_list[i].id
+        full_full[i]['path'] = full_list[i].path
 
-    return render(request, 'kino_app/video_book.html', {'crop':full_crop, 'full':full_full, 'tab':full_tab, 'path':full_list, 'json_shots':json.dumps(full_data), 'json_notes':json.dumps(full_note).replace('\"','\\"')})
+    return render(request, 'kino_app/video_book.html', {'username':request.user.username ,'crop':full_crop, 'full':full_full, 'tab':full_tab, 'path':full_list, 'json_shots':json.dumps(full_data), 'json_notes':json.dumps(full_note).replace('\"','\\"'), 'username':request.user.username})
 
 @csrf_exempt
 def save_note_video(request):
@@ -419,7 +464,7 @@ def save_note_video(request):
     json_notes = json.loads(request.POST.get('note_tab',''))
     print(full_list[0].abs_path)
 
-    with open(full_list[0].abs_path+'/note.txt', 'w') as fp:
+    with open(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt', 'w') as fp:
         json.dump(json_notes, fp, indent=2)
 
     full_script = []
@@ -498,12 +543,12 @@ def save_note(request):
         json.dump(json_notes, fp, indent=2)
     return HttpResponse('')
 
-def get_queryset_from_name(old):
-    list_path = FolderPath.objects.filter(path__icontains=old)
+def get_queryset_from_name(test_name):
+    list_path = FolderPath.objects.filter(path__icontains=test_name)
     remove_path = []
     for folder in list_path:
         name = folder.path.split('/')[1]
-        if name != old:
+        if name != test_name:
             remove_path.append(folder.path)
     for p in remove_path:
         list_path = list_path.exclude(path=p)
@@ -726,7 +771,7 @@ def processKeyFrames(request):
     key_frames = json.loads(request.POST.get('KeyFrames',''))
     # print(key_frames)
     filename = abs_path+'/original_hevc.mov'
-    folder=os.path.join(settings.MEDIA_ROOT,  "kino_app")+'/images/'+str(dir.id)+'/'
+    folder=dir.abs_path+'/images/'
     if os.path.isdir(folder):
         shutil.rmtree(folder)
         os.makedirs(folder)

@@ -3343,6 +3343,9 @@ function draw() {
       translate(x_off,y_off);
       scale(vid_h/Number(original_height));
       drawTracklets();
+      if(is_shots) {
+        drawShotsLayout();
+      }
       pop();
       hideNoteBook();
       note_editor.display();
