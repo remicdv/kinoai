@@ -48,7 +48,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
         this.on = !this.on;
       }
     } else {
-      my += can.elt.offsetTop - $('#div_creation').position().top;
+      my += can.elt.offsetTop - $('#div_creation').position().top + $('#div_creation').scrollTop();
       mx -= $('#div_creation').position().left;
       if(mx > this.elem.elt.offsetLeft && mx < this.elem.elt.offsetLeft+this.elem.elt.offsetWidth && my > this.elem.elt.offsetTop && my < (this.elem.elt.offsetTop + this.elem.elt.offsetHeight)) {
         this.on = !this.on;

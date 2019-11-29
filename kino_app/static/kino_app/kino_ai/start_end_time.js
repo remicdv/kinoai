@@ -17,9 +17,19 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
 
   this.drop_shot;
 
+  this.select_author = createSelect();
+
+  for(let name of json_data_timelines) {
+    this.select_author.option(name);
+  }
+  this.select_author.position(200, viewer_height+10);
+  this.select_author.elt.value = username;
+  this.select_author.hide();
+  this.select_author.changed(selectAuthorTimeline);
+
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
-    if (!is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
+    if (this.select_author.elt.value == username && !is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       for(var i=0; i<this.shots.length; i++) {
         this.shots[i].on = false;
         if(mx > this.shots[i].start && mx < this.shots[i].end) {
@@ -34,7 +44,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
   };
 
   this.drag = function(mx, my) {
-    if (!is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
+    if (this.select_author.elt.value == username && !is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       // if(this.on) {
       //   this.start = mx;
       // } else{
@@ -51,35 +61,39 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
   }
 
   this.drop = function(mx, my) {
-    let s;
-    let ext_s;
-    for(let i=0; i<shots.length; i++) {
-      if(shots[i].on) {
-        s = shots[i];
+    if(this.select_author.elt.value == username) {
+      let s;
+      let ext_s;
+      for(let i=0; i<shots.length; i++) {
+        if(shots[i].on) {
+          s = shots[i];
+        }
       }
-    }
-    for(let shot of this.shots) {
-      if(shot.on) {
-        ext_s = shot;
+      for(let shot of this.shots) {
+        if(shot.on) {
+          ext_s = shot;
+        }
       }
-    }
-    if (!is_split && !is_note_book && s && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
-      if(!this.shots[0]) {
-        this.time = 0;
-        this.addShot(s);
-        return 0;
-      } else {
+      if (!is_split && !is_note_book && s && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
+        if(!this.shots[0]) {
+          this.time = 0;
+          this.addShot(s);
+          return 0;
+        } else {
+          var unit = this.w/this.duration;
+          this.time= (annotation_timeline.first/frame_rate) + (mx-this.x)/unit;
+          this.addShot(s);
+          return this.time;
+        }
+      } else if (!is_split && ext_s && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h && (mx < ext_s.start || mx > ext_s.end)) {
+        // Extend ext shot
         var unit = this.w/this.duration;
         this.time= (annotation_timeline.first/frame_rate) + (mx-this.x)/unit;
-        this.addShot(s);
+        this.extendShot(ext_s, mx);
         return this.time;
+      } else {
+        return undefined;
       }
-    } else if (!is_split && ext_s && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h && (mx < ext_s.start || mx > ext_s.end)) {
-      // Extend ext shot
-      var unit = this.w/this.duration;
-      this.time= (annotation_timeline.first/frame_rate) + (mx-this.x)/unit;
-      this.extendShot(ext_s, mx);
-      return this.time;
     } else {
       return undefined;
     }
@@ -118,6 +132,52 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     }
     // s.bboxes = this.getBBoxes(s, shot.bboxes);
     this.drop_shot = s;
+    for(let obj of this.list_data) {
+      if(obj.User == username) {
+        obj.Data = this.shots;
+      }
+    }
+  }
+
+  function selectAuthorTimeline() {
+    for(let data of shots_timeline.list_data) {
+      if(data.User == this.elt.value) {
+        shots_timeline.shots = [];
+        shots_timeline.shots = data.Data;
+      }
+    }
+  }
+
+  this.saveShotsTimeline = function() {
+    if(this.select_author.elt.value == username) {
+      new_json_shots = [];
+      for(let s of this.shots) {
+        var shot = {};
+        shot.Type = s.type;
+        shot.StartFrame = s.start_frame;
+        shot.EndFrame = s.end_frame;
+        shot.Timeline = 1;
+        // shot.BBoxes = s.bboxes;
+        let tab = [];
+        for(let a of s.actors_involved) {
+          tab.push(a.actor_name);
+        }
+        shot.ActInvolved = tab;
+        shot.AspectRatio = s.aspect_ratio;
+        new_json_shots.push(shot);
+      }
+      $.post({
+        url: "save_timeline",
+        async: true,
+        data: {'abs_path': abs_path, 'timeline':JSON.stringify(new_json_shots)},
+        dataType: 'json',
+        success: function (data) {
+          // console.log(data);
+        }
+      });
+    } else {
+      alert('Select your own timeline');
+    }
   }
 
   this.extendShot = function(shot, mx) {
@@ -439,6 +499,32 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     }
   }
 
+  this.removeSpecificShot = function(shot, tab_shots = this.shots) {
+    let ind = [];
+    for (let j=0; j<tab_shots.length; j++) {
+      let s = tab_shots[j];
+      if(s.type == shot.type) {
+        let b1 = true;
+        let actors_involved = [];
+        for(let a of shot.actors_involved ) {
+          actors_involved.push(a.actor_name);
+        }
+        for(let a of s.actors_involved) {
+          if(!actors_involved.includes(a.actor_name)) {
+            b1 = false;
+            break;
+          }
+        }
+        if(b1 && s.actors_involved.length == actors_involved.length) {
+          ind.push(j);
+        }
+      }
+    }
+    for (let i = ind.length -1; i >= 0; i--) {
+      tab_shots.splice(ind[i],1);
+    }
+  }
+
   this.getBBoxes = function(shot, tab, off=0) {
     var ret = [];
     let s_f = shot.start_frame - off;
@@ -465,7 +551,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
   }
 
   this.getAspectRatio = function() {
-    let curr_a_s;
+    let curr_a_s = aspect_ratio;
     for(let s of this.shots) {
       if(!curr_a_s) {
         curr_a_s = s.aspect_ratio;
@@ -566,6 +652,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     annotation_timeline.updateFirstLast();
     annotation_timeline.drawCursor();
     this.updateShotPos();
+    this.select_author.position(crop_button.x+30, can.elt.offsetTop+viewer_height);
     push();
     noStroke();
     fill(120);

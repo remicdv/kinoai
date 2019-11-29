@@ -41,7 +41,7 @@
   <script> var projects = []; </script>
   {% for project in projects %}
     <script> projects.push({'title':"{{project.Name}}", 'company':"{{project.Company}}", 'date':"{{project.Date}}"}); </script>
-    <div><input type="checkbox" class="projects_name" id="{{project.Name}}">{{project.Name|replace_underscore}}<br></div>
+    <div><button class="projects_name index_button" id="{{project.Name}}">{{project.Name|replace_underscore}}</button></div>
   {% endfor %}
 </div>
 {% endif %}
@@ -113,6 +113,7 @@ var previous = "{{ request.session.previous_name }}";
 
   for(let check of document.getElementsByClassName('projects_name')) {
     check.onclick = hideShowDefault;
+    check.checked = true;
   }
   if(!name_clicked) {
     $('.default_list').hide();
@@ -121,6 +122,24 @@ var previous = "{{ request.session.previous_name }}";
     $('.default_list').hide();
     $('#list').show();
     clickDef();
+    var title_proj;
+    $('.row_list').each( function() {
+      if(this.id.includes(name_clicked) && (this.id.split('/').length>1 && this.id.split('/')[1]==name_clicked)) {
+        title_proj=this.id.split('/')[0];
+      }
+    });
+    $('#infos').show();
+    for(let p of projects) {
+      if(p.title == title_proj) {
+        let c = document.createElement('h3');
+        c.innerText = 'Compagnie: '+p.company;
+        let d = document.createElement('h3');
+        d.innerText = 'Date de création: '+p.date;
+        while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+        document.getElementById('infos').appendChild(c);
+        document.getElementById('infos').appendChild(d);
+      }
+    }
   }
 
   $('.row_list').each( function() {
@@ -134,6 +153,7 @@ var previous = "{{ request.session.previous_name }}";
     $('.default_list').hide();
     $('#list').show();
     clickDef();
+    resizeFunction();
   });
 
   function clickDef() {
@@ -152,10 +172,11 @@ var previous = "{{ request.session.previous_name }}";
   }
 
   function hideShowDefault() {
-    if(!this.checked ) {
+    if(!this.checked) {
       $('.default').find("ul, p").hide();
       $('#book').hide();
       $('#infos').hide();
+      this.checked = true;
     } else {
       $('#infos').show();
       for(let p of projects) {
@@ -181,10 +202,11 @@ var previous = "{{ request.session.previous_name }}";
       $('#book').hide();
       $('#list').hide();
       resizeFunction();
+      this.checked = false;
     }
     for(let check of document.getElementsByClassName('projects_name')) {
       if(check.id != this.id)
-        check.checked = false;
+        check.checked = true;
     }
   }
 

@@ -10,11 +10,21 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
   this.input_note.changed(addNote);
   this.input_note.hide();
 
+  this.select_note = createSelect();
+
+  this.notes = [];
+  for(let note of json_data_note) {
+    if(note.User == username)
+      this.notes = note.Note;
+    this.select_note.option(note.User);
+  }
+  this.select_note.elt.value = username;
+  this.select_note.changed(selectAuthor);
+
   this.div_notes = createDiv();
   this.div_notes.style('overflow','auto');
   this.div_notes.id('div_notes');
 
-  this.notes = data_note;
 
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
@@ -45,21 +55,25 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.saveNote = function() {
-    let tab = [];
-    for(let n of this.notes) {
-      if(n.Text!='') {
-        tab.push({'Text':n.Text,'Time':n.Time});
+    if(this.select_note.elt.value == username) {
+      let tab = [];
+      for(let n of this.notes) {
+        if(n.Text!='') {
+          tab.push({'Text':n.Text,'Time':n.Time});
+        }
       }
+      $.post({
+        url: "save_note",
+        async: true,
+        data: {'abs_path': abs_path, 'notes':JSON.stringify(tab)},
+        dataType: 'json',
+        success: function (data) {
+          // console.log(data);
+        }
+      });
+    } else {
+      alert('You have to select yout own notes');
     }
-    $.post({
-      url: "save_note",
-      async: true,
-      data: {'abs_path': abs_path, 'notes':JSON.stringify(tab)},
-      dataType: 'json',
-      success: function (data) {
-        // console.log(data);
-      }
-    });
   }
 
   this.update = function(checked) {
@@ -67,37 +81,52 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
       this.setDivSize();
       this.input_note.show();
       this.div_notes.show();
+      this.select_note.show();
     } else {
       this.input_note.hide();
       this.div_notes.hide();
+      this.select_note.hide();
     }
   }
 
   this.setDivSize = function() {
     this.div_notes.position(mid_width+(reframe_button.position().x-mid_width)/2,can.elt.offsetTop+70);
     this.div_notes.size((reframe_button.position().x-mid_width)/2-10,height-70);
+    this.select_note.position(reframe_button.position().x-100,can.elt.offsetTop+10);
   }
 
   function addNote() {
-    let note = {};
-    let b = false;
-    for(let n of note_editor.notes) {
-      if(n.Time == Math.floor(video.time())) {
-        n.Text += "\n"+note_editor.input_note.value()+'';
-        b = true;
-        break;
+    if(note_editor.select_note.elt.value == username) {
+      let note = {};
+      let b = false;
+      for(let n of note_editor.notes) {
+        if(n.Time == Math.floor(video.time())) {
+          n.Text += "\n"+note_editor.input_note.value()+'';
+          b = true;
+          break;
+        }
       }
+      if(!b) {
+        note.Text = note_editor.input_note.value()+'';
+        note.Time = Math.floor(video.time());
+        note_editor.notes.push(note);
+      }
+      note_editor.updateChilds();
+      note_editor.input_note.value('');
+    } else {
+      alert("Select your notes before editing")
     }
-    if(!b) {
-      note.Text = note_editor.input_note.value()+'';
-      note.Time = Math.floor(video.time());
-      note_editor.notes.push(note);
-    }
-    note_editor.updateChilds();
-    note_editor.input_note.value('');
   }
 
-  this.updateChilds = function() {
+  function selectAuthor() {
+    for(let note of json_data_note) {
+      if(note.User == this.elt.value)
+        note_editor.notes = note.Note;
+    }
+    note_editor.updateChilds(this.elt.value);
+  }
+
+  this.updateChilds = function(name=username) {
     $('#div_notes').empty();
     this.notes.sort(compareTime);
     for(let note of this.notes) {
@@ -105,7 +134,8 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
       let p = createP(note.Text);
       p.style('font-size','20');
       let h3 = createElement('h3',this.getTimeFrame(note.Time));
-      p.elt.contentEditable = true;
+      if(name == username)
+        p.elt.contentEditable = true;
       note.elem = p;
       div.child(h3);
       div.child(p);

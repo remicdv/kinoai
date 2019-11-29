@@ -24,6 +24,11 @@ function Button(tempX, tempY, tempRad)  {
     } else {
       this.color = [255,255,255];
     }
+    if(editing_button.on) {
+      shots_timeline.select_author.show();
+    } else {
+      shots_timeline.select_author.hide();
+    }
   }
 
   this.setPosition = function(tx, ty) {

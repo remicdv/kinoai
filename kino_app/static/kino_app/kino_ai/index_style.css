@@ -157,22 +157,14 @@ li a:hover, li p:hover {
 
 #tabs {
   margin-top: 5;
+  margin-bottom: 10;
   height: 60px;
   width: 100%;
 }
 
 #tabs div {
-  /* float: left; */
   display: inline-flex;
-  font: Courier, monospace;
-  background-color: #2E5C9C;
-  margin-bottom: 5;
-  margin-left: 10;
-  text-align: center;
-  padding: 10;
-  color: white;
 }
-
 
 #footer {
   position: absolute;
@@ -191,8 +183,12 @@ li a:hover, li p:hover {
   color: white;
   padding: 14px 20px;
   margin: 8px 10;
-  border: none;
+  border: 2px solid #FFFFFF;
   cursor: pointer;
+}
+
+.index_button:hover, #book:hover {
+  box-shadow: 0 0 11px rgba(10,10,10,.5);
 }
 
 

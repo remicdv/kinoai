@@ -19,6 +19,7 @@ urlpatterns = [
     path('video_editing/<int:id>', views.video_editing, name='video_editing'),
     path('video_editing/get_data_detec', views.get_data_detec, name='get_data_detec'),
     path('video_editing/submit', views.submit, name='submit'),
+    path('video_editing/save_timeline', views.save_timeline, name='save_timeline'),
     path('video_editing/save_note', views.save_note, name='save_note'),
     path('video_editing/upload_rough_cut', views.upload_rough_cut, name='upload_rough'),
     path('video_editing/load_sub', views.load_sub, name='load_sub'),

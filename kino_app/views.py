@@ -142,7 +142,6 @@ class IndexView(generic.ListView):
         old = len(FolderPath.objects.all())
         list = []
         projects = []
-        print(len(list),old)
         data_project = Project.objects.all().order_by('title')
         for project_obj in data_project:
             print(project_obj.title.replace(" ", "_"))
@@ -159,6 +158,7 @@ class IndexView(generic.ListView):
                 list += list_files(path, None)
                 project["List"].sort()
                 projects.append(project)
+        print(len(list),old)
         extractImagesAndDelete(list, old)
         if request.user is None or request.user.is_authenticated == False:
             print(settings.LOGIN_URL)
@@ -314,16 +314,45 @@ def video_editing(request, id):
         if check_prev>0:
             prev = FolderPath.objects.get(path=new_path+'part{:02d}'.format(int(part.split('t')[1])-1)).id
 
+    if not os.path.isfile(dir.abs_path+'/'+str(request.user.username)+'_note.json'):
+        file = open(dir.abs_path+'/'+str(request.user.username)+'_note.json',"w")
+        file.write("[]")
+        file.close()
+
+    if not os.path.isfile(dir.abs_path+'/'+str(request.user.username)+'_timelines.json'):
+        with open(dir.abs_path+'/shots.json') as f:
+            data = json.load(f)
+        shots_timeline = []
+        for s in data:
+            if s['Timeline']==1:
+                shots_timeline.append(s)
+        file = open(dir.abs_path+'/'+str(request.user.username)+'_timelines.json',"w")
+        file.write(json.dumps(shots_timeline))
+        file.close()
+
     data_note = []
+    data_timelines = []
     request.session['previous_name'] = title
-    if os.path.isfile(dir.abs_path+'/'+str(request.user.username)+'_note.json'):
-        with open(dir.abs_path+'/'+str(request.user.username)+'_note.json') as f:
-            data_note = json.load(f)
+    for root, subdirs, files in os.walk(dir.abs_path):
+        for file in files:
+            if '_note.json' in file:
+                print(file.split('_')[0], file.split('_')[1])
+                note_obj = {}
+                note_obj['User'] = file.split('_')[0]
+                tab = []
+                with open(dir.abs_path+'/'+file) as f:
+                    tab = json.load(f)
+                for t in tab:
+                    t['Text'] = t['Text'].replace('\"','\\"').replace('\n','\\n')
+                note_obj['Note'] = tab
+                data_note.append(note_obj)
+            if '_timelines.json' in file:
+                data_timelines.append(file.split('_')[0])
     if request.user is None or request.user.is_authenticated == False:
         print(settings.LOGIN_URL)
         return HttpResponseRedirect(settings.LOGIN_URL)
     return render(request, 'kino_app/video_editing.html', {'id':id, 'title':title, 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner,
-     'data_note':json.dumps(data_note).replace('\"','\\"')})
+     'data_note':json.dumps(data_note), 'username':request.user.username, 'data_timelines':json.dumps(data_timelines)})
     # return render(request, 'kino_app/index.html', {'image' : data_path})
 
 def get_shot_from_spec(shots, type, actors_involved, aspect_ratio):
@@ -369,7 +398,7 @@ def video_book(request, id):
         file = open(full_list[0].abs_path+'/'+str(request.user.username)+'_note.txt',"w")
         file.write("[]")
         file.close()
-        
+
     full_note = []
     for root, dirs, files in os.walk(full_list[0].abs_path):
         for file in files:
@@ -385,6 +414,8 @@ def video_book(request, id):
     for p in full_list:
         if os.path.isfile(p.abs_path+'/subtitle.vtt'):
             full_script.append(p.abs_path+'/subtitle.vtt')
+        else:
+            return HttpResponseRedirect('/kino_app')
         full_json_shots.append(p.abs_path+'/shots.json')
 
     full_tab = []
@@ -629,6 +660,20 @@ def submit(request):
         return HttpResponse(json.dumps({'succes':'geat!!'}), content_type='application/json')
     return HttpResponse('')
 
+@csrf_exempt
+def save_timeline(request):
+    abs_path = request.POST.get('abs_path','')
+    data_timelines = json.loads(request.POST.get('timeline',''))
+    json_shots_path = abs_path+'/'+request.user.username+'_timelines.json'
+    print(data_timelines)
+    with open(json_shots_path, 'w') as fp:
+        json.dump(data_timelines, fp, indent=2)
+
+    if(request.method == 'POST'):
+        print('post submit')
+        return HttpResponse(json.dumps({'succes':'geat!!'}), content_type='application/json')
+    return HttpResponse('')
+
 def parser_vtt(file):
     f = open(file, "r")
     total = len(open(file, "r").readlines())
@@ -859,8 +904,8 @@ def cropCv(image, bbox, size, i):
     print(i)
     x = int(bbox[0])
     y = int(bbox[1])
-    w = int(math.ceil((bbox[2] - bbox[0])/2)*2)
-    h = int(math.ceil((bbox[3] - bbox[1])/2)*2)
+    w = int(round((bbox[2] - bbox[0])/2)*2)
+    h = int(round((bbox[3] - bbox[1])/2)*2)
     return cv2.resize(image[y:y+h, x:x+w],(size[0],size[1]),interpolation=cv2.INTER_LANCZOS4)
 
 def crop(image):
@@ -905,8 +950,8 @@ def crop(image):
         crop.counter += 1
         x = int(bbox[0])
         y = int(bbox[1])
-        w = int(math.ceil((bbox[2] - bbox[0])/2)*2)
-        h = int(math.ceil((bbox[3] - bbox[1])/2)*2)
+        w = int(round((bbox[2] - bbox[0])/2)*2)
+        h = int(round((bbox[3] - bbox[1])/2)*2)
         # print(w/h, crop.size[0]/crop.size[1], image.dtype)
         if math.isclose((bbox[2] - bbox[0])/(bbox[3] - bbox[1]), crop.size[0]/crop.size[1], rel_tol=1e-2):
             return cv2.resize(image[y:y+h, x:x+w],(crop.size[0],crop.size[1]),interpolation=cv2.INTER_LANCZOS4)
@@ -975,8 +1020,9 @@ def reframeMov(request):
     videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_3'+'/19janvier/pres.mov'#
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
-    factor = hevc_w / width
+    factor = int(hevc_w / width)
     print(hevc_w, factor, aspect_ratio)
+    print(request.user.username)
     bbox[:,] *= factor
 
     res = bbox[:,2] - bbox[:,0]
@@ -993,8 +1039,7 @@ def reframeMov(request):
     crop.bboxes = bbox
     crop.counter = 0
     print(len(bbox))
-
-    out_vid = abs_path+'/output-video.mp4'
+    out_vid = abs_path+'/'+request.user.username+'_output_video.mp4'
     print(videoname)
     clip = VideoFileClip(videoname)
     width = clip.size[0]

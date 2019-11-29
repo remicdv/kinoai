@@ -35,6 +35,7 @@ var act_timeline_x_off = 0;
 var pos_wheel = 0;
 var submit;
 var reframe_button;
+var hide_show_header_button;
 var draw_track;
 var shot_creation;
 var is_shot_creation = false;
@@ -133,6 +134,13 @@ function preload() {
     data_annotation_timeline = loadJSON(json_annotation_timeline);
   }
   data_shots = loadJSON(json_shots);
+  json_user_timeline = [];
+  for(let name of json_data_timelines) {
+    let obj = {};
+    obj.User = name;
+    obj.Data = loadJSON("/media"+abs_path.split('media')[1]+"/"+name+"_timelines.json");
+    json_user_timeline.push(obj);
+  }
   // specify multiple formats for different browsers
   loadRough(abs_path.split('kinoai')[abs_path.split('kinoai').length-1]+'/Rough.json');
   can = createCanvas();
@@ -1031,10 +1039,11 @@ function updateNoteBook() {
     let div_creation = createDiv();
     div_creation.id('div_creation');
     div_creation.position(windowWidth-150,draw_track.y+30);
-    div_creation.size(150);
+    div_creation.size(150, height+can.elt.offsetTop-div_creation.position().y);
     for(let a of actors_timeline) {
       a.on = false;
       a.elem.style('margin','5% 0 5% 0');
+      a.elem.show();
       div_creation.child(a.elem.elt);
     }
   }else {
@@ -1045,6 +1054,7 @@ function updateNoteBook() {
       a.elem.id('editor');
       div_actors_timeline.child(a.elem);
     }
+    showAllElt();
   }
 }
 
@@ -1239,6 +1249,16 @@ function saveShot() {
     }
   } else {
     alert('already created');
+  }
+}
+
+function hideShowHeader() {
+  if($('#header_info').css('display') !== 'none') {
+    $('#header_info').hide();
+    up_rough = true;
+  } else {
+    $('#header_info').show();
+    up_rough = true;
   }
 }
 
@@ -1519,7 +1539,6 @@ function saveTimeline() {
     }
   });
    detec_modif = false;
-
 }
 
 // Set the position of button and check box according to the window size
@@ -1565,6 +1584,7 @@ function toTwoDigit(str) {
 
 // Hide all hmtl elements for showing the player in fullscreen
 function hideAllElt() {
+  $("#header_info").hide();
   var elems = selectAll('.aside');
   for(let el of elems){
     el.hide();
@@ -1605,7 +1625,6 @@ function showAllElt() {
   }
   if(is_note_book) {
     note_editor.update(true);
-    showNoteBook();
   }
 }
 
@@ -1623,22 +1642,37 @@ function hideNoteBook() {
   // }
 }
 
-// Show the subtitle next to the player and allow the user to navigate in the video
-function showNoteBook() {
-  if(!div_sub || div_sub.size().height!=height || viewer_width != mid_width) {
-    $("#div_sub").remove();
-    div_sub = undefined;
-    tab_sub = [];
-    let cpt=0;
-    for(let t of video.elt.textTracks) {
-      if(t.mode == "showing" && cpt==0) {
-        let i=0;
-        cpt++;
+function resizeNoteBook() {
+  let div_creation = select('#div_creation');
+  is_shot_creation = false;
+  shot_creation.checked(false);
+  is_show_shots = false;
+  show_shots.checked(false);
+  editing_button.setOnOff(false);
+  if(!div_creation) {
+    div_creation = createDiv();
+    div_creation.id('div_creation');
+    for(let a of actors_timeline) {
+      a.on = false;
+      a.elem.style('margin','5% 0 5% 0');
+      div_creation.child(a.elem.elt);
+    }
+  }
+  div_creation.position(windowWidth-150,draw_track.y+30);
+  div_creation.size(150, height+can.elt.offsetTop-div_creation.position().y);
+  div_sub = select('#div_sub');
+  // tab_sub = [];
+  let cpt=0;
+  for(let t of video.elt.textTracks) {
+    if(t.mode == "showing" && cpt==0) {
+      let i=0;
+      cpt++;
+      if(!div_sub) {
         tab_sub = [];
         div_sub = createDiv();
         div_sub.id('div_sub');
-        div_sub.position(viewer_width+10,can.elt.offsetTop);
-        div_sub.size((reframe_button.position().x-(viewer_width+10))/2,height);
+        div_sub.position(mid_width+10,can.elt.offsetTop);
+        div_sub.size((reframe_button.position().x-(mid_width+10))/2,height);
         for(let c of t.cues) {
           let obj = {};
           let p = createP(c.text);
@@ -1648,8 +1682,18 @@ function showNoteBook() {
           tab_sub.push(obj);
           div_sub.child(p);
         }
+      } else {
+        div_sub.position(mid_width+10,can.elt.offsetTop);
+        div_sub.size((reframe_button.position().x-(mid_width+10))/2,height);
       }
     }
+  }
+}
+
+// Show the subtitle next to the player and allow the user to navigate in the video
+function showNoteBook() {
+  if(!div_sub || div_sub.size().height!=height || mid_width != viewer_width) {
+    resizeNoteBook();
   } else {
     if(tab_sub.length>1) {
       for(let s of tab_sub) {
@@ -1684,28 +1728,9 @@ function removeTracklet() {
 function removeShot() {
   for(var i=0; i<shots.length; i++) {
     if(shots[i].on) {
-      let ind = [];
-      for (let j=0; j<shots_timeline.shots.length; j++) {
-        let s = shots_timeline.shots[j];
-        if(s.type == shots[i].type) {
-          let b1 = true;
-          let actors_involved = [];
-          for(let a of shots[i].actors_involved ) {
-            actors_involved.push(a.actor_name);
-          }
-          for(let a of s.actors_involved) {
-            if(!actors_involved.includes(a.actor_name)) {
-              b1 = false;
-              break;
-            }
-          }
-          if(b1 && s.actors_involved.length == actors_involved.length) {
-            ind.push(j);
-          }
-        }
-      }
-      for (let i = ind.length -1; i >= 0; i--) {
-        shots_timeline.shots.splice(ind[i],1);
+      shots_timeline.removeSpecificShot(shots[i]);
+      for(let tab of shots_timeline.list_data) {
+        shots_timeline.removeSpecificShot(shots[i],tab.Data);
       }
       shots.splice(i,1);
     }
@@ -2797,19 +2822,7 @@ function setup() {
     }
 
     for (var i=0; i<Object.getOwnPropertyNames(data_shots).length; i++) {
-      if(data_shots[i].Timeline == 1) {
-        let s = {};
-        s.type = data_shots[i].Type;
-        s.start_frame = data_shots[i].StartFrame;
-        s.end_frame = data_shots[i].EndFrame;
-        s.aspect_ratio = data_shots[i].AspectRatio;
-        let tab = [];
-        for(let n of data_shots[i].ActInvolved) {
-          tab.push(getAct(n));
-        }
-        s.actors_involved = tab;
-        shots_timeline.addShotJson(s, true);
-      } else {
+      if(data_shots[i].Timeline == 0) {
         let s = new Shot();
         s.type = data_shots[i].Type;
         s.start_frame = data_shots[i].StartFrame;
@@ -2820,6 +2833,30 @@ function setup() {
         shots.push(s);
       }
     }
+
+    shots_timeline.list_data = [];
+    for(let obj of json_user_timeline) {
+      let tab_shots = [];
+      for(let data_shots of Object.values(obj.Data)) {
+        let s = {};
+        s.type = data_shots.Type;
+        s.start_frame = data_shots.StartFrame;
+        s.end_frame = data_shots.EndFrame;
+        s.aspect_ratio = data_shots.AspectRatio;
+        let tab = [];
+        for(let n of data_shots.ActInvolved) {
+          tab.push(getAct(n));
+        }
+        s.actors_involved = tab;
+        tab_shots.push(s);
+        if(obj.User == username) {
+          shots_timeline.addShotJson(s, true);
+        }
+      }
+      obj.Data = tab_shots;
+      shots_timeline.list_data.push(obj);
+    }
+
     shots.sort(sortShotsByName);
     shots.sort(sortShotsByType);
 
@@ -2919,12 +2956,17 @@ function setup() {
     html_elements.push(reframe_button);
     reframe_button.mousePressed(reframeRequest);
 
+    hide_show_header_button = createButton('Hide/Show Header');
+    hide_show_header_button.mouseOver(processToolTip('Hide or show the header'));
+    hide_show_header_button.mouseOut(processToolTip(''));
+    html_elements.push(hide_show_header_button);
+    hide_show_header_button.mousePressed(hideShowHeader);
 
-    create_bbox = createButton('Create bbox');
-    create_bbox.mouseOver(processToolTip('Create a personalize bounding box for a selected actor'));
-    create_bbox.mouseOut(processToolTip(''));
-    html_elements.push(create_bbox);
-    create_bbox.mousePressed(createBBox);
+    // create_bbox = createButton('Create bbox');
+    // create_bbox.mouseOver(processToolTip('Create a personalize bounding box for a selected actor'));
+    // create_bbox.mouseOut(processToolTip(''));
+    // html_elements.push(create_bbox);
+    // create_bbox.mousePressed(createBBox);
 
     // sanitize = createButton('Sanitize');
     // sanitize.mouseOver(processToolTip('Clean the timeline'));
@@ -2951,16 +2993,16 @@ function setup() {
     get_meta_data.mousePressed(getFrameMetaData);
 
     extract_video_book = createButton('Video Book');
-    extract_video_book.mouseOver(processToolTip('Extract a video book based on the subtitles'));
+    extract_video_book.mouseOver(processToolTip('Go to the video book based on the subtitles'));
     extract_video_book.mouseOut(processToolTip(''));
     html_elements.push(extract_video_book);
     extract_video_book.mousePressed(extractVideoBook);
 
-    extract_keyframes = createButton('Extract Keyframes');
-    extract_keyframes.mouseOver(processToolTip('Extract an image for each subtitle'));
-    extract_keyframes.mouseOut(processToolTip(''));
-    html_elements.push(extract_keyframes);
-    extract_keyframes.mousePressed(processKeyFrames);
+    // extract_keyframes = createButton('Extract Keyframes');
+    // extract_keyframes.mouseOver(processToolTip('Extract an image for each subtitle'));
+    // extract_keyframes.mouseOut(processToolTip(''));
+    // html_elements.push(extract_keyframes);
+    // extract_keyframes.mousePressed(processKeyFrames);
 
     annotation_edit = createCheckbox('Annotation Timeline', false);
     annotation_edit.mouseOver(processToolTip('Annotation edition tool'));
@@ -3054,6 +3096,7 @@ function setup() {
 function draw() {
 
   // frameRate(frame_rate);
+
   image_frame = p5ImageFromDash();
   var x_vid = 0;
   var y_vid = 0;
@@ -3073,7 +3116,6 @@ function draw() {
     div_actors_timeline.size(mid_width, windowHeight-div_actors_timeline.y-5);
   }
   if(viewer_width!=mid_width || up_rough){
-
     showAllElt();
     shot_selector.original_x = mid_width + 10;
     ratio_selector.original_x = mid_width + 80;
@@ -3226,7 +3268,7 @@ function draw() {
   // getStartEndImg();
 
   if(!fullscreen()) {
-    showAllElt();
+    // showAllElt();
     let w = player.w;
     player.updatePos(95, viewer_height-15, (viewer_width-90-20), 10);
     drawStatus();
@@ -3410,7 +3452,7 @@ function draw() {
   line(10,25,90,25);
   pop();
 
-  if(is_annotation) {
+  if(is_annotation && !is_note_book) {
     annotation_timeline.div_wrap.show();
     annotation_timeline.act_select.show();
     annotation_timeline.add_act_button.show();
@@ -3513,6 +3555,21 @@ function mousePressed() {
             remove_timeline = true;
           }
         }
+        var clic = false;
+        var prev = undefined;
+        for (let i=0; i<tracklets_line.length; i++) {
+          if(tracklets_line[i].on) {
+            prev = i;
+          }
+          tracklets_line[i].on = false;
+          if(!clic)
+            clic = tracklets_line[i].click(mouseX, mouseY);
+        }
+        if(!clic) {
+          if(prev || prev==0) {
+            tracklets_line[prev].on = true;
+          }
+        }
       } else {
         if(!is_shot_creation) {
           for(let s of shots) {
@@ -3528,21 +3585,6 @@ function mousePressed() {
           }
         }
         var b = shots_timeline.click(mouseX, mouseY);
-      }
-      var clic = false;
-      var prev = undefined;
-      for (let i=0; i<tracklets_line.length; i++) {
-        if(tracklets_line[i].on) {
-          prev = i;
-        }
-        tracklets_line[i].on = false;
-        if(!clic)
-          clic = tracklets_line[i].click(mouseX, mouseY);
-      }
-      if(!clic) {
-        if(prev || prev==0) {
-          tracklets_line[prev].on = true;
-        }
       }
     }
     if(!retime) {
@@ -3608,17 +3650,19 @@ function mouseDragged() {
 
   let b = false;
   if(!is_annotation) {
-    for(let act of actors_timeline) {
-      if(act.dragExtTrack(mouseX, mouseY) && act.t_dragged) {
-        let unit = act.w/annotation_timeline.total_frame;
-        video.time((annotation_timeline.first+(mouseX-act.x)/unit)/frame_rate);
-        img_hd = undefined;
+    if(!editing_button.on) {
+      for(let act of actors_timeline) {
+        if(act.dragExtTrack(mouseX, mouseY) && act.t_dragged) {
+          let unit = act.w/annotation_timeline.total_frame;
+          video.time((annotation_timeline.first+(mouseX-act.x)/unit)/frame_rate);
+          img_hd = undefined;
+        }
       }
-    }
-    for(let t of tracklets_line) {
-      if(t.drag) {
-        b = true;
-        break;
+      for(let t of tracklets_line) {
+        if(t.drag) {
+          b = true;
+          break;
+        }
       }
     }
     for(let s of shots) {
@@ -3734,6 +3778,7 @@ function doubleClicked() {
 }
 
 function keyPressed() {
+  console.log(keyCode);
   annotation_timeline.keyPressed(keyCode);
   if (!keyDown && keyCode == 17) {
     keyDown = 17;
