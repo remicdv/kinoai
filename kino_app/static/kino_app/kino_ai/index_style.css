@@ -42,7 +42,7 @@ h2 {
   color: white;
 }
 
-#infos {
+.infos {
   border: 2px solid #2E5C9C;
   width: 50%;
   margin-left: 10;
@@ -50,7 +50,18 @@ h2 {
   background-color: white;
 }
 
-#logout{
+.edit_button {
+  font-family : inherit;
+  font-size: 15;
+  background-color: #2E5C9C;
+  color: white;
+  padding: 5px 5px;
+  float: right;
+  border: 2px solid #FFFFFF;
+  cursor: pointer;
+}
+
+.user_button{
   font-size: 15;
   background-color: white;
   color: #2E5C9C;

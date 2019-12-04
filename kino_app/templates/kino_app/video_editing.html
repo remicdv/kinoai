@@ -73,7 +73,7 @@
                {% csrf_token %}
                <input type="file" name="fileToUpload" id="fileToUpload"/>
                <input type="hidden" id="abs_path" name="abs_path" value="{{abs_path}}">
-               <input type="submit" value="Upload" id='logout'/>
+               <input type="submit" value="Upload" class='user_button'/>
            </form>
      </div>
       <h1 class="">{{title|replace_underscore}}</h1>

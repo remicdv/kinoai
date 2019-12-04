@@ -20,6 +20,9 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
   this.select_note.elt.value = username;
   this.select_note.changed(selectAuthor);
+  if(!is_note_book) {
+    this.select_note.hide();
+  }
 
   this.div_notes = createDiv();
   this.div_notes.style('overflow','auto');

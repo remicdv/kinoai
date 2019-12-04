@@ -154,6 +154,10 @@ class IndexView(generic.ListView):
                 project["Name"] = name
                 project["Company"] = project_obj.company
                 project["Date"] = project_obj.date
+                if project_obj.password == None or project_obj.password == "":
+                    project["Password"] = False
+                else:
+                    project["Password"] = True
                 project["List"] = os.listdir(path)
                 list += list_files(path, None)
                 project["List"].sort()
@@ -170,6 +174,7 @@ class IndexView(generic.ListView):
 def set_previous(request):
     name = request.POST.get('name','')
     request.session['previous_name'] = name
+    request.session['active_project'] = ''
     return HttpResponse('')
 
 def launch_preprocess(name, username):
@@ -247,6 +252,68 @@ def preprocess(request):
     print(request)
     return render(request, 'kino_app/process.html')
 
+@csrf_exempt
+def check_project(request):
+    if request.method == 'POST':
+        title = request.POST['title']
+        password = request.POST['password']
+        proj = get_object_or_404(Project, title=title)
+        if check_password(password, proj.password):
+            request.session['active_project'] = title.replace(" ", "_")
+        else:
+            request.session['active_project'] = 'wrong password'
+        return redirect('kino_app:index')
+
+def modif_path(old, new):
+    list_word = old.split('/')
+    list_word[0] = new
+    return '/'.join(list_word)
+
+def modif_abs_path(old, new):
+    first_list = old.split('data/')
+    second_list = first_list[1].split('/')
+    second_list[0] = new
+    first_list[1] = '/'.join(second_list)
+    return 'data/'.join(first_list)
+
+@csrf_exempt
+def edit_project(request):
+    if request.method == 'POST':
+        title = request.POST['title'].replace("_", " ")
+        title_replace = title.replace(' ','_')
+        old_title = request.POST['old_title']
+        old_replace = old_title.replace("_", " ")
+        company = request.POST['company']
+        date = request.POST['date']
+        print(title, date, company)
+        proj = get_object_or_404(Project, title=old_replace)
+        proj.title = title
+        for root, dirs, files in os.walk(os.path.join(settings.MEDIA_ROOT, 'kino_app/data/')):
+            for d in dirs:
+                if d == old_title:
+                    os.rename(os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+d), os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+title_replace))
+                    break
+            break
+        for root, dirs, files in os.walk(os.path.join(settings.MEDIA_ROOT, 'kino_app/index_images/')):
+            for d in dirs:
+                if d == old_title:
+                    os.rename(os.path.join(settings.MEDIA_ROOT, 'kino_app/index_images/'+d), os.path.join(settings.MEDIA_ROOT, 'kino_app/index_images/'+title_replace))
+                    break
+            break
+        folders = FolderPath.objects.filter(path__icontains=old_title)
+        for f in folders:
+            new_path = modif_path(f.path, title_replace)
+            new_abs_path = modif_abs_path(f.abs_path, title_replace)
+            f.path = new_path
+            f.abs_path = new_abs_path
+            f.save()
+        proj.company = company
+        proj.date = parse_date(date)
+        proj.save()
+        request.session['active_project'] = old_title.replace(" ", "_")
+        print(proj)
+    return redirect('kino_app:index')
+
 def create_project(request):
     if request.method == 'POST':
         title = request.POST['title']
@@ -295,7 +362,7 @@ def video_editing(request, id):
     split_title = dir.path.split('/')
     part = ''
     if len(split_title) >1:
-        title = split_title[1]
+        title = split_title[0]+'/'+split_title[1]
         if len(split_title) >2:
             part = split_title[2]
     else:
@@ -351,7 +418,7 @@ def video_editing(request, id):
     if request.user is None or request.user.is_authenticated == False:
         print(settings.LOGIN_URL)
         return HttpResponseRedirect(settings.LOGIN_URL)
-    return render(request, 'kino_app/video_editing.html', {'id':id, 'title':title, 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner,
+    return render(request, 'kino_app/video_editing.html', {'id':id, 'title':split_title[1], 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner,
      'data_note':json.dumps(data_note), 'username':request.user.username, 'data_timelines':json.dumps(data_timelines)})
     # return render(request, 'kino_app/index.html', {'image' : data_path})
 

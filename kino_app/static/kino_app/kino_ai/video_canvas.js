@@ -102,6 +102,7 @@ var detec_modif = false;
 var rough_json = undefined;
 var up_rough = false;
 var tool_tip = {};
+var video_element;
 
 function round_prec(value, precision) {
     var multiplier = Math.pow(10, precision || 0);
@@ -148,6 +149,8 @@ function preload() {
   can.child(div);
   div.hide();
   video = new p5.MediaElement(dash_player.getVideoElement());
+  video_element = createVideo("/media"+abs_path.split('media')[1]+"/original540.mp4");
+  video_element.hide();
   video.hide();
 }
 
@@ -813,15 +816,16 @@ function p5VectToJson(vect) {
 // Extract a p5 Image object from the current frame
 function p5ImageFromDash() {
   if(video.elt.videoWidth) {
-    let temp_can = document.createElement('canvas');
-    temp_can.width = video.elt.videoWidth;
-    temp_can.height = video.elt.videoHeight;
-    let image_test = new p5.Image(temp_can.width, temp_can.height);
-    image_test.drawingContext.drawImage(video.elt, 0, 0);
-    temp_can.remove();
-    return image_test;
+    if(image_frame.width==0 || video.elt.videoWidth != image_frame.width) {
+      image_frame = new p5.Image(video.elt.videoWidth, video.elt.videoHeight);
+      image_frame.drawingContext.drawImage(video.elt, 0, 0);
+    } else {
+      image_frame.width = video.elt.videoWidth;
+      image_frame.height = video.elt.videoHeight;
+      image_frame.drawingContext.drawImage(video.elt, 0, 0);
+    }
   } else {
-    return new p5.Image(100,100);
+    image_frame = new p5.Image(100,100);
   }
 }
 
@@ -3091,13 +3095,16 @@ function setup() {
     all_types.hide();
     // createAllShots();
   }
+  frameRate(frame_rate);
 }
 
 function draw() {
 
-  // frameRate(frame_rate);
-
-  image_frame = p5ImageFromDash();
+  if(is_show_shots || is_note_book || is_split) {
+    p5ImageFromDash();
+  } else {
+    image_frame = video;
+  }
   var x_vid = 0;
   var y_vid = 0;
   if(viewer_scale==1)
@@ -3778,7 +3785,6 @@ function doubleClicked() {
 }
 
 function keyPressed() {
-  console.log(keyCode);
   annotation_timeline.keyPressed(keyCode);
   if (!keyDown && keyCode == 17) {
     keyDown = 17;

@@ -9,18 +9,23 @@
   <div id='log_up'>
   <form action="{% url 'logout' %}" method="post" >
           {% csrf_token %}
-          <input type="submit" value="Log Out" id='logout'/>
+          <input type="submit" value="Log Out" class='user_button'/>
       </form>
   <form action="{% url 'kino_app:upload' %}" method="post" >
           {% csrf_token %}
-          <input type="submit" value="Upload" id='logout'/>
+          <input type="submit" value="Upload" class='user_button'/>
       </form>
+  <button class="user_button" onclick="manageAccount()">Account</button>
     </div>
 </div>
 <div class="aside">
   <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
 </div>
 <h1>Kino AI</h1>
+</div>
+
+<div id="account_manager" class="infos" style="display:none;margin-top:10;">
+  <h3>Gestion du compte </h3>
 </div>
 
 <div id="projects_title" style="display:inline-flex;">
@@ -40,13 +45,13 @@
 <div id='tabs'>
   <script> var projects = []; </script>
   {% for project in projects %}
-    <script> projects.push({'title':"{{project.Name}}", 'company':"{{project.Company}}", 'date':"{{project.Date}}"}); </script>
+    <script> projects.push({'title':"{{project.Name}}", 'company':"{{project.Company}}", 'date':"{{project.Date}}", 'is_password':"{{project.Password}}"}); </script>
     <div><button class="projects_name index_button" id="{{project.Name}}">{{project.Name|replace_underscore}}</button></div>
   {% endfor %}
 </div>
 {% endif %}
 
-<div id='infos' style="display:none;"></div>
+<div id='infos' class='infos' style="display:none;"></div>
 <div style='margin: 20 10;'>
 <a id='book' href="">Carnet audiovisuel</a>
 </div>
@@ -58,6 +63,7 @@ var user_default_list = [];
 var user_name_clicked;
 var user_take_list = [];
 var previous = "{{ request.session.previous_name }}";
+var active_project = "{{ request.session.active_project }}";
 </script>
 
 <span class='default'>
@@ -115,6 +121,13 @@ var previous = "{{ request.session.previous_name }}";
     check.onclick = hideShowDefault;
     check.checked = true;
   }
+
+  for(let p of projects) {
+    if(p.title == active_project) {
+      p.is_password = 'False';
+    }
+  }
+
   if(!name_clicked) {
     $('.default_list').hide();
     $('#list').hide();
@@ -124,20 +137,14 @@ var previous = "{{ request.session.previous_name }}";
     clickDef();
     var title_proj;
     $('.row_list').each( function() {
-      if(this.id.includes(name_clicked) && (this.id.split('/').length>1 && this.id.split('/')[1]==name_clicked)) {
+      if(this.id.includes(name_clicked)) {
         title_proj=this.id.split('/')[0];
       }
     });
     $('#infos').show();
     for(let p of projects) {
       if(p.title == title_proj) {
-        let c = document.createElement('h3');
-        c.innerText = 'Compagnie: '+p.company;
-        let d = document.createElement('h3');
-        d.innerText = 'Date de création: '+p.date;
-        while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
-        document.getElementById('infos').appendChild(c);
-        document.getElementById('infos').appendChild(d);
+        setProjectInfos('False',p);
       }
     }
   }
@@ -149,7 +156,7 @@ var previous = "{{ request.session.previous_name }}";
   });
 
   $('.def_list.default a').click(function() {
-    name_clicked = $(this).parent()[0].id.split('/')[1];
+    name_clicked = $(this).parent()[0].id;
     $('.default_list').hide();
     $('#list').show();
     clickDef();
@@ -158,7 +165,7 @@ var previous = "{{ request.session.previous_name }}";
 
   function clickDef() {
     $('.row_list').each( function() {
-      if(this.id.includes(name_clicked) && (this.id.split('/').length>1 && this.id.split('/')[1]==name_clicked)) {
+      if(this.id.includes(name_clicked)) {
         $(this).show();
         $('#book').show();
         let href = 'video_book/'+$(this)[0].firstChild.href.split('/')[$(this)[0].firstChild.href.split('/').length-1];
@@ -179,29 +186,29 @@ var previous = "{{ request.session.previous_name }}";
       this.checked = true;
     } else {
       $('#infos').show();
+      let password = false;
       for(let p of projects) {
         if(p.title == this.id) {
-          let c = document.createElement('h3');
-          c.innerText = 'Compagnie: '+p.company;
-          let d = document.createElement('h3');
-          d.innerText = 'Date de création: '+p.date;
-          while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
-          document.getElementById('infos').appendChild(c);
-          document.getElementById('infos').appendChild(d);
+          setProjectInfos(p.is_password, p);
         }
       }
-      var project = this.id;
-      $('.def_list').each( function() {
-        if(this.id.includes(project) && (this.id.split('/').length>1 && this.id.split('/')[0]==project)) {
-          $(this).show();
-        } else {
-          $(this).hide();
-        }
-      });
-      $('.default').find("ul, p").show();
-      $('#book').hide();
-      $('#list').hide();
-      resizeFunction();
+      if(!password) {
+        var project = this.id;
+        $('.def_list').each( function() {
+          if(this.id.includes(project) && (this.id.split('/').length>1 && this.id.split('/')[0]==project)) {
+            $(this).show();
+          } else {
+            $(this).hide();
+          }
+        });
+        $('.default').find("ul, p").show();
+        $('#book').hide();
+        $('#list').hide();
+        resizeFunction();
+      } else {
+        $('.default').find("ul, p").hide();
+        $('#book').hide();
+      }
       this.checked = false;
     }
     for(let check of document.getElementsByClassName('projects_name')) {
@@ -237,6 +244,123 @@ var previous = "{{ request.session.previous_name }}";
       $('#form_project').show();
     else
       $('#form_project').hide();
+  }
+
+  function manageAccount() {
+    if(this.checked) {
+      $("#account_manager").hide();
+      this.checked = false;
+    } else {
+      this.checked = true;
+      $("#account_manager").show();
+    }
+  }
+
+  function setProjectInfos(is_password, p) {
+    if(is_password == "True") {
+      let c = document.createElement('h3');
+      c.innerText = 'Password: ';
+      let form = document.createElement('form');
+      form.method = "post";
+      let input = document.createElement('input');
+      input.type = "password";
+      input.name = "password";
+      form.appendChild(input);
+      let input_title = document.createElement('input');
+      input_title.type = "hidden";
+      input_title.name = "title";
+      input_title.value = p.title.replace('_',' ');
+      form.appendChild(input_title);
+      form.action = "{% url 'kino_app:check_project' %}";
+      while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+      document.getElementById('infos').appendChild(c);
+      document.getElementById('infos').appendChild(form);
+      password = true;
+    } else {
+      let edit_button = document.createElement('button');
+      edit_button.className = "edit_button";
+      edit_button.id = p.title;
+      edit_button.innerText = 'Edit';
+      edit_button.onclick = clickEdit;
+      let c = document.createElement('h3');
+      c.innerText = 'Compagnie: '+p.company;
+      let d = document.createElement('h3');
+      d.innerText = 'Date de création: '+p.date;
+      while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+      document.getElementById('infos').appendChild(edit_button);
+      document.getElementById('infos').appendChild(c);
+      document.getElementById('infos').appendChild(d);
+    }
+  }
+
+  function clickEdit() {
+    for(let p of projects) {
+      if(p.title == this.id) {
+        if(this.checked == true) {
+          let edit_button = document.createElement('button');
+          edit_button.className = "edit_button";
+          edit_button.id = p.title;
+          edit_button.innerText = 'Edit';
+          edit_button.onclick = clickEdit;
+          let c = document.createElement('h3');
+          c.innerText = 'Compagnie: '+p.company;
+          let d = document.createElement('h3');
+          d.innerText = 'Date de création: '+p.date;
+          while (document.getElementById('infos').firstChild) {document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+          document.getElementById('infos').appendChild(edit_button);
+          document.getElementById('infos').appendChild(c);
+          document.getElementById('infos').appendChild(d);
+        } else {
+          let edit_button = document.createElement('button');
+          edit_button.className = "edit_button";
+          edit_button.id = p.title;
+          edit_button.checked = true;
+          edit_button.innerText = 'Hide';
+          edit_button.onclick = clickEdit;
+          let form = document.createElement('form');
+          form.action = "{% url 'kino_app:edit_project' %}";
+          form.method = 'post';
+          let input_title = document.createElement('input');
+          input_title.type = "text";
+          input_title.name = "title";
+          input_title.value = p.title.replace('_',' ');
+          let old_title = document.createElement('input');
+          old_title.type = "hidden";
+          old_title.name = "old_title";
+          old_title.value = p.title;
+          let t = document.createElement('h3');
+          t.innerText = 'Titre: ';
+          let c = document.createElement('h3');
+          c.innerText = 'Compagnie: ';
+          let d = document.createElement('h3');
+          d.innerText = 'Date de création: ';
+          let input_date = document.createElement('input');
+          input_date.type = "date";
+          input_date.name = "date";
+          input_date.valueAsDate = new Date(p.date);
+          let input_company = document.createElement('input');
+          input_company.type = "text";
+          input_company.name = "company";
+          input_company.value = p.company;
+          let input_submit = document.createElement('input');
+          input_submit.type = "submit";
+          input_submit.name = "submit";
+          input_submit.className = "edit_button";
+          input_submit.value = "Save";
+          form.appendChild(t);
+          form.appendChild(input_title);
+          form.appendChild(c);
+          form.appendChild(input_company);
+          form.appendChild(d);
+          form.appendChild(input_date);
+          form.appendChild(input_submit);
+          form.appendChild(old_title);
+          while (document.getElementById('infos').firstChild) {document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+          document.getElementById('infos').appendChild(edit_button);
+          document.getElementById('infos').appendChild(form);
+        }
+      }
+    }
   }
 
   function resizeFunction() {
@@ -367,5 +491,10 @@ var previous = "{{ request.session.previous_name }}";
  window.onresize = resizeFunction;
  if(previous != "") {
    resizeFunction();
+ }
+ if(active_project!='' && active_project!='wrong password') {
+   $("#"+active_project).click();
+ } else if(active_project=='wrong password') {
+   alert("Wrong password");
  }
 </script>
