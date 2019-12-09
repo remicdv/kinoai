@@ -2,6 +2,7 @@
 {% load string_filter %}
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
+<title> Kino AI </title>
 
 <div id='header_info'>
 <div id='user_info'>
@@ -277,6 +278,21 @@ var active_project = "{{ request.session.active_project }}";
       document.getElementById('infos').appendChild(form);
       password = true;
     } else {
+      let remove_button;
+      var zero_elem = true;
+      for(let el of document.getElementsByClassName('def_list')) {
+        if(el.id.includes(p.title) && (el.id.split('/').length>1 && el.id.split('/')[0]==p.title)) {
+          zero_elem = false;
+          break;
+        }
+      }
+      if(zero_elem) {
+        remove_button = document.createElement('button');
+        remove_button.className = "edit_button";
+        remove_button.id = p.title;
+        remove_button.innerText = 'Remove';
+        remove_button.onclick = clickRemove;
+      }
       let edit_button = document.createElement('button');
       edit_button.className = "edit_button";
       edit_button.id = p.title;
@@ -288,9 +304,23 @@ var active_project = "{{ request.session.active_project }}";
       d.innerText = 'Date de création: '+p.date;
       while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
       document.getElementById('infos').appendChild(edit_button);
+      if(remove_button)
+        document.getElementById('infos').appendChild(remove_button);
       document.getElementById('infos').appendChild(c);
       document.getElementById('infos').appendChild(d);
     }
+  }
+
+  function clickRemove() {
+    $.post({
+      url: "remove_project",
+      data: {'title': this.id},
+      dataType: 'json',
+      success: function (data) {
+        document.getElementById(data.success).remove();
+        $('#infos').hide();
+      }
+    });
   }
 
   function clickEdit() {

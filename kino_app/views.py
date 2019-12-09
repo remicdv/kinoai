@@ -314,6 +314,17 @@ def edit_project(request):
         print(proj)
     return redirect('kino_app:index')
 
+@csrf_exempt
+def remove_project(request):
+    if request.method == 'POST':
+        title = request.POST['title']
+        path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+title)
+        if os.path.isdir(path):
+            if not os.listdir(path):
+                shutil.rmtree(path)
+    return HttpResponse(json.dumps({'success':title}), content_type='application/json')
+
+
 def create_project(request):
     if request.method == 'POST':
         title = request.POST['title']

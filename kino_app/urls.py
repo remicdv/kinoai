@@ -11,6 +11,7 @@ urlpatterns = [
     path('create_project', views.create_project, name='create_project'),
     path('check_project', views.check_project, name='check_project'),
     path('edit_project', views.edit_project, name='edit_project'),
+    path('remove_project', views.remove_project, name='remove_project'),
     path('preprocess', views.preprocess, name='preprocess'),
     path('video_book/<int:id>', views.video_book, name='video_book'),
     path('video_book/save_note_video', views.save_note_video, name='save_note_video'),
