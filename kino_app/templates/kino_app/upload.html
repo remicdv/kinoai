@@ -11,16 +11,14 @@
   <div id="msg"> {{msg}} </div>
 {% endif %}
 
+
 <form action="{% url 'kino_app:upload' %}" method="post" enctype="multipart/form-data" >
   {% csrf_token %}
-  <input type="file" name="fileToUpload" id="fileToUpload">
-  {% if projects %}
-    <select name="projects">
-      {% for project in projects %}
-        <option value="{{project.title}}">{{project.title|replace_underscore}}</option>
-      {%endfor%}
-    </select>
+  {% if title %}
+    <h3> Upload a video into the project {{title|replace_underscore}}</h3>
+    <input type="hidden" name="title" value="{{title}}"/>
   {% endif %}
+  <input type="file" name="fileToUpload" id="fileToUpload">
   <input type="submit" value="Upload Video" name="submit" onClick="clickSub()">
 </form>
 

@@ -12,10 +12,6 @@
           {% csrf_token %}
           <input type="submit" value="Log Out" class='user_button'/>
       </form>
-  <form action="{% url 'kino_app:upload' %}" method="post" >
-          {% csrf_token %}
-          <input type="submit" value="Upload" class='user_button'/>
-      </form>
   <button class="user_button" onclick="manageAccount()">Account</button>
     </div>
 </div>
@@ -51,6 +47,12 @@
   {% endfor %}
 </div>
 {% endif %}
+
+<form id="upload_post" style="display: none; margin:0;" action="{% url 'kino_app:upload' %}" method="post" >
+    {% csrf_token %}
+    <input type="submit" value="Upload" class='edit_button'/>
+    <input type="hidden" name="title" id="upload_title"/>
+</form>
 
 <div id='infos' class='infos' style="display:none;"></div>
 <div style='margin: 20 10;'>
@@ -184,6 +186,7 @@ var active_project = "{{ request.session.active_project }}";
       $('.default').find("ul, p").hide();
       $('#book').hide();
       $('#infos').hide();
+      $('#upload_post').hide();
       this.checked = true;
     } else {
       $('#infos').show();
@@ -191,9 +194,12 @@ var active_project = "{{ request.session.active_project }}";
       for(let p of projects) {
         if(p.title == this.id) {
           setProjectInfos(p.is_password, p);
+          password = p.is_password;
         }
       }
-      if(!password) {
+      if(password == 'False') {
+        $('#upload_post').show();
+        document.getElementById('upload_title').value = this.id;
         var project = this.id;
         $('.def_list').each( function() {
           if(this.id.includes(project) && (this.id.split('/').length>1 && this.id.split('/')[0]==project)) {
@@ -207,6 +213,7 @@ var active_project = "{{ request.session.active_project }}";
         $('#list').hide();
         resizeFunction();
       } else {
+        $('#upload_post').hide();
         $('.default').find("ul, p").hide();
         $('#book').hide();
       }
@@ -273,6 +280,7 @@ var active_project = "{{ request.session.active_project }}";
       input_title.value = p.title.replace('_',' ');
       form.appendChild(input_title);
       form.action = "{% url 'kino_app:check_project' %}";
+      document.body.appendChild(document.getElementById('upload_post'));
       while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
       document.getElementById('infos').appendChild(c);
       document.getElementById('infos').appendChild(form);
@@ -302,7 +310,9 @@ var active_project = "{{ request.session.active_project }}";
       c.innerText = 'Compagnie: '+p.company;
       let d = document.createElement('h3');
       d.innerText = 'Date de création: '+p.date;
+      document.body.appendChild(document.getElementById('upload_post'));
       while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+      document.getElementById('infos').appendChild(document.getElementById('upload_post'));
       document.getElementById('infos').appendChild(edit_button);
       if(remove_button)
         document.getElementById('infos').appendChild(remove_button);
@@ -336,7 +346,9 @@ var active_project = "{{ request.session.active_project }}";
           c.innerText = 'Compagnie: '+p.company;
           let d = document.createElement('h3');
           d.innerText = 'Date de création: '+p.date;
+          document.body.appendChild(document.getElementById('upload_post'));
           while (document.getElementById('infos').firstChild) {document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+          document.getElementById('infos').appendChild(document.getElementById('upload_post'));
           document.getElementById('infos').appendChild(edit_button);
           document.getElementById('infos').appendChild(c);
           document.getElementById('infos').appendChild(d);
@@ -385,7 +397,9 @@ var active_project = "{{ request.session.active_project }}";
           form.appendChild(input_date);
           form.appendChild(input_submit);
           form.appendChild(old_title);
+          document.body.appendChild(document.getElementById('upload_post'));
           while (document.getElementById('infos').firstChild) {document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
+          document.getElementById('infos').appendChild(document.getElementById('upload_post'));
           document.getElementById('infos').appendChild(edit_button);
           document.getElementById('infos').appendChild(form);
         }

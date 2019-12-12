@@ -226,6 +226,7 @@ def upload_view(request):
         print(settings.LOGIN_URL)
         return HttpResponseRedirect(settings.LOGIN_URL)
     if request.method == 'POST' and request.FILES:
+        title = request.POST['title']
         myfile = request.FILES['fileToUpload']
         print(request.FILES, '\n', myfile)
         info = str(request.FILES).split('[')[1].split('(')[1].split('/')[0]
@@ -236,17 +237,20 @@ def upload_view(request):
             filename = filename.replace(" ", "_")
             os.rename(settings.MEDIA_ROOT+'/'+old,settings.MEDIA_ROOT+'/'+filename)
             uploaded_file_url = fs.url(filename)
-            if launch_preprocess(filename, request.POST['projects'].replace(" ", "_")):
+            if launch_preprocess(filename, title.replace(" ", "_")):
                 print('finished')
                 return redirect('kino_app:index')
             else:
                 print('already')
-                return render(request, 'kino_app/upload.html', {'msg':'Already added'})
+                return render(request, 'kino_app/upload.html', {'msg':'Already added','title':title})
         else:
             print('not video')
-            return render(request, 'kino_app/upload.html', {'msg':'Not a video'})
+            return render(request, 'kino_app/upload.html', {'msg':'Not a video','title':title})
     else:
-        return render(request, 'kino_app/upload.html', {'projects':Project.objects.all()})
+        if request.method == 'POST':
+            title = request.POST['title']
+            return render(request, 'kino_app/upload.html', {'title':title})
+        return render(request, 'kino_app/upload.html')
 
 def preprocess(request):
     print(request)

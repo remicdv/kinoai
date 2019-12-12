@@ -96,6 +96,7 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
     this.div_notes.position(mid_width+(reframe_button.position().x-mid_width)/2,can.elt.offsetTop+70);
     this.div_notes.size((reframe_button.position().x-mid_width)/2-10,height-70);
     this.select_note.position(reframe_button.position().x-100,can.elt.offsetTop+10);
+    this.select_note.size(reframe_button.position().x-this.select_note.x-15);
   }
 
   function addNote() {

@@ -1842,6 +1842,7 @@ function reframeRequest() {
       return callbackReframe(data);
     }
   });
+  alert('Your video is processing, it will be downloaded automatically when the process will be finished, you can continue your work but you have to keep this tabs opened');
 }
 
 // Extract key frames from subtitles
@@ -2224,11 +2225,11 @@ function drawShotsLayout() {
   let shots_on_stage = getShotsOnStage();
   for(let s of shots_on_stage) {
     var bbox = s.getCurrStabShot(frame_num);
-    let type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
-    if(!type) {
-      type = s.type;
-    }
     if(bbox) {
+      let type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
+      if(!type) {
+        type = s.type;
+      }
       push();
       strokeWeight(1);
       switch(s.type){
