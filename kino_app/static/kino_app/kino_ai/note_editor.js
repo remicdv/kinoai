@@ -85,6 +85,9 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
       this.input_note.show();
       this.div_notes.show();
       this.select_note.show();
+      partition_editor.update(false);
+      is_partition_editor = false;
+      partition_check.checked(false);
     } else {
       this.input_note.hide();
       this.div_notes.hide();

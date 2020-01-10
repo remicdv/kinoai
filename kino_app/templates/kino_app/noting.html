@@ -3,6 +3,7 @@
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/noting_app.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
 <script src="{% static 'kino_app/p5.min.js' %}"></script>
+<script src="{% static 'kino_app/flexsearch.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
 
@@ -24,10 +25,174 @@
 
 <div id='created_notes'>
 </div>
+<table>
+    <tr>
+        <td style="position: relative">
+            <input type="text" id="autocomplete">
+            <input type="text" id="userinput" placeholder="Search corpus ...">
+        </td>
+        <td style="position: relative">
+            <input type="text" id="autocomplete_actors">
+            <input type="text" id="userinput_actors" placeholder="Search actors ...">
+        </td>
+    </tr>
+</table>
+
+<div id="suggestions"></div>
+
+<div id="corpus">
+</div>
 
 <!-- <img src="{% static 'kino_app/logo/frigo.png' %}" width="100%" style='"text-align: center"'> -->
 
 <script>
+var index = new FlexSearch({
+            encode: "advanced",
+            tokenize: "reverse",
+            suggest: true,
+            cache: true
+        });
+var index_actors = new FlexSearch({
+            encode: "advanced",
+            tokenize: "reverse",
+            suggest: true,
+            cache: true
+        });
+
+var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"'));
+var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
+var data = [];
+var data_actors = [];
+for(let i=0; i<corpus.length;i++) {
+  index.add(i,corpus[i].Content);
+  data.push(corpus[i].Title);
+}
+
+for(let i=0; i<actors.length;i++) {
+  index_actors.add(i,actors[i].Name);
+  data_actors.push(actors[i].Name);
+}
+
+var suggestions = document.getElementById("suggestions");
+var autocomplete = document.getElementById("autocomplete");
+var userinput = document.getElementById("userinput");
+var autocomplete_actors = document.getElementById("autocomplete_actors");
+var userinput_actors = document.getElementById("userinput_actors");
+
+userinput.addEventListener("input", show_results, true);
+userinput.addEventListener("keyup", accept_autocomplete, true);
+userinput_actors.addEventListener("input", show_results_actors, true);
+userinput_actors.addEventListener("keyup", accept_autocomplete, true);
+suggestions.addEventListener("click", accept_suggestion, true);
+
+function show_results(){
+    var value = this.value;
+    var results = index.search(value, 25);
+    var entry, childs = suggestions.childNodes;
+    var i = 0, len = results.length;
+    for(; i < len; i++){
+        entry = childs[i];
+        if(!entry){
+            entry = document.createElement("div");
+            suggestions.appendChild(entry);
+        }
+        entry.textContent = data[results[i]];
+    }
+    while(childs.length > len){
+        suggestions.removeChild(childs[i])
+    }
+    var first_result = data[results[0]];
+    if(results.length==1) {
+      let str_content = document.getElementById(first_result).lastChild.innerText.split('\n');
+      let user_input_text = document.getElementById("userinput").value;
+      let final_content = "";
+      while (document.getElementById(first_result).lastChild.firstChild) {    document.getElementById(first_result).lastChild.removeChild(document.getElementById(first_result).lastChild.firstChild);}
+      for(let obj of document.getElementById('corpus').children) {
+        obj.style.display = 'none';
+      }
+      for(let str of str_content) {
+        if(str.toUpperCase().includes(user_input_text.toUpperCase())) {
+          let start = '<span style="color:red;">';
+          let end = '</span>';
+          str = start+str+end;
+        }
+        final_content += str+'<br>';
+      }
+      document.getElementById(first_result).style.display = 'block';
+      document.getElementById(first_result).lastChild.innerHTML = final_content;
+    }
+    var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
+    if(first_result && (match !== -1)){
+        autocomplete.value = value + first_result.substring(match + value.length);
+        autocomplete.current = first_result;
+    }
+    else{
+        autocomplete.value = autocomplete.current = value;
+    }
+}
+
+function show_results_actors(){
+    var value = this.value;
+    var results = index_actors.search(value, 25);
+    var entry, childs = suggestions.childNodes;
+    var i = 0, len = results.length;
+    for(; i < len; i++){
+        entry = childs[i];
+        if(!entry){
+            entry = document.createElement("div");
+            suggestions.appendChild(entry);
+        }
+        entry.textContent = data_actors[results[i]];
+    }
+    while(childs.length > len){
+        suggestions.removeChild(childs[i])
+    }
+    var first_result = data_actors[results[0]];
+    var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
+    if(first_result && (match !== -1)){
+        autocomplete.value = value + first_result.substring(match + value.length);
+        autocomplete.current = first_result;
+    }
+    else{
+        autocomplete.value = autocomplete.current = value;
+    }
+}
+
+
+
+function accept_autocomplete(event){
+    if((event || window.event).keyCode === 13) {
+        this.value = autocomplete.value = autocomplete.current;
+    }
+}
+
+function accept_suggestion(event){
+    var target = (event || window.event).target;
+    userinput.value = autocomplete.value = target.textContent;
+    while(suggestions.lastChild){
+        suggestions.removeChild(suggestions.lastChild);
+    }
+    return false;
+}
+
+// for(let obj of corpus) {
+//   let title = document.createElement('h1');
+//   title.innerText = obj.Title;
+//   title.style.color = "black";
+//   let content = document.createElement('div');
+//   content.innerText = obj.Content;
+//   content.style.width = "50%";
+//   content.style.marginLeft = "25%";
+//   content.style.padding = "1%";
+//   content.style.textAlign = "justify";
+//   content.style.backgroundColor = "white";
+//   let cluster = document.createElement('div');
+//   cluster.id = obj.Title;
+//   cluster.appendChild(title);
+//   cluster.appendChild(content);
+//   document.getElementById('corpus').appendChild(cluster);
+// }
+
 let off = document.getElementById('logo').offsetHeight - document.getElementById("add_note").offsetTop+5;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
 var start;
@@ -79,14 +244,13 @@ function updateEvent() {
   $('.notes').keydown(function(event) {
     curr_note_ind = $('.notes').index(this);
     let last = $('.notes')[curr_note_ind].innerText.split('\n')[$('.notes')[curr_note_ind].innerText.split('\n').length-1];
-    console.log('key');
     if(last.length==1) {
-      let timeCode = Date().split('GMT')[0].split('2019')[1];
+      let timeCode = Date().split(' ')[4];
       start = timeCode;
       start_time = Date.now();
     }
     if(event.originalEvent.keyCode == 13 && start) {
-      let end = Date().split('GMT')[0].split('2019')[1];
+      let end = Date().split(' ')[4];
       let text = getLastLine($('.notes')[curr_note_ind].innerText.split('\n'));
       console.log(event.originalEvent.key, text, start, end);
       let timeCode = document.createElement('p');

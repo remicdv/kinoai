@@ -49,6 +49,10 @@ media/kino_app/data/*
 media/kino_app/index_images/*
 media/kino_app/images/*
 
+media/kino_dev/data/*
+media/kino_dev/index_images/*
+media/kino_dev/images/*
+
 # python virtual environnement #
 kinoaienv/
 activate/

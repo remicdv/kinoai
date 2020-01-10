@@ -635,7 +635,21 @@ def download_subs(request):
 
 
 def noting_app(request):
-    return render(request, 'kino_app/noting.html')
+    with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/actors.json")) as json_file:
+        actors = json.load(json_file)
+    corpus = []
+    for root, dirs, files in os.walk(os.path.join(settings.MEDIA_ROOT, "kino_app/partition")):
+        for file in files:
+            if ".txt" in file:
+                obj = {}
+                text = ""
+                with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+file),'r') as json_file:
+                    text = json_file.readlines()
+                obj['Content'] = "".join(text).replace('\"','\\"').replace('\n','\\n')
+                obj['Title'] = file.split('.')[0].replace('_',' ')
+                corpus.append(obj)
+        break
+    return render(request, 'kino_app/noting.html', {'data':json.dumps(corpus), 'actors':json.dumps(actors)})
 
 @csrf_exempt
 def get_data_detec(request):
@@ -656,6 +670,16 @@ def save_note(request):
     print(json_notes)
     with open(abs_path+'/'+str(request.user.username)+'_note.json', 'w') as fp:
         json.dump(json_notes, fp, indent=2)
+    return HttpResponse('')
+
+@csrf_exempt
+def save_partitions(request):
+    abs_path = request.POST.get('abs_path','')
+    vtt_partitions = json.loads(request.POST.get('partitions',''))
+    json_partitions = json.loads(request.POST.get('partitions_json',''))
+    save_vtt(vtt_partitions, abs_path+'/subtitle.vtt')
+    with open(abs_path+'/partitions_objects.json', 'w') as fp:
+        json.dump(json_partitions, fp, indent=2)
     return HttpResponse('')
 
 def get_queryset_from_name(test_name):

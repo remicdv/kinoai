@@ -202,7 +202,9 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     }
     if((this.total_frame != this.last-this.first || (frame_num<this.first||frame_num>this.last)) || !this.first) {
       this.first = Math.round(first);
+      this.first_time = this.first/frame_rate;
       this.last = Math.round(last);
+      this.last_time = this.last/frame_rate;
     }
   }
 

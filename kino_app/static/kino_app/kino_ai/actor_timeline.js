@@ -11,6 +11,8 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
 
   this.actor_name = "";
 
+  this.color = 'black';
+
   this.tracks = [];
 
   this.t_dragged;
