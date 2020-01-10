@@ -1,0 +1,22 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_dev/kino_ai/login.css' %}">
+
+kino_dev
+<div id="img_logo">
+<img id="logo" width="480" height="480" src="{% static 'kino_dev/logo/logo_cut.png' %}" >
+</div>
+
+{% if msg %}
+  <div id="msg" > {{msg}} </div>
+{% endif %}
+
+<form action="{% url 'login' %}" method="post" >
+        {% csrf_token %}
+        <input type="text" name="username" value="{{ username }}" placeholder="Username"><br>
+        <input type="password" name="password" value="" placeholder="Password">
+
+        <input type="submit" value="Log In"/>
+    </form>
+<div id="img_logo">
+<a href="{% url 'sign_in' %}" > Sign In</a>
+</div

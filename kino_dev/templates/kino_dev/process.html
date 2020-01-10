@@ -1,0 +1,11 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_dev/kino_ai/sign_in.css' %}">
+
+<div id="img_logo">
+  <a href="{% url 'kino_dev:index' %}" > <img id="logo" width="480" height="300" src="{% static 'kino_dev/logo/logo_cut.png' %}" ></a>
+
+</div>
+
+{% if uploaded_file_url %}
+  <p>File uploaded at: <a href="{{ uploaded_file_url }}">{{ uploaded_file_url }}</a></p>
+{% endif %}

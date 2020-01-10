@@ -1,0 +1,278 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_dev/kino_ai/book.css' %}">
+<script src="{% static 'kino_dev/jquery.min.js' %}"></script>
+<script src="{% static 'kino_dev/lazyload.js' %}"></script>
+<script src="{% static 'kino_dev/dash.all.min.js' %}"></script>
+<script src="{% static 'kino_dev/p5.min.js' %}"></script>
+<script src="{% static 'kino_dev/addons/p5.dom.min.js' %}"></script>
+<script> var end, start; var list_id = []; var list_player = []; var tab_json = []; var list_path = [];</script>
+
+<div id='header_info'>
+  <div id="authors">
+    <h3 style="color:white;"> Auteurs disponibles </h3>
+    <select id='note_authors' onchange="changeAuthor()"></select>
+  </div>
+<a class="aside" href="{% url 'kino_dev:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_dev/logo/logo_cut.png' %}" ></a>
+<h1 id='title'>Carnet audiovisuel </h1>
+
+</div>
+
+<div id="persist-area">
+  <div class='row header'>
+    <div class='column left'>
+      <h2>Note</h2>
+    </div>
+    <div class='column center'>
+      <h2>Plan recadré</h2>
+    </div>
+    <div class='column right'>
+      <h2>Plan large</h2>
+    </div>
+  </div>
+</div>
+{% for p in path %}
+  <script>list_id.push('{{p.id}}'); list_path.push("{{p.path}}")</script>
+  <div id="div_player_{{p.id}}" hidden class='player_container'>
+      <video id="videoPlayer_{{p.id}}" controls width="490" height="260"></video>
+      <script>
+           (function(){
+               var url = "/media/kino_dev/data/{{p.path}}/mpd/original_dash.mpd";
+               dash_player = dashjs.MediaPlayer().create();
+               dash_player.initialize(document.querySelector("#videoPlayer_{{p.id}}"), url, false);
+           })();
+           list_player.push(dash_player);
+       </script>
+  </div>
+{% endfor %}
+<div class='row body'>
+
+  <div class='column left'>
+    {% if tab %}
+      {% for sub_tab in tab %}
+        <script> var tab = [];</script>
+        {% for t in sub_tab %}
+          <p style="padding:0; margin:0 0 0 5;" class="timing" id="time_{{t.id}}">{{t.start}} - {{t.end}}</p>
+          <h3 style="padding:0; margin:0 0 0 5;" id="{{t.id}}">{{t.text}}</h3>
+          <p class="paragraph" id="par_{{t.id}}" contenteditable="true" style="padding:0; margin:0 0 0 5;"></p>
+          <script> tab.push({"start":'{{t.start}}',"end":'{{t.end}}', "text":'{{t}}'.split('&#39;text&#39;: &#39;')[1].split('&#39;')[0].replace(/&quot;/g,'"'),"id":parseInt('{{t.id}}')});</script>
+        {% endfor %}
+        <script>tab_json.push(tab);</script>
+      {% endfor %}
+    {% else %}
+        <p>No text are available.</p>
+    {% endif %}
+  </div>
+
+  <div class='column center'>
+    {% if crop %}
+      {% for sub_crop in crop %}
+        {% for c in sub_crop.tab %}
+          <img style="margin-bottom:2;" class="lazyload" data-src="/media/kino_dev/data/{{sub_crop.path}}/images/{{c}}" src="/media/kino_dev/data/{{sub_crop.path}}/images/{{c}}" width="490" height="260"/>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+        <p>No crop image are available.</p>
+    {% endif %}
+  </div>
+
+  <div class='column right'>
+    {% if full %}
+      {% for sub_full in full %}
+        {% for f in sub_full.tab %}
+          <img class="full" style="margin-bottom:2;" class="lazyload" data-src="/media/kino_dev/data/{{sub_full.path}}/images/{{f}}" src="/media/kino_dev/data/{{sub_full.path}}/images/{{f}}" width="490" height="260"/>
+        {% endfor %}
+      {% endfor %}
+    {% else %}
+        <p>No full image are available.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<script>
+ var username = "{{username}}";
+ function changeAuthor() {
+   for(let note of tab_full_notes) {
+     if(note.Creator == document.getElementById("note_authors").value) {
+       tab_notes = note.Notes;
+     }
+   }
+   for(let n of tab_notes) {
+     if(document.getElementById("note_authors").value == username) {
+       document.getElementById('par_'+n.id).contentEditable = true;
+     } else {
+       document.getElementById('par_'+n.id).contentEditable = false;
+     }
+     document.getElementById('par_'+n.id).innerText = n.text;
+   }
+   if(tab_notes.length == 0) {
+     let par = document.getElementsByClassName('paragraph');
+     for(let p of par) {
+       p.innerText = "";
+       if(document.getElementById("note_authors").value == username) {
+         p.contentEditable = true;
+       } else {
+         p.contentEditable = false;
+       }
+     }
+   }
+ }
+  window.addEventListener("load", function(event) {
+      lazyload();
+  });
+  let off = document.getElementById('logo').offsetHeight - document.getElementById("persist-area").offsetTop+5;
+  document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+  $('#div_player_'+list_id[0]).show();
+  $('.player_container').css({position:'absolute'});
+  $('#div_player_'+list_id[0]).css({top:$( '.column.right img:first' ).position().top, left:$( '.column.right img:first' ).position().left});
+  var str = "{{json_shots}}";
+  var data_shots = JSON.parse(str.replace(/&quot;/g,'"'));
+  var json_notes = "{{json_notes}}".replace(/\n/g,"\\n").replace(/&#39;/g,"'");
+  var tab_full_notes = JSON.parse(json_notes.replace(/&quot;/g,'"'));
+  var tab_notes;
+  let select_author = document.getElementById("note_authors");
+  for(let note of tab_full_notes) {
+    if(note.Creator == '{{username}}') {
+      tab_notes = note.Notes;
+    }
+    let option = document.createElement("option");
+    option.text = note.Creator;
+    select_author.add(option);
+  }
+  var curr_data = data_shots[0];
+  var video = new p5.MediaElement(list_player[0].getVideoElement());
+  var canvas;
+  var currentPlayer = list_player[0];
+  var curr_id = list_id[0];
+  var curr_ind = 0;
+  var prev_width = 1;
+  var prev_height = 1;
+  function setup() {
+    canvas = createCanvas(video.width, video.height);
+  }
+  var scale_ratio = video.elt.videoWidth/1024;
+  var aspect_ratio = video.elt.videoWidth/video.elt.videoHeight;
+  function draw() {
+
+    scale_ratio = video.elt.videoWidth/1024;
+    aspect_ratio = video.elt.videoWidth/video.elt.videoHeight;
+    if(prev_width!=windowWidth || prev_height!=windowHeight) {
+      if(resizeImgAndPlayer()) {
+        prev_width=windowWidth;
+        prev_height=windowHeight;
+      }
+    }
+    var bbox = [0,0,video.elt.videoWidth,video.elt.videoHeight];
+    if(!currentPlayer.isPaused()){
+      let fr = Math.round(currentPlayer.getVideoElement().currentTime * 24);
+      let b = curr_data[fr]
+      if(b!='null') {
+        bbox = [b[0]*scale_ratio, b[1]*scale_ratio, b[2]*scale_ratio, b[3]*scale_ratio];
+      }
+      canvas.position($('.center').position().left, $('#div_player_'+curr_id).position().top);
+      image(video, 0, 0, width, height, bbox[0], bbox[1], bbox[2] - bbox[0], bbox[3] - bbox[1]);
+    }
+
+    updatePlayer();
+  }
+  function updatePlayer() {
+    if(end && (start || start==0) && (currentPlayer.getVideoElement().currentTime > end || currentPlayer.getVideoElement().currentTime < start)) {
+      currentPlayer.getVideoElement().currentTime = start;
+      currentPlayer.pause();
+    }
+  }
+
+  $('.full').click(function() {
+    for(let i=0; i<list_id.length; i++) {
+      let src = $(this)[0].currentSrc.split('/')[$(this)[0].currentSrc.split('/').length-3];
+      if(list_path[i].includes(src)) {
+        currentPlayer = list_player[i];
+        curr_id = list_id[i];
+        curr_ind = i;
+        curr_data = data_shots[i];
+        $('#div_player_'+list_id[i]).show();
+      } else {
+        $('#div_player_'+list_id[i]).hide();
+      }
+    }
+    video = new p5.MediaElement(currentPlayer.getVideoElement());
+    let time = parseInt($(this)[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+
+    start = time;
+    time+=600*curr_ind;
+    if($(this).next().length >0) {
+      // end = parseInt($(this).next()[0].src.split('.png')[0].split('/')[$(this)[0].src.split('.png')[0].split('/').length-1]);
+      end = parseInt(document.getElementById('time_'+time).innerText.split('-')[1].split(':')[0])*60 + parseInt(document.getElementById('time_'+time).innerText.split('-')[1].split(':')[1]);
+      if(curr_ind!=0)
+        end = end%(600*curr_ind);
+    } else {
+      end = currentPlayer.getVideoElement().duration;
+    }
+    $('#div_player_'+curr_id).css({top:$( this ).position().top, left:$( this ).position().left});
+    currentPlayer.getVideoElement().currentTime = start;
+    currentPlayer.play();
+    prev_width=1;
+  });
+
+  $(document).bind('keydown', function(e) {
+    if(e.ctrlKey && (e.which == 83)) {
+      e.preventDefault();
+      console.log('ctrl s = save');
+      var note_tab = [];
+      for(let sub_tab of tab_json) {
+        for(let t of sub_tab) {
+          t.text = document.getElementById(t.id).innerText;
+          note_tab.push({'id':t.id,'text':document.getElementById('par_'+t.id).innerText});
+        }
+      }
+      $.post({
+        url: "save_note_video",
+        data: {'id': curr_id, 'data_sub':JSON.stringify(tab_json), 'note_tab':JSON.stringify(note_tab)},
+        dataType: 'json',
+        success: function (data) {
+          return callBack(data);
+        }
+      });
+      keyDown = undefined;
+      return false;
+    }
+  });
+
+  function resizeImgAndPlayer() {
+    if(aspect_ratio) {
+      let width = document.getElementsByClassName('column center')[0].offsetWidth-10;
+      let height = Math.floor(width / aspect_ratio);
+      if(!curr_id) {
+        curr_id = list_id[0];
+      }
+      document.getElementById('videoPlayer_'+curr_id).width = width;
+      document.getElementById('videoPlayer_'+curr_id).height = height;
+      canvas.size(width, height);
+      for(let class_name of ['lazyload', 'full']) {
+        let images = document.getElementsByClassName(class_name);
+        for(let i=0; i < images.length; i++){
+          let img = images[i];
+          img.width = width;
+          img.height = height;
+        }
+      }
+      $('.column.left h3').each(function() {
+        $(this).height((height+2-18)/2);
+        $(this)[0].innerHTML = $(this)[0].innerHTML.replace(/\n/g,'<br/>');
+        $(this).css('overflow','auto');
+      });
+      $('.column.left .paragraph').each(function() {
+        $(this).height((height+2-18)/2);
+        $(this).css('overflow','auto');
+      });
+      if(tab_notes) {
+        for(let n of tab_notes) {
+          document.getElementById('par_'+n.id).innerText = n.text;
+        }
+      }
+      return true;
+    } else {
+      return false;
+    }
+  }
+</script>
