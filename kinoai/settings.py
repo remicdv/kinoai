@@ -34,6 +34,7 @@ ALLOWED_HOSTS = ["kinoai.com", "194.199.26.106", "127.0.0.1", "127.0.1.1", "kino
 
 INSTALLED_APPS = [
     'kino_app.apps.KinoAppConfig',
+    'kino_dev.apps.KinoDevConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
