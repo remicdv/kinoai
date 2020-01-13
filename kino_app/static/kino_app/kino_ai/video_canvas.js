@@ -1708,7 +1708,7 @@ function resizeNoteBook() {
         div_sub.size((reframe_button.position().x-(mid_width+10))/2,height);
         for(let c of t.cues) {
           let obj = {};
-          let p = createP(c.text);
+          let p = createP(partition_editor.parseTextAction(c.text));
           obj.p = p;
           obj.start = c.startTime;
           obj.end = c.endTime;

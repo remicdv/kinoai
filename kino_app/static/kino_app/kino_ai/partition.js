@@ -308,6 +308,7 @@ function PartitionEditor()  {
       this.curr_start = this.curr_end;
       this.updatePartitionSaved(partition_obj);
       this.setDivSizePos();
+      this.div_partition_saved.elt.scrollTop = this.div_partition_saved.elt.scrollHeight;
     } else {
       alert("A subtitle can't finished before it starts");
     }
@@ -404,7 +405,7 @@ function PartitionEditor()  {
   }
 
   this.parseActionText = function(text) {
-    return text.replace(/<i>/g,'<').replace(/<\/i>/g,'>');
+    return text.replace(/&nbsp;/g,' ').replace(/<br>/g,'\n').replace(/<div>/g,'\n').replace(/<\/div>/g,'').replace(/<i>/g,'<').replace(/<\/i>/g,'>').replace(/&lt;/g,'<').replace(/&gt;/g,'>');
   }
 
   this.updatePartitionSaved = function(part) {
@@ -427,8 +428,8 @@ function PartitionEditor()  {
         let e = Math.min(p.End - annotation_timeline.first_time,this.duration);
         push();
         fill('#2E5C9C');
-        if(p.on) {
-          fill(170,56,35);
+        if(p.on || video.time() < p.End && p.Start < video.time()) {
+          fill('rgb(170,56,35)');
         }
         stroke('yellow');
         rect(player.x + s*unit,player.y+70,e*unit-s*unit,100);
@@ -438,6 +439,9 @@ function PartitionEditor()  {
       }
       if(video.time() < p.End && p.Start < video.time()) {
         p.TextElt.style('color','red');
+        if(playing) {
+           this.div_partition_saved.elt.scrollTop = p.TextElt.position().y - (this.div_partition_saved.height / 2);
+        }
       } else {
         p.TextElt.style('color',p.color);
       }
