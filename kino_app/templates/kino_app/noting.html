@@ -3,10 +3,13 @@
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/noting_app.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
 <script src="{% static 'kino_app/p5.min.js' %}"></script>
-<script src="{% static 'kino_app/flexsearch.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
-
+<script>
+  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"'));
+  var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
+  var notes_json = JSON.parse("{{notes}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+</script>
 <div id='header_info'>
 
 <div class="aside">
@@ -21,188 +24,31 @@
 
   <button id='save_subs'>Download subs</button>
   <button id='save_notes'>Download notes</button>
+  <select id='all_notes' onchange="setNote(this);"></select>
+</div>
+
+<div id="list_note">
 </div>
 
 <div id='created_notes'>
 </div>
-<table>
-    <tr>
-        <td style="position: relative">
-            <input type="text" id="autocomplete">
-            <input type="text" id="userinput" placeholder="Search corpus ...">
-        </td>
-        <td style="position: relative">
-            <input type="text" id="autocomplete_actors">
-            <input type="text" id="userinput_actors" placeholder="Search actors ...">
-        </td>
-    </tr>
-</table>
-
-<div id="suggestions"></div>
-
-<div id="corpus">
-</div>
-
-<!-- <img src="{% static 'kino_app/logo/frigo.png' %}" width="100%" style='"text-align: center"'> -->
 
 <script>
-var index = new FlexSearch({
-            encode: "advanced",
-            tokenize: "reverse",
-            suggest: true,
-            cache: true
-        });
-var index_actors = new FlexSearch({
-            encode: "advanced",
-            tokenize: "reverse",
-            suggest: true,
-            cache: true
-        });
 
-var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"'));
-var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
-var data = [];
-var data_actors = [];
-for(let i=0; i<corpus.length;i++) {
-  index.add(i,corpus[i].Content);
-  data.push(corpus[i].Title);
-}
-
-for(let i=0; i<actors.length;i++) {
-  index_actors.add(i,actors[i].Name);
-  data_actors.push(actors[i].Name);
-}
-
-var suggestions = document.getElementById("suggestions");
-var autocomplete = document.getElementById("autocomplete");
-var userinput = document.getElementById("userinput");
-var autocomplete_actors = document.getElementById("autocomplete_actors");
-var userinput_actors = document.getElementById("userinput_actors");
-
-userinput.addEventListener("input", show_results, true);
-userinput.addEventListener("keyup", accept_autocomplete, true);
-userinput_actors.addEventListener("input", show_results_actors, true);
-userinput_actors.addEventListener("keyup", accept_autocomplete, true);
-suggestions.addEventListener("click", accept_suggestion, true);
-
-function show_results(){
-    var value = this.value;
-    var results = index.search(value, 25);
-    var entry, childs = suggestions.childNodes;
-    var i = 0, len = results.length;
-    for(; i < len; i++){
-        entry = childs[i];
-        if(!entry){
-            entry = document.createElement("div");
-            suggestions.appendChild(entry);
-        }
-        entry.textContent = data[results[i]];
-    }
-    while(childs.length > len){
-        suggestions.removeChild(childs[i])
-    }
-    var first_result = data[results[0]];
-    if(results.length==1) {
-      let str_content = document.getElementById(first_result).lastChild.innerText.split('\n');
-      let user_input_text = document.getElementById("userinput").value;
-      let final_content = "";
-      while (document.getElementById(first_result).lastChild.firstChild) {    document.getElementById(first_result).lastChild.removeChild(document.getElementById(first_result).lastChild.firstChild);}
-      for(let obj of document.getElementById('corpus').children) {
-        obj.style.display = 'none';
-      }
-      for(let str of str_content) {
-        if(str.toUpperCase().includes(user_input_text.toUpperCase())) {
-          let start = '<span style="color:red;">';
-          let end = '</span>';
-          str = start+str+end;
-        }
-        final_content += str+'<br>';
-      }
-      document.getElementById(first_result).style.display = 'block';
-      document.getElementById(first_result).lastChild.innerHTML = final_content;
-    }
-    var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
-    if(first_result && (match !== -1)){
-        autocomplete.value = value + first_result.substring(match + value.length);
-        autocomplete.current = first_result;
-    }
-    else{
-        autocomplete.value = autocomplete.current = value;
-    }
-}
-
-function show_results_actors(){
-    var value = this.value;
-    var results = index_actors.search(value, 25);
-    var entry, childs = suggestions.childNodes;
-    var i = 0, len = results.length;
-    for(; i < len; i++){
-        entry = childs[i];
-        if(!entry){
-            entry = document.createElement("div");
-            suggestions.appendChild(entry);
-        }
-        entry.textContent = data_actors[results[i]];
-    }
-    while(childs.length > len){
-        suggestions.removeChild(childs[i])
-    }
-    var first_result = data_actors[results[0]];
-    var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
-    if(first_result && (match !== -1)){
-        autocomplete.value = value + first_result.substring(match + value.length);
-        autocomplete.current = first_result;
-    }
-    else{
-        autocomplete.value = autocomplete.current = value;
-    }
-}
-
-
-
-function accept_autocomplete(event){
-    if((event || window.event).keyCode === 13) {
-        this.value = autocomplete.value = autocomplete.current;
-    }
-}
-
-function accept_suggestion(event){
-    var target = (event || window.event).target;
-    userinput.value = autocomplete.value = target.textContent;
-    while(suggestions.lastChild){
-        suggestions.removeChild(suggestions.lastChild);
-    }
-    return false;
-}
-
-// for(let obj of corpus) {
-//   let title = document.createElement('h1');
-//   title.innerText = obj.Title;
-//   title.style.color = "black";
-//   let content = document.createElement('div');
-//   content.innerText = obj.Content;
-//   content.style.width = "50%";
-//   content.style.marginLeft = "25%";
-//   content.style.padding = "1%";
-//   content.style.textAlign = "justify";
-//   content.style.backgroundColor = "white";
-//   let cluster = document.createElement('div');
-//   cluster.id = obj.Title;
-//   cluster.appendChild(title);
-//   cluster.appendChild(content);
-//   document.getElementById('corpus').appendChild(cluster);
-// }
 
 let off = document.getElementById('logo').offsetHeight - document.getElementById("add_note").offsetTop+5;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+var select_all = document.getElementById("all_notes");
 var start;
 var start_time;
 var tab_ind_time = [];
 var notes = [];
 var curr_note_ind;
 var is_dragging = {};
+var date_day = [];
 
 $('#input_add').change(function() {
+  $(".wrap_notes").hide();
   let wrap_note = document.createElement('div');
   wrap_note.className = "wrap_notes";
   let register_notes = document.createElement('div');
@@ -210,15 +56,23 @@ $('#input_add').change(function() {
   let note = document.createElement('div');
   note.className = "notes";
   note.contentEditable = true;
+  note.register = register_notes;
   let div_title = document.createElement('div');
   let title = document.createElement('h3');
-  title.innerText = $(this).val()+' '+Date().split('GMT')[0];
-  let img = document.createElement('img');
-  img.src = "/static/kino_app/logo/punaise.png";
-  img.width = 65;
-  img.height = 50;
-  div_title.append(img);
+  if(isAlreadyTitle($(this).val())) {
+    let i=1;
+    while(isAlreadyTitle($(this).val()+' ('+i+')')) {
+      i++;
+    }
+    title.innerText = $(this).val()+' ('+i+')';
+  } else {
+    title.innerText = $(this).val();
+  }
+  title.contentEditable = true;
+  let date = document.createElement('p');
+  date.innerText = Date().split('GMT')[0];
   div_title.append(title);
+  div_title.append(date);
   wrap_note.append(div_title);
   let text_note = document.createElement('div');
   text_note.append(register_notes);
@@ -226,24 +80,34 @@ $('#input_add').change(function() {
   text_note.style.overflow = 'auto';
   text_note.style.height = '100%';
   text_note.style.width = '100%';
+  var option = document.createElement("option");
+  option.text = $(this).val();
+  select_all.add(option);
   wrap_note.append(text_note);
   $('#created_notes').append(wrap_note);
   $(this).val('');
   updateEvent();
 });
 
+function setNote(sel) {
+  $(".wrap_notes").hide();
+  $( ".wrap_notes" ).each(function() {
+    if(this.children[0].innerText.includes(sel.value)) {
+      $(this).show();
+    }
+  });
+}
+
 function updateEvent() {
 
   $('.notes').keyup(function(event) {
-    curr_note_ind = $('.notes').index(this);
     if(event.originalEvent.keyCode == 13){
-      $('.notes')[curr_note_ind].innerText = '';
+      this.innerText = '';
     }
   });
 
   $('.notes').keydown(function(event) {
-    curr_note_ind = $('.notes').index(this);
-    let last = $('.notes')[curr_note_ind].innerText.split('\n')[$('.notes')[curr_note_ind].innerText.split('\n').length-1];
+    let last = this.innerText.split('\n')[this.innerText.split('\n').length-1];
     if(last.length==1) {
       let timeCode = Date().split(' ')[4];
       start = timeCode;
@@ -251,10 +115,8 @@ function updateEvent() {
     }
     if(event.originalEvent.keyCode == 13 && start) {
       let end = Date().split(' ')[4];
-      let text = getLastLine($('.notes')[curr_note_ind].innerText.split('\n'));
-      console.log(event.originalEvent.key, text, start, end);
+      let text = getLastLine(this.innerText.split('\n'));
       let timeCode = document.createElement('p');
-      timeCode.style.width = 165;
       let newNote = document.createElement('p');
       newNote.contentEditable = true;
       newNote.spellcheck = false;
@@ -263,14 +125,13 @@ function updateEvent() {
       note.End = end;
       note.Text = text;
       note.IndexTime = tab_ind_time;
-      notes.push(note);
       newNote.innerText = text;
       timeCode.innerText = start + ' - '+end;
       let div = document.createElement('div');
       div.append(timeCode);
       div.append(newNote);
-      $('.register_notes')[curr_note_ind].append(div);
-      $('.notes')[curr_note_ind].innerText = '';
+      this.register.append(div);
+      this.innerText = '';
       tab_ind_time = [];
       start = undefined;
     }else if(last.length==0) {
@@ -278,35 +139,8 @@ function updateEvent() {
     }
   });
 
-  $('.wrap_notes').mousedown(function() {
-    if(!is_dragging.drag) {
-      is_dragging.drag = true;
-      // $(this).css('z-index', 3000);
-      if (event.ctrlKey) {
-         //do something, ctrl was down when clicked
-         if($(this).parent().width()/ $(this).width() != 10){
-           $(this).css('width','10%');
-           $(this).css('height','10%');
-         } else {
-           $(this).css('width','40%');
-           $(this).css('height','40%');
-         }
-      }
-      $(this).detach().appendTo($('#created_notes'));
-      is_dragging.ind = $('.wrap_notes').index(this);
-    }
-    // console.log('click down');
-  }).mousemove(function( event ) {
-    if(is_dragging.drag && is_dragging.ind == $('.wrap_notes').index(this)) {
-      let w = $(this).width();
-      let h = $(this).height();
-      $(this).css({top: event.pageY-h/2, left: event.pageX-w/2});
-    }
-  }).mouseup(function( event ){
-    is_dragging.drag = false;
-  });
-
 }
+
 function getLastLine(tab) {
   let text;
   for(let i=tab.length-1;i>=0;i--) {
@@ -328,36 +162,187 @@ function to_string(seconds) {
   return hour*60+Math.floor((seconds/60)%60)+':'+Math.floor(seconds%60);
 }
 
-function getNote(subs=false) {
+function isToday(someDate) {
+  let today = new Date();
+  return someDate.getDate() == today.getDate() &&
+    someDate.getMonth() == today.getMonth() &&
+    someDate.getFullYear() == today.getFullYear();
+}
+
+
+function getNote(down=false,subs=false) {
   let notes = [];
   let wraps = document.getElementsByClassName('wrap_notes');
   for(let w of wraps) {
-    let note = {};
-    note.Title = w.children[0].children[1].innerText.split(Date().split(' ')[0])[0].split(' ')[0];
-    let seconds_offset = to_seconds(w.children[0].children[1].innerText.split(' ')[w.children[0].children[1].innerText.split(' ').length-1])
-    if (w.children[1].children[0].children.length >= 1) {
-      seconds_offset = to_seconds(w.children[1].children[0].children[0].innerText.split('-')[0]);
-    }
-    console.log(seconds_offset);
-    note.Content = []
-    let register = w.children[1].children[0].children;
-    for(let r of register) {
-      let content = {};
-      content.Start = r.children[0].innerText.split('-')[0];
-      console.log(to_string(to_seconds(content.Start)-seconds_offset));
-      content.End = r.children[0].innerText.split('-')[1];
-      console.log(to_string(to_seconds(content.End)-seconds_offset));
-      if(subs) {
-        content.Start = to_string(to_seconds(content.Start)-seconds_offset);
-        content.End = to_string(to_seconds(content.End)-seconds_offset);
+    if(down && w.style.display == "none") {
+      console.log(w);
+    } else {
+      let note = {};
+      note.Title = w.children[0].children[0].innerText;
+      note.Date = w.children[0].children[1].innerText;
+      let seconds_offset = to_seconds(w.children[0].children[0].innerText.split(' ')[w.children[0].children[0].innerText.split(' ').length-1])
+      if (w.children[1].children[0].children.length >= 1) {
+        seconds_offset = to_seconds(w.children[1].children[0].children[0].innerText.split('-')[0]);
       }
-      content.Text = r.children[1].innerText;
-      note.Content.push(content);
+      console.log(seconds_offset);
+      note.Content = []
+      let register = w.children[1].children[0].children;
+      for(let r of register) {
+        let content = {};
+        content.Start = r.children[0].innerText.split('-')[0];
+        console.log(to_string(to_seconds(content.Start)-seconds_offset));
+        content.End = r.children[0].innerText.split('-')[1];
+        console.log(to_string(to_seconds(content.End)-seconds_offset));
+        if(subs) {
+          content.Start = to_string(to_seconds(content.Start)-seconds_offset);
+          content.End = to_string(to_seconds(content.End)-seconds_offset);
+        }
+        content.Text = r.children[1].innerText;
+        note.Content.push(content);
+      }
+      notes.push(note);
     }
-    notes.push(note);
   }
   return notes;
 }
+
+function clickDate() {
+  for(let d of date_day) {
+    while(d.tab.firstChild){d.tab.firstChild.remove();}
+    if(d.obj === this) {
+      if(!this.clicked) {
+        this.clicked = true;
+        let wraps = document.getElementsByClassName('wrap_notes');
+        for(let w of wraps) {
+          if(w.children[0].children[1].innerText.includes(d.text)) {
+            let row = document.createElement('tr');
+            let t = document.createElement('td');
+            t.innerText = w.children[0].children[0].innerText;
+            t.wrap_note = w;
+            t.onclick = clickTitle;
+            let da = document.createElement('td');
+            let l = w.children[0].children[1].innerText.split(' ').length-1;
+            da.innerText = w.children[0].children[1].innerText.split(' ')[l];
+            if(da.innerText == '') {
+              da.innerText = w.children[0].children[1].innerText.split(' ')[l-1];
+            }
+            row.append(t);
+            row.append(da);
+            d.tab.append(row);
+          }
+        }
+      } else {
+        this.clicked = false;
+      }
+    }
+  }
+}
+
+function clickTitle() {
+  $(".wrap_notes").hide();
+  $(this.wrap_note).show();
+}
+
+function isAlreadyDate(tab,d) {
+  let ret = false;
+  for(let obj of tab) {
+    if(obj.d == d.d && obj.m == d.m && obj.y == d.y) {
+      ret = true;
+      break;
+    }
+  }
+  return ret;
+}
+
+function isAlreadyTitle(title) {
+  let ret = false;
+  for(let w of document.getElementsByClassName('wrap_notes')) {
+    if(w.children[0].children[0].innerText == title) {
+      ret = true;
+      break;
+    }
+  }
+  return ret;
+}
+
+function compare_time(a,b) {
+  if (a.number < b.number)
+    return -1;
+  if (a.number > b.number)
+    return 1;
+  return 0;
+}
+
+function loadNotesJson() {
+
+  for(let n of notes_json) {
+    let wrap_note = document.createElement('div');
+    wrap_note.className = "wrap_notes";
+    let register_notes = document.createElement('div');
+    register_notes.className = "register_notes";
+    for(let c of n.Content) {
+      let timeCode = document.createElement('p');
+      let newNote = document.createElement('p');
+      newNote.contentEditable = true;
+      newNote.spellcheck = false;
+      newNote.innerText = c.Text;
+      timeCode.innerText = c.Start + ' - '+c.End;
+      let div = document.createElement('div');
+      div.append(timeCode);
+      div.append(newNote);
+      register_notes.append(div);
+    }
+    let note = document.createElement('div');
+    note.className = "notes";
+    note.contentEditable = true;
+    note.register = register_notes;
+    let div_title = document.createElement('div');
+    let title = document.createElement('h3');
+    title.innerText = n.Title;
+    title.contentEditable = true;
+    let date = document.createElement('p');
+    date.innerText = n.Date;
+    let d = new Date(n.Date);
+    let d_obj = {'d':d.getDate(), 'm':d.getMonth(), 'y':d.getFullYear()};
+    if(!isAlreadyDate(date_day, d_obj)) {
+      date_day.push({'d':d.getDate(), 'm':d.getMonth(), 'y':d.getFullYear(),
+      'text':[n.Date.split(' ')[0],n.Date.split(' ')[1],n.Date.split(' ')[2],n.Date.split(' ')[3]].join(' '), 'number':d.getTime()});
+    }
+    div_title.append(title);
+    div_title.append(date);
+    wrap_note.append(div_title);
+    let text_note = document.createElement('div');
+    text_note.append(register_notes);
+    if(isToday(new Date(n.Date))) {
+      text_note.append(note);
+    }
+    text_note.style.overflow = 'auto';
+    text_note.style.height = '100%';
+    text_note.style.width = '100%';
+    var option = document.createElement("option");
+    option.text = n.Title;
+    select_all.add(option);
+    wrap_note.append(text_note);
+    $('#created_notes').append(wrap_note);
+  }
+  date_day.sort(compare_time);
+  for(let o of date_day) {
+    let date = document.createElement('div');
+    date.innerText = o.text;
+    date.onclick = clickDate;
+    let tab = document.createElement('table');
+    date.append(tab);
+    o.obj = date;
+    o.tab = tab;
+    document.getElementById('list_note').append(date);
+  }
+  updateEvent();
+  $(".wrap_notes").hide();
+}
+
+
+loadNotesJson();
+
 
 function downloadNote(tab) {
   for(let data of tab) {
@@ -372,9 +357,27 @@ function downloadNote(tab) {
   }
 }
 
+function saveNotes() {
+  var notes = getNote();
+  console.log(notes);
+  $.post({
+    url: "save_notes",
+    data: {'notes': JSON.stringify(notes)},
+    dataType: 'json',
+    success: function (data) {
+    }
+  });
+}
+
+$(document).bind('keydown', function(e) {
+  if(e.ctrlKey && (e.which == 83)) {
+    e.preventDefault();
+    saveNotes();
+  }
+});
 
 $( "#save_notes" ).click(function() {
-  var notes = getNote();
+  var notes = getNote(true);
   $.post({
     url: "download_notes",
     data: {'notes': JSON.stringify(notes)},
@@ -387,7 +390,7 @@ $( "#save_notes" ).click(function() {
 
 
 $( "#save_subs" ).click(function() {
-  var notes = getNote(true);
+  var notes = getNote(true, true);
   $.post({
     url: "download_subs",
     data: {'notes': JSON.stringify(notes)},

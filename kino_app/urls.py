@@ -17,6 +17,7 @@ urlpatterns = [
     path('video_book/save_note_video', views.save_note_video, name='save_note_video'),
     path('noting_app', views.noting_app, name='noting_app'),
     path('download_notes', views.download_notes, name='download_notes'),
+    path('save_notes', views.save_notes, name='save_notes'),
     path('download_subs', views.download_subs, name='download_subs'),
     path('modified_path', views.modified_path, name='modified_path'),
     path('video_editing/<int:id>', views.video_editing, name='video_editing'),

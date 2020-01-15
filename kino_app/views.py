@@ -617,6 +617,30 @@ def download_notes(request):
     return HttpResponse(json.dumps(response))
 
 @csrf_exempt
+def save_notes(request):
+    notes = json.loads(request.POST.get('notes',''))
+    print(request.user.username)
+    dir = os.path.join(settings.MEDIA_ROOT, 'kino_app/'+str(request.user.username)+'_notes')
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
+    with open(dir+'/notes.json', 'w') as fp:
+        json.dump(notes, fp, indent=2)
+
+    # media = os.listdir('media')
+    # for item in media:
+    #     if item.endswith(".txt"):
+    #         os.remove(os.path.join('media/', item))
+    # response = []
+    # for note in notes:
+    #     file = open("media/"+note['Title']+".txt","w")
+    #     file.write(note['Title']+'\n')
+    #     for content in note['Content']:
+    #         file.write(content['Start']+' - '+content['End']+' : '+content['Text']+'\n')
+    #     file.close()
+    #     response.append({'src':'/media/'+note['Title']+'.txt','title':note['Title'],'extention':'.txt'})
+    return HttpResponse('')
+
+@csrf_exempt
 def download_subs(request):
     notes = json.loads(request.POST.get('notes',''))
     media = os.listdir('media')
@@ -649,7 +673,12 @@ def noting_app(request):
                 obj['Title'] = file.split('.')[0].replace('_',' ')
                 corpus.append(obj)
         break
-    return render(request, 'kino_app/noting.html', {'data':json.dumps(corpus), 'actors':json.dumps(actors)})
+    file = os.path.join(settings.MEDIA_ROOT, "kino_app/"+str(request.user.username)+"_notes/notes.json")
+    data = []
+    if os.path.isfile(file):
+        with open(file) as json_file:
+            data = json.load(json_file)
+    return render(request, 'kino_app/noting.html', {'data':json.dumps(corpus), 'actors':json.dumps(actors), 'notes':json.dumps(data)})
 
 @csrf_exempt
 def get_data_detec(request):

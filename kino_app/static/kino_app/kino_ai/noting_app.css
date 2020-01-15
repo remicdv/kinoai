@@ -1,48 +1,52 @@
 @import url('https://fonts.googleapis.com/css?family=Reenie+Beanie&display=swap');
 
-.register_notes div {
-  display: table;
-}
-
 .register_notes div p{
-  display: table-cell;
-  padding-left: 5;
-  padding-right: 5;
+  display: inline-block;
+  padding: 0 5;
+  margin: 5 0;
 }
-
-/* div {
-  background-color: white;
-} */
 
 #add_note p {
   margin: 0;
 }
 
 .wrap_notes {
-  margin: 10;
-  position: absolute;
-  width: 40%;
-  height: 40%;
-  background: linear-gradient(135deg, #ffff88 81%,#ffff88 82%,#ffff88 82%,#ffffc6 100%);
-  border: 1px solid #E8E8E8;
-  border-bottom-right-radius: 60px 5px;
-  box-shadow: 2px 15px 5px rgba(0, 0, 0, 0.40);
-  padding-bottom: 40;
+  width: 60%;
+  margin: 5px 15%;
+  background-color: white;
+  padding: 2%;
+}
+
+@media screen and (max-width: 900px) {
+  .wrap_notes{
+    margin:0;
+    width: 100%;
+  }
 }
 
 .wrap_notes div div, .register_notes div p{
-  font-family: 'Reenie Beanie', cursive;
-  font-size: 25;
-
+  /* font-family: 'Reenie Beanie', cursive; */
+  font-family: inherit;
 }
 
 .wrap_notes div h3{
-  font-family: 'Reenie Beanie', cursive;
-  margin: 0;
   font-size: 30;
+  text-align: center;
 }
 
-.wrap_notes img {
-  float: right;
-  margin-top: -25;
+#list_note div{
+  display: inline-block;
+  margin: 5 20;
+  padding: 10;
+  background-color: white;
+  cursor: pointer;
+}
+
+table td{
+  border: 1px solid black;
+  padding: 0;
+}
+
+.notes {
+  border: 1px solid black;
 }
