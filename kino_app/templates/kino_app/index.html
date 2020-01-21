@@ -306,6 +306,11 @@ var active_project = "{{ request.session.active_project }}";
       edit_button.id = p.title;
       edit_button.innerText = 'Edit';
       edit_button.onclick = clickEdit;
+      let notes_project_button = document.createElement('button');
+      notes_project_button.className = "edit_button";
+      notes_project_button.id = p.title;
+      notes_project_button.innerText = 'Notes';
+      notes_project_button.onclick = clickNotes;
       let c = document.createElement('h3');
       c.innerText = 'Compagnie: '+p.company;
       let d = document.createElement('h3');
@@ -314,6 +319,7 @@ var active_project = "{{ request.session.active_project }}";
       while (document.getElementById('infos').firstChild) {    document.getElementById('infos').removeChild(document.getElementById('infos').firstChild);}
       document.getElementById('infos').appendChild(document.getElementById('upload_post'));
       document.getElementById('infos').appendChild(edit_button);
+      document.getElementById('infos').appendChild(notes_project_button);
       if(remove_button)
         document.getElementById('infos').appendChild(remove_button);
       document.getElementById('infos').appendChild(c);
@@ -405,6 +411,12 @@ var active_project = "{{ request.session.active_project }}";
         }
       }
     }
+  }
+
+  function clickNotes() {
+    let a = document.createElement('a');
+    a.href= "noting_app/"+this.id;
+    a.click();
   }
 
   function resizeFunction() {

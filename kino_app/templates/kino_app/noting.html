@@ -1,14 +1,19 @@
 {% load static %}
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/noting_app.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
 <script src="{% static 'kino_app/p5.min.js' %}"></script>
+<script src="{% static 'kino_app/flexsearch.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
 <script>
-  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"'));
-  var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
-  var notes_json = JSON.parse("{{notes}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+  var username = "{{username}}";
+  var user_notes_json = JSON.parse("{{user_notes}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+
+  var project = "{{project}}";
 </script>
 <div id='header_info'>
 
@@ -25,6 +30,9 @@
   <button id='save_subs'>Download subs</button>
   <button id='save_notes'>Download notes</button>
   <select id='all_notes' onchange="setNote(this);"></select>
+  <select id='all_users' onchange="setUser(this);"></select>
+  <button id="btn-export" onclick="exportHTML();">Export to
+        word doc</button>
 </div>
 
 <div id="list_note">
@@ -35,10 +43,10 @@
 
 <script>
 
-
 let off = document.getElementById('logo').offsetHeight - document.getElementById("add_note").offsetTop+5;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
 var select_all = document.getElementById("all_notes");
+var select_user = document.getElementById("all_users");
 var start;
 var start_time;
 var tab_ind_time = [];
@@ -46,6 +54,16 @@ var notes = [];
 var curr_note_ind;
 var is_dragging = {};
 var date_day = [];
+var notes_json = [];
+for(let n of user_notes_json) {
+  if(n.user == username) {
+    notes_json = n.data;
+  }
+  let option = document.createElement('option');
+  option.text = n.user;
+  select_user.add(option);
+}
+select_user.value = username;
 
 $('#input_add').change(function() {
   $(".wrap_notes").hide();
@@ -71,6 +89,12 @@ $('#input_add').change(function() {
   title.contentEditable = true;
   let date = document.createElement('p');
   date.innerText = Date().split('GMT')[0];
+  let d = new Date(date.innerText);
+  let d_obj = {'d':d.getDate(), 'm':d.getMonth(), 'y':d.getFullYear()};
+  if(!isAlreadyDate(date_day, d_obj)) {
+    date_day.push({'d':d.getDate(), 'm':d.getMonth(), 'y':d.getFullYear(),
+    'text':[date.innerText.split(' ')[0],date.innerText.split(' ')[1],date.innerText.split(' ')[2],date.innerText.split(' ')[3]].join(' '), 'number':d.getTime()});
+  }
   div_title.append(title);
   div_title.append(date);
   wrap_note.append(div_title);
@@ -86,6 +110,7 @@ $('#input_add').change(function() {
   wrap_note.append(text_note);
   $('#created_notes').append(wrap_note);
   $(this).val('');
+  updateDateList();
   updateEvent();
 });
 
@@ -96,6 +121,21 @@ function setNote(sel) {
       $(this).show();
     }
   });
+}
+
+function setUser(sel) {
+  for(let n of user_notes_json) {
+    if(n.user == sel.value) {
+      notes_json = n.data;
+      break;
+    }
+  }
+  $('.wrap_notes').remove();
+  if(sel.value != username) {
+    loadNotesJson(false);
+  } else {
+    loadNotesJson(true);
+  }
 }
 
 function updateEvent() {
@@ -134,8 +174,6 @@ function updateEvent() {
       this.innerText = '';
       tab_ind_time = [];
       start = undefined;
-    }else if(last.length==0) {
-      start=undefined;
     }
   });
 
@@ -273,7 +311,7 @@ function compare_time(a,b) {
   return 0;
 }
 
-function loadNotesJson() {
+function loadNotesJson(is_editable = true) {
 
   for(let n of notes_json) {
     let wrap_note = document.createElement('div');
@@ -283,7 +321,7 @@ function loadNotesJson() {
     for(let c of n.Content) {
       let timeCode = document.createElement('p');
       let newNote = document.createElement('p');
-      newNote.contentEditable = true;
+      newNote.contentEditable = is_editable;
       newNote.spellcheck = false;
       newNote.innerText = c.Text;
       timeCode.innerText = c.Start + ' - '+c.End;
@@ -294,12 +332,12 @@ function loadNotesJson() {
     }
     let note = document.createElement('div');
     note.className = "notes";
-    note.contentEditable = true;
+    note.contentEditable = is_editable;
     note.register = register_notes;
     let div_title = document.createElement('div');
     let title = document.createElement('h3');
     title.innerText = n.Title;
-    title.contentEditable = true;
+    title.contentEditable = is_editable;
     let date = document.createElement('p');
     date.innerText = n.Date;
     let d = new Date(n.Date);
@@ -325,6 +363,16 @@ function loadNotesJson() {
     wrap_note.append(text_note);
     $('#created_notes').append(wrap_note);
   }
+  updateDateList();
+  updateEvent();
+  $(".wrap_notes").hide();
+}
+if(notes_json) {
+  loadNotesJson();
+}
+
+function updateDateList() {
+  while(document.getElementById('list_note').firstChild) { document.getElementById('list_note').firstChild.remove(); }
   date_day.sort(compare_time);
   for(let o of date_day) {
     let date = document.createElement('div');
@@ -336,13 +384,28 @@ function loadNotesJson() {
     o.tab = tab;
     document.getElementById('list_note').append(date);
   }
-  updateEvent();
-  $(".wrap_notes").hide();
 }
 
+function exportHTML(){
+   var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+        "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+        "xmlns='http://www.w3.org/TR/REC-html40'>"+
+        "<head><meta charset='utf-8'><title>Export HTML to Word Document with JavaScript</title></head><body>";
+   var footer = "</body></html>";
+   for(let w of document.getElementsByClassName('wrap_notes')) {
+     if(w.style.display!='none') {
+       var sourceHTML = header+w.innerHTML+footer;
 
-loadNotesJson();
-
+       var source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+       var fileDownload = document.createElement("a");
+       document.body.appendChild(fileDownload);
+       fileDownload.href = source;
+       fileDownload.download = w.innerText.split('\n')[0]+'.doc';
+       fileDownload.click();
+       document.body.removeChild(fileDownload);
+     }
+   }
+}
 
 function downloadNote(tab) {
   for(let data of tab) {
@@ -358,15 +421,18 @@ function downloadNote(tab) {
 }
 
 function saveNotes() {
-  var notes = getNote();
-  console.log(notes);
-  $.post({
-    url: "save_notes",
-    data: {'notes': JSON.stringify(notes)},
-    dataType: 'json',
-    success: function (data) {
-    }
-  });
+  if(select_user.value == username) {
+    var notes = getNote();
+    $.post({
+      url: window.location.origin+"/kino_app/save_notes",
+      data: {'notes': JSON.stringify(notes), 'project':project},
+      dataType: 'json',
+      success: function (data) {
+      }
+    });
+  } else {
+    alert('Select your own notes');
+  }
 }
 
 $(document).bind('keydown', function(e) {
@@ -379,7 +445,7 @@ $(document).bind('keydown', function(e) {
 $( "#save_notes" ).click(function() {
   var notes = getNote(true);
   $.post({
-    url: "download_notes",
+    url: window.location.origin+"/kino_app/download_notes",
     data: {'notes': JSON.stringify(notes)},
     dataType: 'json',
     success: function (data) {
@@ -392,7 +458,7 @@ $( "#save_notes" ).click(function() {
 $( "#save_subs" ).click(function() {
   var notes = getNote(true, true);
   $.post({
-    url: "download_subs",
+    url: window.location.origin+"/kino_app/download_subs",
     data: {'notes': JSON.stringify(notes)},
     dataType: 'json',
     success: function (data) {

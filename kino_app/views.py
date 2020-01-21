@@ -619,11 +619,12 @@ def download_notes(request):
 @csrf_exempt
 def save_notes(request):
     notes = json.loads(request.POST.get('notes',''))
+    project = request.POST.get('project','')
     print(request.user.username)
-    dir = os.path.join(settings.MEDIA_ROOT, 'kino_app/'+str(request.user.username)+'_notes')
+    dir = os.path.join(settings.MEDIA_ROOT, 'kino_app/notes/'+str(project))
     if not os.path.isdir(dir):
         os.mkdir(dir)
-    with open(dir+'/notes.json', 'w') as fp:
+    with open(dir+'/'+str(request.user.username)+'_notes.json', 'w') as fp:
         json.dump(notes, fp, indent=2)
 
     # media = os.listdir('media')
@@ -657,8 +658,7 @@ def download_subs(request):
         file.close()
     return HttpResponse(json.dumps(response))
 
-
-def noting_app(request):
+def corpus_search(request):
     with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/actors.json")) as json_file:
         actors = json.load(json_file)
     corpus = []
@@ -673,12 +673,23 @@ def noting_app(request):
                 obj['Title'] = file.split('.')[0].replace('_',' ')
                 corpus.append(obj)
         break
-    file = os.path.join(settings.MEDIA_ROOT, "kino_app/"+str(request.user.username)+"_notes/notes.json")
-    data = []
-    if os.path.isfile(file):
-        with open(file) as json_file:
-            data = json.load(json_file)
-    return render(request, 'kino_app/noting.html', {'data':json.dumps(corpus), 'actors':json.dumps(actors), 'notes':json.dumps(data)})
+    return render(request, 'kino_app/corpus_search.html', {'data':json.dumps(corpus), 'actors':json.dumps(actors)})
+
+def noting_app(request, project):
+    dir = os.path.join(settings.MEDIA_ROOT, "kino_app/notes/"+str(project))
+
+    user_data = []
+    for root, subdirs, files in os.walk(dir):
+        for file in files:
+            obj = {}
+            obj['user'] = file.split('_')[0]
+            print(root+'/'+file)
+            if os.path.isfile(root+'/'+file):
+                with open(root+'/'+file) as json_file:
+                    obj['data'] = json.load(json_file)
+            user_data.append(obj)
+            
+    return render(request, 'kino_app/noting.html', {'username':str(request.user.username), 'project':str(project), 'user_notes':json.dumps(user_data)})
 
 @csrf_exempt
 def get_data_detec(request):

@@ -17,6 +17,10 @@
   padding: 2%;
 }
 
+@viewport{
+    width: device-width;
+}
+
 @media screen and (max-width: 900px) {
   .wrap_notes{
     margin:0;
@@ -27,6 +31,7 @@
 .wrap_notes div div, .register_notes div p{
   /* font-family: 'Reenie Beanie', cursive; */
   font-family: inherit;
+  min-height: 15px;
 }
 
 .wrap_notes div h3{

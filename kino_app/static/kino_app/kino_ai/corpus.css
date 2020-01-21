@@ -1,0 +1,17 @@
+#text {
+  background-color: white;
+  margin: 0 15%;
+  padding: 1%;
+}
+#text h2{
+  color: black;
+}
+
+#content_edition div, #content p {
+  display: inline-block;
+}
+
+#content_edition div p {
+  min-width: 100;
+  min-height: 20;
+}

@@ -53,9 +53,6 @@ function PartitionEditor()  {
     if(keyCode == 46) {
       this.removeSub();
     }
-    if(keyCode == 85) {
-      this.undoRemove();
-    }
   }
 
   this.removeSub = function() {
@@ -75,6 +72,11 @@ function PartitionEditor()  {
         this.partitions_saved.splice(i, 1);
         this.updateRemoveUndo();
       }
+    }
+    if(this.partitions_saved[this.partitions_saved.length-1]) {
+      this.curr_start =this.partitions_saved[this.partitions_saved.length-1].End;
+    } else {
+      this.curr_start =0;
     }
   }
 
@@ -175,6 +177,10 @@ function PartitionEditor()  {
       e.preventDefault();
       video.time(video.time()+0.05);
     }
+    if(e.ctrlKey && (e.which == 85)) {
+      e.preventDefault();
+      partition_editor.undoRemove();
+    }
   });
 
   this.getPrecTime = function() {
@@ -269,11 +275,11 @@ function PartitionEditor()  {
     if(this.partitions_saved.length>0) {
       this.div_partition_saved.show();
       this.div_partition_saved.position(mid_width,can.elt.offsetTop);
-      this.div_partition_saved.size(reframe_button.position().x-mid_width-20);
+      this.div_partition_saved.size(reframe_button.position().x-mid_width-20,this.div_partition_saved.elt.scrollHeight);
       this.div_partition_saved.style('margin','0 10');
       this.textarea_current_partition.size(reframe_button.position().x-mid_width-20,150);
       let new_h = height-(this.textarea_current_partition.height*1.5);
-      if(this.div_partition_saved.elt.offsetHeight > new_h) {
+      if(this.div_partition_saved.elt.scrollHeight > new_h) {
         this.div_partition_saved.size(reframe_button.position().x-mid_width-20,new_h);
         this.div_partition_saved.style('overflow','auto');
       }
@@ -461,9 +467,13 @@ function PartitionEditor()  {
     annotation_timeline.updateFirstLast();
     annotation_timeline.drawCursor();
 
+    let new_h = height-(this.textarea_current_partition.height*1.5);
+    if(this.div_partition_saved.height != new_h) {
+      this.setDivSizePos();
+    }
     this.curr_end = video.time();
     push();
-    let off_y = this.textarea_current_partition.position().y-175;
+    let off_y = this.div_partition_saved.height+25;
     fill(255);
     rect(player.x,player.y+70,player.w,100);
     fill('grey');

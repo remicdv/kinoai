@@ -1,0 +1,311 @@
+{% load static %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/corpus.css' %}">
+<script src="{% static 'kino_app/jquery.min.js' %}"></script>
+<script src="{% static 'kino_app/p5.min.js' %}"></script>
+<script src="{% static 'kino_app/flexsearch.min.js' %}"></script>
+<script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
+<script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
+<script>
+  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"'));
+  var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
+</script>
+<div id='header_info'>
+
+<div class="aside">
+  <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
+</div>
+<h1 >Corpus search </h1>
+</div>
+
+<button id="btn-export" onclick="exportHTML();">Export to
+      word doc</button>
+<!-- <table id='table'>
+    <tr>
+        <td style="position: relative">
+            <input type="text" id="autocomplete">
+            <input type="text" id="userinput" placeholder="Search corpus ...">
+        </td>
+        <td style="position: relative">
+            <input type="text" id="userinput_actors" placeholder="Search actors ...">
+        </td>
+        <td>
+            </td>
+    </tr>
+</table> -->
+
+<!-- <div id="suggestions"></div>
+
+<div id="corpus">
+</div> -->
+
+<div id="text">
+  <h2>Partition</h2>
+  <div id="content">
+
+  </div>
+  <div id="content_edition">
+    <div>
+      <p id="actor" contenteditable="true"></p>
+      <p id="act_sugg"></p>
+    </div>
+    <div>
+      <p id="para" contenteditable="true"></p>
+      <p id="para_sugg"></p>
+    </div>
+  </div>
+</div>
+
+<script>
+//
+// for(let obj of corpus) {
+//   let title = document.createElement('h1');
+//   title.innerText = obj.Title;
+//   title.style.color = "black";
+//   let content = document.createElement('div');
+//   content.innerText = obj.Content;
+//   content.style.width = "50%";
+//   content.style.marginLeft = "25%";
+//   content.style.padding = "1%";
+//   content.style.textAlign = "justify";
+//   content.style.backgroundColor = "white";
+//   let cluster = document.createElement('div');
+//   cluster.id = obj.Title;
+//   cluster.appendChild(title);
+//   cluster.appendChild(content);
+//   document.getElementById('corpus').appendChild(cluster);
+// }
+
+let off = document.getElementById('logo').offsetHeight - document.getElementById("btn-export").offsetTop+5;
+document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+
+var index = new FlexSearch({
+            encode: "advanced",
+            tokenize: "reverse",
+            suggest: true,
+            cache: true
+        });
+
+var index_actors = new FlexSearch({
+            encode: "advanced",
+            tokenize: "reverse",
+            suggest: true,
+            cache: true
+        });
+
+var data = [];
+var data_actors = [];
+let i=0;
+for(let c of corpus) {
+  for(let para of c.Content.split('\n')) {
+    if(para != "") {
+      let obj = {'Title':c.Title,'Para':para};
+      index.add(i,para);
+      data.push(obj);
+      i++;
+    }
+  }
+}
+
+for(let i=0; i<actors.length;i++) {
+  index_actors.add(i,actors[i].Name);
+  data_actors.push(actors[i].Name);
+}
+
+// var suggestions = document.getElementById("suggestions");
+// var autocomplete = document.getElementById("autocomplete");
+// var userinput = document.getElementById("userinput");
+// var userinput_actors = document.getElementById("userinput_actors");
+
+var actors_input = document.getElementById('actor');
+var para_input = document.getElementById('para');
+
+// userinput.addEventListener("input", show_results, true);
+// userinput.addEventListener("keyup", accept_autocomplete, true);
+// userinput_actors.addEventListener("input", show_results_actors, true);
+// userinput_actors.addEventListener("keyup", accept_autocomplete, true);
+// suggestions.addEventListener("click", accept_suggestion, true);
+
+actors_input.addEventListener("keyup", actors_input_fn, true);
+para_input.addEventListener("keyup", para_input_fn, true);
+
+function actors_input_fn() {
+  var value = this.innerText;
+  var results = index_actors.search(value, 25);
+  var entry, childs = document.getElementById('act_sugg').childNodes;
+  var i = 0, len = results.length;
+  for(; i < len; i++){
+      entry = childs[i];
+      if(!entry){
+          entry = document.createElement("div");
+          document.getElementById('act_sugg').appendChild(entry);
+      }
+      entry.textContent = data_actors[results[i]];
+  }
+  while(childs.length > len){
+      document.getElementById('act_sugg').removeChild(childs[i])
+  }
+  if(event.key == "Enter" && results.length==1) {
+    let h = document.createElement("h3");
+    h.innerText = data_actors[results[0]];
+    document.getElementById('content').append(h);
+    document.getElementById('para').focus();
+    this.innerText = "";
+    while(  document.getElementById('act_sugg').firstChild) {document.getElementById('act_sugg').firstChild.remove();}
+  }
+}
+
+function para_input_fn() {
+  window.scroll(0,this.offsetTop);
+  var value = this.innerText;
+  var results = index.search(value, 25);
+  var entry, childs = document.getElementById('para_sugg').childNodes;
+  var i = 0, len = results.length;
+  for(; i < len; i++){
+      entry = childs[i];
+      if(!entry){
+          entry = document.createElement("div");
+          document.getElementById('para_sugg').appendChild(entry);
+      }
+      let final_text = data[results[i]].Title+'<br><br>';
+      for(let word of data[results[i]].Para.split(' ')) {
+        if(accentsTidy(this.innerText).includes(accentsTidy(word))) {
+          start = '<span style="color:red;">';
+          end = '</span>';
+          final_text += start+word+' '+end;
+        } else {
+          final_text += word+' ';
+        }
+      }
+      entry.innerHTML = final_text + '<br><br>';
+  }
+  while(childs.length > len){
+      document.getElementById('para_sugg').removeChild(childs[i])
+  }
+  if(event.key == "Enter" && results.length==1) {
+    let p = document.createElement("p");
+    p.innerText = data[results[0]].Title;
+    document.getElementById('content').append(p);
+    let p_para = document.createElement("p");
+    p_para.innerText = data[results[0]].Para;
+    document.getElementById('content').append(p_para);
+    document.getElementById('actor').focus();
+    this.innerText = "";
+    while(  document.getElementById('para_sugg').firstChild) {document.getElementById('para_sugg').firstChild.remove();}
+  }
+}
+
+function accentsTidy(s) {
+  var r=s.toLowerCase();
+  r = r.replace(new RegExp("\\s", 'g'),"");
+  r = r.replace(new RegExp("[àáâãäå]", 'g'),"a");
+  r = r.replace(new RegExp("æ", 'g'),"ae");
+  r = r.replace(new RegExp("ç", 'g'),"c");
+  r = r.replace(new RegExp("[èéêë]", 'g'),"e");
+  r = r.replace(new RegExp("[ìíîï]", 'g'),"i");
+  r = r.replace(new RegExp("ñ", 'g'),"n");
+  r = r.replace(new RegExp("[òóôõö]", 'g'),"o");
+  r = r.replace(new RegExp("œ", 'g'),"oe");
+  r = r.replace(new RegExp("[ùúûü]", 'g'),"u");
+  r = r.replace(new RegExp("[ýÿ]", 'g'),"y");
+  r = r.replace(new RegExp("\\W", 'g'),"");
+  return r;
+}
+//
+// function show_results(){
+//     var value = this.value;
+//     var results = index.search(value);
+//     var entry, childs = suggestions.childNodes;
+//     var i = 0, len = results.length;
+//     for(; i < len; i++){
+//         entry = childs[i];
+//         if(!entry){
+//             entry = document.createElement("div");
+//             suggestions.appendChild(entry);
+//         }
+//         entry.textContent = data[results[i]].Para;
+//     }
+//     while(childs.length > len){
+//         suggestions.removeChild(childs[i])
+//     }
+//     let first_result = data[results[0]];
+//     if(data[results[0]]) {
+//       first_result = data[results[0]].Para;
+//     }
+//     if(results.length==1) {
+//       console.log(data[results[0]].Para, results[0]);
+//     }
+//     var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
+//     if(first_result && (match !== -1)){
+//         autocomplete.value = value + first_result.substring(match + value.length);
+//         autocomplete.current = first_result;
+//     }
+//     else{
+//         autocomplete.value = autocomplete.current = value;
+//     }
+// }
+//
+// function show_results_actors(){
+//     var value = this.value;
+//     var results = index_actors.search(value, 25);
+//     var entry, childs = suggestions.childNodes;
+//     var i = 0, len = results.length;
+//     for(; i < len; i++){
+//         entry = childs[i];
+//         if(!entry){
+//             entry = document.createElement("div");
+//             suggestions.appendChild(entry);
+//         }
+//         entry.textContent = data_actors[results[i]];
+//     }
+//     while(childs.length > len){
+//         suggestions.removeChild(childs[i])
+//     }
+//     var first_result = data_actors[results[0]];
+//     var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
+//     if(first_result && (match !== -1)){
+//         autocomplete.value = value + first_result.substring(match + value.length);
+//         autocomplete.current = first_result;
+//     }
+//     else{
+//         autocomplete.value = autocomplete.current = value;
+//     }
+// }
+//
+//
+//
+// function accept_autocomplete(event){
+//     if((event || window.event).keyCode === 13) {
+//         this.value = autocomplete.value = autocomplete.current;
+//     }
+// }
+//
+// function accept_suggestion(event){
+//     var target = (event || window.event).target;
+//     userinput.value = autocomplete.value = target.textContent;
+//     while(suggestions.lastChild){
+//         suggestions.removeChild(suggestions.lastChild);
+//     }
+//     return false;
+// }
+
+function exportHTML(){
+   var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
+        "xmlns:w='urn:schemas-microsoft-com:office:word' "+
+        "xmlns='http://www.w3.org/TR/REC-html40'>"+
+        "<head><meta charset='utf-8'><title>Export HTML to Word Document with JavaScript</title></head><body>";
+   var footer = "</body></html>";
+   var sourceHTML = header+document.getElementById('text').innerHTML+footer;
+
+   var source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+   var fileDownload = document.createElement("a");
+   document.body.appendChild(fileDownload);
+   fileDownload.href = source;
+   fileDownload.download = 'document.doc';
+   fileDownload.click();
+   document.body.removeChild(fileDownload);
+}
+
+
+
+</script>
