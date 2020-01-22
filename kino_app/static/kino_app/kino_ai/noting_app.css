@@ -34,6 +34,30 @@
   min-height: 15px;
 }
 
+select {
+  background-color: #2E5C9C;
+  color: white;
+  cursor : pointer;
+  text-decoration: none;
+  border: none;
+  padding: 10;
+  margin: 5 10;
+  min-width: 150;
+}
+
+button {
+  background-color: #2E5C9C;
+  color: white;
+  cursor : pointer;
+  text-decoration: none;
+  border: none;
+  padding: 5;
+}
+
+button:hover, select:hover {
+  background-color: #003d99;
+  }
+
 .wrap_notes div h3{
   font-size: 30;
   text-align: center;
@@ -41,7 +65,7 @@
 
 #list_note div{
   display: inline-block;
-  margin: 5 20;
+  margin: 5 10;
   padding: 10;
   background-color: white;
   cursor: pointer;
@@ -52,6 +76,22 @@ table td{
   padding: 0;
 }
 
+table td:hover {
+  background-color: black;
+  color: white;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 2 10;
+}
+
 .notes {
   border: 1px solid black;
+}
+
+#created_notes {
+  padding: 10 0;
+  height: 100%;
+  background-color : #CCC;
 }

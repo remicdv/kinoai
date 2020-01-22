@@ -678,6 +678,14 @@ def corpus_search(request):
 def noting_app(request, project):
     dir = os.path.join(settings.MEDIA_ROOT, "kino_app/notes/"+str(project))
 
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
+
+    if not os.path.isfile(dir+'/'+str(request.user.username)+'_notes.json'):
+        file = open(dir+'/'+str(request.user.username)+'_notes.json','w')
+        file.write('[]')
+        file.close()
+
     user_data = []
     for root, subdirs, files in os.walk(dir):
         for file in files:
@@ -688,7 +696,7 @@ def noting_app(request, project):
                 with open(root+'/'+file) as json_file:
                     obj['data'] = json.load(json_file)
             user_data.append(obj)
-            
+
     return render(request, 'kino_app/noting.html', {'username':str(request.user.username), 'project':str(project), 'user_notes':json.dumps(user_data)})
 
 @csrf_exempt

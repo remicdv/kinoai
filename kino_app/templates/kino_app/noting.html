@@ -27,14 +27,19 @@
   <p>Add note : </p>
   <input type="text" id="input_add"/>
 
-  <button id='save_subs'>Download subs</button>
-  <button id='save_notes'>Download notes</button>
-  <select id='all_notes' onchange="setNote(this);"></select>
-  <select id='all_users' onchange="setUser(this);"></select>
-  <button id="btn-export" onclick="exportHTML();">Export to
-        word doc</button>
+  <button id='save_subs'>Download subtitle</button>
+  <button id='save_notes'>Download note</button>
+  <button id="btn-export" onclick="exportHTML();">Export to word doc</button>
+  <button onclick="saveNotes()">Save</button>
+  <div>
+    <p> Select note </p>
+    <select id='all_notes' onchange="setNote(this);"></select>
+    <p> Select user </p>
+    <select id='all_users' onchange="setUser(this);"></select>
+  </div>
 </div>
 
+  <div>Notes</div>
 <div id="list_note">
 </div>
 
@@ -130,6 +135,7 @@ function setUser(sel) {
       break;
     }
   }
+  while(select_all.firstChild) {select_all.firstChild.remove();}
   $('.wrap_notes').remove();
   if(sel.value != username) {
     loadNotesJson(false);
