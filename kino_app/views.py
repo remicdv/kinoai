@@ -658,22 +658,82 @@ def download_subs(request):
         file.close()
     return HttpResponse(json.dumps(response))
 
-def corpus_search(request):
-    with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/actors.json")) as json_file:
+def corpus_search(request, project):
+
+    if not os.path.isdir(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project))):
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)))
+
+    if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/actors.json")):
+        file = open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/actors.json"),'w')
+        file.write('[]')
+        file.close()
+
+    with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/actors.json")) as json_file:
         actors = json.load(json_file)
+
+    if not os.path.isfile(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/partition_text.json")):
+        file = open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/partition_text.json"),'w')
+        file.write('[]')
+        file.close()
+
+    with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/partition_text.json")) as json_file:
+        partitions = json.load(json_file)
+        for p in partitions:
+            if p['html']:
+                p['html'] = p['html'].replace('\n','')
     corpus = []
-    for root, dirs, files in os.walk(os.path.join(settings.MEDIA_ROOT, "kino_app/partition")):
+    for root, dirs, files in os.walk(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project))):
         for file in files:
             if ".txt" in file:
                 obj = {}
                 text = ""
-                with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+file),'r') as json_file:
+                with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/"+file),'r') as json_file:
                     text = json_file.readlines()
                 obj['Content'] = "".join(text).replace('\"','\\"').replace('\n','\\n')
                 obj['Title'] = file.split('.')[0].replace('_',' ')
                 corpus.append(obj)
         break
-    return render(request, 'kino_app/corpus_search.html', {'data':json.dumps(corpus), 'actors':json.dumps(actors)})
+    return render(request, 'kino_app/corpus_search.html', {'data':json.dumps(corpus), 'partitions':json.dumps(partitions), 'actors':json.dumps(actors), 'project':str(project)})
+
+@csrf_exempt
+def add_text(request):
+    text = json.loads(request.POST.get('new_text',''))
+    project = str(request.POST.get('project',''))
+    print(text)
+    dir = os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+project+'/')
+    if not os.path.isfile(dir+text['Title']):
+        file = open(dir+text['Title']+'.txt',"w")
+        file.write(text['Content'])
+        file.close()
+    return HttpResponse('')
+
+@csrf_exempt
+def remove_text(request):
+    removed_text = json.loads(request.POST.get('removed_text',''))
+    project = str(request.POST.get('project',''))
+    dir = os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+project+'/')
+    for title in removed_text:
+        os.remove(dir+title+'.txt')
+    return HttpResponse('')
+
+@csrf_exempt
+def save_partition_text(request):
+    partition = json.loads(request.POST.get('partition',''))
+    project = str(request.POST.get('project',''))
+    dir = os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+project+'/')
+    with open(dir+"partition_text.json", 'w') as fp:
+        json.dump(partition, fp, indent=2)
+    return HttpResponse('')
+
+@csrf_exempt
+def add_actor_corpus(request):
+    actors = json.loads(request.POST.get('actors',''))
+    project = str(request.POST.get('project',''))
+    print(actors)
+    dir = os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+project+"/")
+    with open(dir+"actors.json", 'w') as fp:
+        json.dump(actors, fp, indent=2)
+    return HttpResponse('')
 
 def noting_app(request, project):
     dir = os.path.join(settings.MEDIA_ROOT, "kino_app/notes/"+str(project))

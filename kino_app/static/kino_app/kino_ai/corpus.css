@@ -1,8 +1,10 @@
 #text {
   background-color: white;
   margin: 0 15%;
-  padding: 1%;
+  padding: 2cm;
+  text-align: justify;
 }
+
 #text h2{
   color: black;
 }
@@ -14,4 +16,84 @@
 #content_edition div p {
   min-width: 100;
   min-height: 20;
+}
+
+#actor {
+  border: 1px solid grey;
+}
+
+#para {
+  border: 1px solid red;
+}
+
+#choosen_text, #add_text {
+  width : 60%;
+  margin : 0 15%;
+  padding : 2cm;
+  text-align : justify;
+  background-color : white;
+  display: none;
+}
+
+.title_text {
+  text-align: center;
+  font-family: Courier, monospace;
+  font-size: 2.5em;
+  text-transform: none;
+  margin-bottom: 20;
+  color: black;
+}
+
+.list {
+  margin: 10;
+  margin-top: 0;
+}
+
+.wrap_list {
+  margin: 10;
+  padding: 10;
+  border: 1px solid #2E5C9C;
+  min-height: 10;
+  background-color: white;
+}
+
+.wrap_list h3 {
+  margin-left: 10;
+}
+
+.list p:hover{
+  color: #2E5C9C;
+}
+
+.list div{
+  display: flex;
+}
+
+.list div button{
+  margin: 1em 0;
+  margin-left:auto;
+  margin-right:5;
+  padding-left: 10;
+  padding-right: 10;
+}
+
+.list div p{
+  margin-left:5;
+  margin-right:5;
+  cursor: pointer;
+}
+
+button {
+  padding: 5;
+  background-color: #2E5C9C;
+  color: white;
+  cursor : pointer;
+  text-decoration: none;
+  border: none;
+}
+
+[contentEditable=true]:empty:not(:focus):before{
+    content:attr(data-text);
+    color: gray;
+    font-size: 15;
 }

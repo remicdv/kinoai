@@ -7,8 +7,10 @@
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
 <script>
-  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"'));
+  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
   var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
+  var partitions = JSON.parse("{{partitions}}".replace(/&quot;/g,'"').replace(/&lt;/g,"<").replace(/&gt;/g,">"));
+  var project = "{{project}}";
 </script>
 <div id='header_info'>
 
@@ -18,67 +20,85 @@
 <h1 >Corpus search </h1>
 </div>
 
-<button id="btn-export" onclick="exportHTML();">Export to
-      word doc</button>
-<!-- <table id='table'>
-    <tr>
-        <td style="position: relative">
-            <input type="text" id="autocomplete">
-            <input type="text" id="userinput" placeholder="Search corpus ...">
-        </td>
-        <td style="position: relative">
-            <input type="text" id="userinput_actors" placeholder="Search actors ...">
-        </td>
-        <td>
-            </td>
-    </tr>
-</table> -->
+<div id="top_page" style="display:flex;">
+  <div class="wrap_list">
+    <h3>Corpus de textes</h3>
+    <button onclick="addText()">Add text</button>
+    <button onclick="saveTexts()">Save text</button>
+    <button onclick="hideShow()">Hide</button>
+    <div id="list_text" class="list">
+    </div>
+  </div>
 
-<!-- <div id="suggestions"></div>
+  <div class="wrap_list">
+    <h3>Acteurs</h3>
+    <input type="text" id="input_add_actor"/>
+    <div id="list_actors" class="list">
+    </div>
+  </div>
 
-<div id="corpus">
-</div> -->
+  <div class="wrap_list">
+    <h3>Partitions</h3>
+    <button id="btn-export" onclick="exportHTML();">Export to word doc</button>
+    <button onclick="newPart();">New</button>
+    <div id="list_partitions" class="list">
+    </div>
+  </div>
+</div>
+
+<div id="choosen_text">
+</div>
 
 <div id="text">
-  <h2>Partition</h2>
+  <h1 class="title_text" >Partition</h1>
+  <h3 id="date"></h3>
   <div id="content">
 
   </div>
   <div id="content_edition">
     <div>
-      <p id="actor" contenteditable="true"></p>
+      <p id="actor" contenteditable="true" data-text="actor name"></p>
       <p id="act_sugg"></p>
     </div>
     <div>
-      <p id="para" contenteditable="true"></p>
+      <p id="para" contenteditable="true" data-text="search corpus"></p>
       <p id="para_sugg"></p>
     </div>
   </div>
 </div>
 
-<script>
-//
-// for(let obj of corpus) {
-//   let title = document.createElement('h1');
-//   title.innerText = obj.Title;
-//   title.style.color = "black";
-//   let content = document.createElement('div');
-//   content.innerText = obj.Content;
-//   content.style.width = "50%";
-//   content.style.marginLeft = "25%";
-//   content.style.padding = "1%";
-//   content.style.textAlign = "justify";
-//   content.style.backgroundColor = "white";
-//   let cluster = document.createElement('div');
-//   cluster.id = obj.Title;
-//   cluster.appendChild(title);
-//   cluster.appendChild(content);
-//   document.getElementById('corpus').appendChild(cluster);
-// }
+<div id="add_text">
+</div>
 
-let off = document.getElementById('logo').offsetHeight - document.getElementById("btn-export").offsetTop+5;
+<script>
+
+let off = document.getElementById('logo').offsetHeight - document.getElementById("top_page").offsetTop+5;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
 
+document.getElementById('list_partitions').style.marginTop = document.getElementById('list_text').offsetTop - document.getElementById('list_partitions').offsetTop;
+document.getElementById('list_actors').style.marginTop = document.getElementById('list_text').offsetTop - document.getElementById('list_actors').offsetTop;
+
+document.getElementById('date').innerText = new Date(Date().split(' ')[0] +" "+ Date().split(' ')[1] +" "+ Date().split(' ')[2]+" "+ Date().split(' ')[3]).toLocaleDateString('fr-FR');
+document.getElementById('date').dateOriginal = Date().split(' ')[0] +" "+ Date().split(' ')[1] +" "+ Date().split(' ')[2]+" "+ Date().split(' ')[3];
+
+for(let i=0; i<partitions.length;i++) {
+  let part = partitions[i];
+  part.id = i;
+  let p = document.createElement('p');
+  p.innerText = new Date(part.date).toLocaleDateString('fr-FR');
+  p.onclick = showPartition;
+  p.partition = part;
+  let remove_button = document.createElement('button');
+  remove_button.part_elem = p;
+  remove_button.onclick = removePartition;
+  remove_button.innerText = "X";
+  let div = document.createElement('div');
+  div.append(p);
+  div.append(remove_button);
+  document.getElementById("list_partitions").append(div);
+}
+
+var removed_text = [];
 var index = new FlexSearch({
             encode: "advanced",
             tokenize: "reverse",
@@ -97,6 +117,17 @@ var data = [];
 var data_actors = [];
 let i=0;
 for(let c of corpus) {
+  let p = document.createElement('p');
+  p.innerText = c.Title;
+  p.onclick = showText;
+  let remove_button = document.createElement('button');
+  remove_button.title_elem = p;
+  remove_button.onclick = removeText;
+  remove_button.innerText = "X";
+  let div = document.createElement('div');
+  div.append(p);
+  div.append(remove_button);
+  document.getElementById("list_text").append(div);
   for(let para of c.Content.split('\n')) {
     if(para != "") {
       let obj = {'Title':c.Title,'Para':para};
@@ -110,24 +141,24 @@ for(let c of corpus) {
 for(let i=0; i<actors.length;i++) {
   index_actors.add(i,actors[i].Name);
   data_actors.push(actors[i].Name);
+  let p = document.createElement('p');
+  p.innerText = actors[i].Name;
+  let remove_button = document.createElement('button');
+  remove_button.act_elem = p;
+  remove_button.onclick = removeAct;
+  remove_button.innerText = "X";
+  let div = document.createElement('div');
+  div.append(p);
+  div.append(remove_button);
+  document.getElementById("list_actors").append(div);
 }
-
-// var suggestions = document.getElementById("suggestions");
-// var autocomplete = document.getElementById("autocomplete");
-// var userinput = document.getElementById("userinput");
-// var userinput_actors = document.getElementById("userinput_actors");
 
 var actors_input = document.getElementById('actor');
 var para_input = document.getElementById('para');
 
-// userinput.addEventListener("input", show_results, true);
-// userinput.addEventListener("keyup", accept_autocomplete, true);
-// userinput_actors.addEventListener("input", show_results_actors, true);
-// userinput_actors.addEventListener("keyup", accept_autocomplete, true);
-// suggestions.addEventListener("click", accept_suggestion, true);
-
 actors_input.addEventListener("keyup", actors_input_fn, true);
 para_input.addEventListener("keyup", para_input_fn, true);
+
 
 function actors_input_fn() {
   var value = this.innerText;
@@ -211,83 +242,189 @@ function accentsTidy(s) {
   r = r.replace(new RegExp("\\W", 'g'),"");
   return r;
 }
-//
-// function show_results(){
-//     var value = this.value;
-//     var results = index.search(value);
-//     var entry, childs = suggestions.childNodes;
-//     var i = 0, len = results.length;
-//     for(; i < len; i++){
-//         entry = childs[i];
-//         if(!entry){
-//             entry = document.createElement("div");
-//             suggestions.appendChild(entry);
-//         }
-//         entry.textContent = data[results[i]].Para;
-//     }
-//     while(childs.length > len){
-//         suggestions.removeChild(childs[i])
-//     }
-//     let first_result = data[results[0]];
-//     if(data[results[0]]) {
-//       first_result = data[results[0]].Para;
-//     }
-//     if(results.length==1) {
-//       console.log(data[results[0]].Para, results[0]);
-//     }
-//     var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
-//     if(first_result && (match !== -1)){
-//         autocomplete.value = value + first_result.substring(match + value.length);
-//         autocomplete.current = first_result;
-//     }
-//     else{
-//         autocomplete.value = autocomplete.current = value;
-//     }
-// }
-//
-// function show_results_actors(){
-//     var value = this.value;
-//     var results = index_actors.search(value, 25);
-//     var entry, childs = suggestions.childNodes;
-//     var i = 0, len = results.length;
-//     for(; i < len; i++){
-//         entry = childs[i];
-//         if(!entry){
-//             entry = document.createElement("div");
-//             suggestions.appendChild(entry);
-//         }
-//         entry.textContent = data_actors[results[i]];
-//     }
-//     while(childs.length > len){
-//         suggestions.removeChild(childs[i])
-//     }
-//     var first_result = data_actors[results[0]];
-//     var match = first_result && first_result.toLowerCase().indexOf(value.toLowerCase());
-//     if(first_result && (match !== -1)){
-//         autocomplete.value = value + first_result.substring(match + value.length);
-//         autocomplete.current = first_result;
-//     }
-//     else{
-//         autocomplete.value = autocomplete.current = value;
-//     }
-// }
-//
-//
-//
-// function accept_autocomplete(event){
-//     if((event || window.event).keyCode === 13) {
-//         this.value = autocomplete.value = autocomplete.current;
-//     }
-// }
-//
-// function accept_suggestion(event){
-//     var target = (event || window.event).target;
-//     userinput.value = autocomplete.value = target.textContent;
-//     while(suggestions.lastChild){
-//         suggestions.removeChild(suggestions.lastChild);
-//     }
-//     return false;
-// }
+
+function showText() {
+  $("#choosen_text").show();
+  $("#add_text").hide();
+  $("#text").hide();
+  while(document.getElementById('choosen_text').firstChild) {document.getElementById('choosen_text').firstChild.remove();}
+  for(let obj of corpus) {
+    if(obj.Title == this.innerText) {
+      let title = document.createElement('h1');
+      title.innerText = obj.Title;
+      title.className = "title_text";
+      title.style.color = "black";
+      let content = document.createElement('div');
+      content.innerText = obj.Content;
+      let cluster = document.createElement('div');
+      cluster.id = obj.Title;
+      cluster.appendChild(title);
+      cluster.appendChild(content);
+      document.getElementById('choosen_text').appendChild(cluster);
+      window.scroll(0, document.getElementById('choosen_text').offsetTop);
+      break;
+    }
+  }
+}
+
+function showPartition() {
+  $("#choosen_text").hide();
+  $("#add_text").hide();
+  $("#text").show();
+  document.getElementById('content').innerHTML = this.partition.html;
+  document.getElementById('date').innerText = new Date(this.partition.date).toLocaleDateString('fr-FR');
+  window.scroll(0, document.getElementById('text').offsetTop);
+}
+
+function hideShow() {
+  $("#choosen_text").hide();
+  $("#add_text").hide();
+  $("#text").show();
+}
+
+function newPart() {
+  $("#choosen_text").hide();
+  $("#add_text").hide();
+  document.getElementById('date').innerText = new Date(Date().split(' ')[0] +" "+ Date().split(' ')[1] +" "+ Date().split(' ')[2]+" "+ Date().split(' ')[3]).toLocaleDateString('fr-FR');
+  document.getElementById('date').dateOriginal = Date().split(' ')[0] +" "+ Date().split(' ')[1] +" "+ Date().split(' ')[2]+" "+ Date().split(' ')[3];
+  document.getElementById('content').innerHTML = "";
+  $("#text").show();
+}
+
+function removeAct() {
+  for(let i=0; i<actors.length; i++) {
+    if(actors[i].Name == this.act_elem.innerText) {
+      actors.splice(i,1);
+      break;
+    }
+  }
+  this.act_elem.remove();
+  this.remove();
+}
+
+function removeText() {
+  for(let i=0; i<corpus.length; i++) {
+    if(corpus[i].Title == this.title_elem.innerText) {
+      removed_text.push(corpus[i].Title);
+      corpus.splice(i,1);
+      break;
+    }
+  }
+  this.title_elem.remove();
+  this.remove();
+}
+
+function removePartition() {
+  partitions.splice(this.part_elem.partition.id,1);
+  this.part_elem.remove();
+  this.remove();
+}
+
+$('#input_add_actor').change(function() {
+  actors.push({"Name":this.value,"Color":"black"});
+  index_actors.add(actors.length-1,this.value);
+  data_actors.push(this.value);
+  let p = document.createElement('p');
+  p.innerText = this.value;
+  let remove_button = document.createElement('button');
+  remove_button.act_elem = p;
+  remove_button.onclick = removeAct;
+  remove_button.innerText = "X";
+  let div = document.createElement('div');
+  div.append(p);
+  div.append(remove_button);
+  document.getElementById("list_actors").append(div);
+  this.value = '';
+});
+
+function addText() {
+  $("#choosen_text").hide();
+  $("#text").hide();
+  $("#add_text").show();
+  while(document.getElementById("add_text").firstChild) {document.getElementById("add_text").firstChild.remove();}
+  let title = document.createElement('h1');
+  title.style.color = "black";
+  title.className = "title_text";
+  title.contentEditable = true;
+  title.style.border = "1px solid black";
+  let content = document.createElement('div');
+  content.contentEditable = true;
+  document.getElementById('add_text').append(title);
+  document.getElementById('add_text').append(content);
+  window.scroll(0, document.getElementById('add_text').offsetTop);
+}
+
+function saveTexts() {
+  if(document.getElementById('add_text').style.display != "none" && document.getElementById('add_text').style.display != "") {
+    if(document.getElementById('add_text').children[0] && document.getElementById('add_text').children[0].innerText!="") {
+      var new_text = {"Title":document.getElementById('add_text').children[0].innerText, "Content":document.getElementById('add_text').children[1].innerText};
+      let p = document.createElement('p');
+      p.innerText = document.getElementById('add_text').children[0].innerText;
+      p.onclick = showText;
+      let remove_button = document.createElement('button');
+      remove_button.title_elem = p;
+      remove_button.onclick = removeText;
+      remove_button.innerText = "X";
+      let div = document.createElement('div');
+      div.append(p);
+      div.append(remove_button);
+      document.getElementById("list_text").append(div);
+      corpus.push(new_text);
+      let i = index.length;
+      for(let para of new_text.Content.split('\n')) {
+        if(para != "") {
+          let obj = {'Title':new_text.Title,'Para':para};
+          index.add(i,para);
+          data.push(obj);
+          i++;
+        }
+      }
+      $.post({
+        url: window.location.origin+"/kino_app/add_text",
+        data: {'new_text': JSON.stringify(new_text), 'project':project},
+        dataType: 'json',
+        success: function (data) {
+        }
+      });
+    } else {
+      alert('no title');
+    }
+  }
+  if(removed_text.length != 0) {
+    if(confirm('Are your sure you want to remove '+removed_text.join(', ')+' ?')) {
+      $.post({
+        url: window.location.origin+"/kino_app/remove_text",
+        data: {'removed_text': JSON.stringify(removed_text), 'project':project},
+        dataType: 'json',
+        success: function (data) {
+        }
+      });
+    }
+  }
+}
+
+function saveActor() {
+  $.post({
+    url: window.location.origin+"/kino_app/add_actor_corpus",
+    data: {'actors': JSON.stringify(actors), 'project':project},
+    dataType: 'json',
+    success: function (data) {
+    }
+  });
+}
+
+function savePartition() {
+  // console.log(document.getElementById('text').children[0].innerText, new Date(document.getElementById('text').children[1].innerText), document.getElementById('content').innerHTML);
+  var obj_part = {'title': document.getElementById('text').children[0].innerText, 'date':document.getElementById('date').dateOriginal, 'html':document.getElementById('content').innerHTML};
+  partitions.push(obj_part);
+  $.post({
+    url: window.location.origin+"/kino_app/save_partition_text",
+    data: {'partition': JSON.stringify(partitions), 'project':project},
+    dataType: 'json',
+    success: function (data) {
+    }
+  });
+}
 
 function exportHTML(){
    var header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' "+
@@ -306,6 +443,13 @@ function exportHTML(){
    document.body.removeChild(fileDownload);
 }
 
-
+$(document).bind('keydown', function(e) {
+  if(e.ctrlKey && (e.which == 83)) {
+    e.preventDefault();
+    saveTexts();
+    saveActor();
+    savePartition();
+  }
+});
 
 </script>
