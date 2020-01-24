@@ -178,8 +178,8 @@ def set_previous(request):
     return HttpResponse('')
 
 def launch_preprocess(name, username):
-    utility = settings.MEDIA_ROOT+'/utility'
-    shutil.move(settings.MEDIA_ROOT+'/'+name,utility)
+    utility = settings.MEDIA_ROOT+'utility'
+    shutil.move(settings.MEDIA_ROOT+name,utility)
     info = str(subprocess.check_output('ffprobe -i "{0}" -show_entries stream=width,height -v quiet -of csv="p=0"'.format(utility+'/'+name), shell=True ,stderr=subprocess.STDOUT))
     info_list = info.split("'")[1].split('/')[0].split(',')
     duration = float(subprocess.check_output('ffprobe -i "{0}" -show_entries format=duration -v quiet -of csv="p=0"'.format(utility+'/'+name), shell=True ,stderr=subprocess.STDOUT))
@@ -235,7 +235,7 @@ def upload_view(request):
             filename = fs.save(myfile.name, myfile)
             old = filename
             filename = filename.replace(" ", "_")
-            os.rename(settings.MEDIA_ROOT+'/'+old,settings.MEDIA_ROOT+'/'+filename)
+            os.rename(settings.MEDIA_ROOT+old,settings.MEDIA_ROOT+filename)
             uploaded_file_url = fs.url(filename)
             if launch_preprocess(filename, title.replace(" ", "_")):
                 print('finished')
@@ -946,11 +946,11 @@ def upload_rough_cut(request):
             print('json')
             fs = FileSystemStorage()
             filename = fs.save(myfile.name, myfile)
-            with open(settings.MEDIA_ROOT+'/'+filename) as f:
+            with open(settings.MEDIA_ROOT+filename) as f:
                 data = json.load(f)
             print(json.dumps(data))
             return_data = json.dumps(data)
-            os.remove(settings.MEDIA_ROOT+'/'+filename)
+            os.remove(settings.MEDIA_ROOT+filename)
             print('filename',filename)
             return HttpResponse(json.dumps({'type':'json', 'msg':'Great', 'data':return_data}), content_type='application/json')
         elif info == "vtt" or info == "octet-stream":
