@@ -6,6 +6,8 @@
 <script src="{% static 'kino_app/flexsearch.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
+<title> Kino AI </title>
+
 <script>
   var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
   var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
@@ -33,6 +35,7 @@
   <div class="wrap_list">
     <h3>Acteurs</h3>
     <input type="text" id="input_add_actor"/>
+    <button onclick="saveActor();">Save</button>
     <div id="list_actors" class="list">
     </div>
   </div>
@@ -41,6 +44,7 @@
     <h3>Partitions</h3>
     <button id="btn-export" onclick="exportHTML();">Export to word doc</button>
     <button onclick="newPart();">New</button>
+    <button onclick="savePartition();">Save</button>
     <div id="list_partitions" class="list">
     </div>
   </div>
@@ -81,6 +85,18 @@ document.getElementById('list_actors').style.marginTop = document.getElementById
 document.getElementById('date').innerText = new Date(Date().split(' ')[0] +" "+ Date().split(' ')[1] +" "+ Date().split(' ')[2]+" "+ Date().split(' ')[3]).toLocaleDateString('fr-FR');
 document.getElementById('date').dateOriginal = Date().split(' ')[0] +" "+ Date().split(' ')[1] +" "+ Date().split(' ')[2]+" "+ Date().split(' ')[3];
 
+if(!corpus) {
+  corpus = [];
+}
+if(!partitions) {
+  partitions = [];
+}
+if(!actors) {
+  actors = [];
+}
+if(!project) {
+  project = "{{project}}";
+}
 for(let i=0; i<partitions.length;i++) {
   let part = partitions[i];
   part.id = i;
@@ -99,6 +115,8 @@ for(let i=0; i<partitions.length;i++) {
 }
 
 var removed_text = [];
+var selected_suggestion;
+
 var index = new FlexSearch({
             encode: "advanced",
             tokenize: "reverse",
@@ -158,6 +176,7 @@ var para_input = document.getElementById('para');
 
 actors_input.addEventListener("keyup", actors_input_fn, true);
 para_input.addEventListener("keyup", para_input_fn, true);
+para_input.addEventListener("keydown", para_prevent, true);
 
 
 function actors_input_fn() {
@@ -186,8 +205,37 @@ function actors_input_fn() {
   }
 }
 
+function para_prevent() {
+  console.log(event.key);
+  if(event.key == "ArrowDown") {
+    event.preventDefault();
+    if(!selected_suggestion && document.getElementById('para_sugg').children.length > 0) {
+      selected_suggestion = document.getElementById('para_sugg').children[0];
+    } else if(selected_suggestion && selected_suggestion.nextSibling) {
+      selected_suggestion = selected_suggestion.nextSibling;
+    }
+  }
+  if(event.key == "ArrowUp") {
+    event.preventDefault();
+    if(!selected_suggestion && document.getElementById('para_sugg').children.length > 0) {
+      selected_suggestion = document.getElementById('para_sugg').children[0];
+    } else if(selected_suggestion && selected_suggestion.previousSibling) {
+      selected_suggestion = selected_suggestion.previousSibling;
+    }
+  }
+  if(selected_suggestion) {
+    for(let c of document.getElementById('para_sugg').children) {
+      c.style.color = "black";
+    }
+    selected_suggestion.style.color = "#2E5C9C";
+    window.scroll(0,selected_suggestion.offsetTop);
+    console.log(selected_suggestion.para_result);
+  }
+}
+
 function para_input_fn() {
-  window.scroll(0,this.offsetTop);
+  if(!selected_suggestion || selected_suggestion == document.getElementById('para_sugg').children[0])
+    window.scroll(0,this.offsetTop);
   var value = this.innerText;
   var results = index.search(value, 25);
   var entry, childs = document.getElementById('para_sugg').childNodes;
@@ -209,16 +257,22 @@ function para_input_fn() {
         }
       }
       entry.innerHTML = final_text + '<br><br>';
+      entry.para_result = data[results[i]];
   }
+
   while(childs.length > len){
       document.getElementById('para_sugg').removeChild(childs[i])
   }
-  if(event.key == "Enter" && results.length==1) {
-    let p = document.createElement("p");
-    p.innerText = data[results[0]].Title;
-    document.getElementById('content').append(p);
+
+  if((event.key == "Enter" && results.length==1) || (event.key == "Enter" && selected_suggestion)) {
     let p_para = document.createElement("p");
-    p_para.innerText = data[results[0]].Para;
+    if(selected_suggestion) {
+      p_para.innerText = selected_suggestion.para_result.Para;
+    } else {
+      p_para.innerText = data[results[0]].Para;
+    }
+    selected_suggestion = undefined;
+    p_para.contentEditable = true;
     document.getElementById('content').append(p_para);
     document.getElementById('actor').focus();
     this.innerText = "";
@@ -316,6 +370,10 @@ function removeText() {
 
 function removePartition() {
   partitions.splice(this.part_elem.partition.id,1);
+  for(let i=0; i<partitions.length;i++) {
+    partitions[i].id = i;
+  }
+  document.getElementById('content').innerText = "";
   this.part_elem.remove();
   this.remove();
 }
@@ -349,6 +407,7 @@ function addText() {
   title.style.border = "1px solid black";
   let content = document.createElement('div');
   content.contentEditable = true;
+  content.style.border = "1px solid #2E5C9C";
   document.getElementById('add_text').append(title);
   document.getElementById('add_text').append(content);
   window.scroll(0, document.getElementById('add_text').offsetTop);
@@ -415,8 +474,14 @@ function saveActor() {
 
 function savePartition() {
   // console.log(document.getElementById('text').children[0].innerText, new Date(document.getElementById('text').children[1].innerText), document.getElementById('content').innerHTML);
-  var obj_part = {'title': document.getElementById('text').children[0].innerText, 'date':document.getElementById('date').dateOriginal, 'html':document.getElementById('content').innerHTML};
-  partitions.push(obj_part);
+  if(document.getElementById('text').style.display != "none" && document.getElementById('content').innerText != "") {
+    var obj_part = {'title': document.getElementById('text').children[0].innerText, 'date':document.getElementById('date').dateOriginal, 'html':document.getElementById('content').innerHTML,
+                    'id': partitions.length};
+    partitions.push(obj_part);
+  }
+  for(let p of partitions) {
+    p.html = p.html.replace(/"/g,'\\"');
+  }
   $.post({
     url: window.location.origin+"/kino_app/save_partition_text",
     data: {'partition': JSON.stringify(partitions), 'project':project},
@@ -438,7 +503,7 @@ function exportHTML(){
    var fileDownload = document.createElement("a");
    document.body.appendChild(fileDownload);
    fileDownload.href = source;
-   fileDownload.download = 'document.doc';
+   fileDownload.download = 'partition.doc';
    fileDownload.click();
    document.body.removeChild(fileDownload);
 }

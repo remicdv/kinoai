@@ -139,6 +139,7 @@ class IndexView(generic.ListView):
     def get(self, request):
         print(self.request.META.get('HTTP_REFERER'))
         projects_name = os.listdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/data'))
+
         old = len(FolderPath.objects.all())
         list = []
         projects = []
@@ -152,6 +153,11 @@ class IndexView(generic.ListView):
             else:
                 project = {}
                 project["Name"] = name
+                project["ZeroElem"] = "true"
+                for type in ['data','notes','partition']:
+                    if len(os.listdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/'+type+'/'+name))) != 0 :
+                        project["ZeroElem"] = "false"
+                        break
                 project["Company"] = project_obj.company
                 project["Date"] = project_obj.date
                 if project_obj.password == None or project_obj.password == "":
@@ -162,7 +168,7 @@ class IndexView(generic.ListView):
                 list += list_files(path, None)
                 project["List"].sort()
                 projects.append(project)
-        print(len(list),old)
+        # print(len(list),old)
         extractImagesAndDelete(list, old)
         if request.user is None or request.user.is_authenticated == False:
             print(settings.LOGIN_URL)
@@ -322,10 +328,11 @@ def edit_project(request):
 def remove_project(request):
     if request.method == 'POST':
         title = request.POST['title']
-        path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+title)
-        if os.path.isdir(path):
-            if not os.listdir(path):
-                shutil.rmtree(path)
+        for type in ['data', 'partition', 'notes']:
+            path = os.path.join(settings.MEDIA_ROOT, 'kino_app/'+type+'/'+title)
+            if os.path.isdir(path):
+                if not os.listdir(path):
+                    shutil.rmtree(path)
     return HttpResponse(json.dumps({'success':title}), content_type='application/json')
 
 
@@ -350,9 +357,10 @@ def create_project(request):
                     password = make_password(password)
                 )
             name = title.replace(" ", "_")
-            path = os.path.join(settings.MEDIA_ROOT, 'kino_app/data/'+name)
-            if not os.path.isdir(path):
-                os.mkdir(path)
+            for type in ['data', 'partition', 'notes']:
+                path = os.path.join(settings.MEDIA_ROOT, 'kino_app/'+type+'/'+name)
+                if not os.path.isdir(path):
+                    os.mkdir(path)
             print(obj, created)
     return redirect('kino_app:index')
 
@@ -689,8 +697,8 @@ def corpus_search(request, project):
                 text = ""
                 with open(os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+str(project)+"/"+file),'r') as json_file:
                     text = json_file.readlines()
-                obj['Content'] = "".join(text).replace('\"','\\"').replace('\n','\\n')
-                obj['Title'] = file.split('.')[0].replace('_',' ')
+                obj['Content'] = "".join(text).replace('\"','\\"').replace('\n','\\n').replace('\t','\\t')
+                obj['Title'] = file.split('.')[0].replace('_',' ').replace('\"','\\"').replace('\n','\\n')
                 corpus.append(obj)
         break
     return render(request, 'kino_app/corpus_search.html', {'data':json.dumps(corpus), 'partitions':json.dumps(partitions), 'actors':json.dumps(actors), 'project':str(project)})
@@ -699,10 +707,10 @@ def corpus_search(request, project):
 def add_text(request):
     text = json.loads(request.POST.get('new_text',''))
     project = str(request.POST.get('project',''))
-    print(text)
     dir = os.path.join(settings.MEDIA_ROOT, "kino_app/partition/"+project+'/')
-    if not os.path.isfile(dir+text['Title']):
-        file = open(dir+text['Title']+'.txt',"w")
+    title = text['Title'].replace('\n',' ').replace('\t',' ')
+    if not os.path.isfile(dir+text['Title']+'.txt'):
+        file = open(dir+title+'.txt',"w")
         file.write(text['Content'])
         file.close()
     return HttpResponse('')
@@ -750,11 +758,14 @@ def noting_app(request, project):
     for root, subdirs, files in os.walk(dir):
         for file in files:
             obj = {}
-            obj['user'] = file.split('_')[0]
+            obj["user"] = file.split('_')[0]
             print(root+'/'+file)
             if os.path.isfile(root+'/'+file):
                 with open(root+'/'+file) as json_file:
-                    obj['data'] = json.load(json_file)
+                    obj["data"] = json.load(json_file)
+                    for note in obj["data"]:
+                        for text in note["Content"]:
+                            text["Text"] = text["Text"].replace('\"','\\"').replace('\n','\\n').replace('\t','\\t')
             user_data.append(obj)
 
     return render(request, 'kino_app/noting.html', {'username':str(request.user.username), 'project':str(project), 'user_notes':json.dumps(user_data)})

@@ -42,7 +42,7 @@
 <div id='tabs'>
   <script> var projects = []; </script>
   {% for project in projects %}
-    <script> projects.push({'title':"{{project.Name}}", 'company':"{{project.Company}}", 'date':"{{project.Date}}", 'is_password':"{{project.Password}}"}); </script>
+    <script> projects.push({'title':"{{project.Name}}", 'company':"{{project.Company}}", 'date':"{{project.Date}}", 'is_password':"{{project.Password}}", 'zero_elem':"{{project.ZeroElem}}"}); </script>
     <div><button class="projects_name index_button" id="{{project.Name}}">{{project.Name|replace_underscore}}</button></div>
   {% endfor %}
 </div>
@@ -67,6 +67,7 @@ var user_name_clicked;
 var user_take_list = [];
 var previous = "{{ request.session.previous_name }}";
 var active_project = "{{ request.session.active_project }}";
+var zero_elem = "{{zero_elem}}";
 </script>
 
 <span class='default'>
@@ -287,14 +288,7 @@ var active_project = "{{ request.session.active_project }}";
       password = true;
     } else {
       let remove_button;
-      var zero_elem = true;
-      for(let el of document.getElementsByClassName('def_list')) {
-        if(el.id.includes(p.title) && (el.id.split('/').length>1 && el.id.split('/')[0]==p.title)) {
-          zero_elem = false;
-          break;
-        }
-      }
-      if(zero_elem) {
+      if(p.zero_elem == "true") {
         remove_button = document.createElement('button');
         remove_button.className = "edit_button";
         remove_button.id = p.title;

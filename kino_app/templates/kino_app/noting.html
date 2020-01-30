@@ -9,6 +9,8 @@
 <script src="{% static 'kino_app/flexsearch.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
 <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
+<title> Kino AI </title>
+
 <script>
   var username = "{{username}}";
   var user_notes_json = JSON.parse("{{user_notes}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
@@ -39,7 +41,7 @@
   </div>
 </div>
 
-  <div>Notes</div>
+  <div style="margin-left:10;">Notes</div>
 <div id="list_note">
 </div>
 
@@ -48,7 +50,7 @@
 
 <script>
 
-let off = document.getElementById('logo').offsetHeight - document.getElementById("add_note").offsetTop+5;
+let off = document.getElementById('logo').offsetHeight - document.getElementById("add_note").offsetTop+15;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
 var select_all = document.getElementById("all_notes");
 var select_user = document.getElementById("all_users");
@@ -71,6 +73,13 @@ for(let n of user_notes_json) {
 select_user.value = username;
 
 $('#input_add').change(function() {
+  for(let sel of select_user) {
+    if(sel.value == username) {
+      setUser(sel);
+      select_user.value = username;
+      break;
+    }
+  }
   $(".wrap_notes").hide();
   let wrap_note = document.createElement('div');
   wrap_note.className = "wrap_notes";
@@ -107,7 +116,6 @@ $('#input_add').change(function() {
   text_note.append(register_notes);
   text_note.append(note);
   text_note.style.overflow = 'auto';
-  text_note.style.height = '100%';
   text_note.style.width = '100%';
   var option = document.createElement("option");
   option.text = $(this).val();
@@ -361,7 +369,6 @@ function loadNotesJson(is_editable = true) {
       text_note.append(note);
     }
     text_note.style.overflow = 'auto';
-    text_note.style.height = '100%';
     text_note.style.width = '100%';
     var option = document.createElement("option");
     option.text = n.Title;

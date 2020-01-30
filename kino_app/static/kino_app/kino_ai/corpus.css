@@ -47,6 +47,8 @@
 .list {
   margin: 10;
   margin-top: 0;
+  overflow-y: auto;
+  max-height: 300px;
 }
 
 .wrap_list {
@@ -56,6 +58,7 @@
   min-height: 10;
   background-color: white;
 }
+
 
 .wrap_list h3 {
   margin-left: 10;
