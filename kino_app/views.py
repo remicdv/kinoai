@@ -771,6 +771,25 @@ def noting_app(request, project):
     return render(request, 'kino_app/noting.html', {'username':str(request.user.username), 'project':str(project), 'user_notes':json.dumps(user_data)})
 
 @csrf_exempt
+def set_library_false(request):
+    request.session['active_library'] = "false"
+    return HttpResponse('')
+
+def check_password_library(request):
+    print(request)
+    if request.method == 'POST':
+        password = request.POST['password']
+        project = request.POST['project']
+        if password == 'password':
+            request.session['active_library'] = "true"
+        else:
+            request.session['active_library'] = "false"
+        return redirect('kino_app:videos_library_app',project=project)
+
+def videos_library_app(request, project):
+    return render(request, 'kino_app/videos_library.html', {'username':str(request.user.username), 'project':str(project)})
+
+@csrf_exempt
 def get_data_detec(request):
     abs_path = request.POST.get('abs_path','')
     dir = get_object_or_404(FolderPath, abs_path=abs_path)

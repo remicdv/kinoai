@@ -1,0 +1,45 @@
+{% load static %}
+{% load string_filter %}
+<link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
+<script src="{% static 'kino_app/jquery.min.js' %}"></script>
+<title> Kino AI </title>
+
+<div id='header_info'>
+
+<div class="aside">
+  <a class="aside" href="{% url 'kino_app:index' %}" ><img class="aside" id="logo" width="140" height="140" src="{% static 'kino_app/logo/logo_cut.png' %}" ></a>
+</div>
+<h1>Videos library</h1>
+</div>
+
+<p id="projects_title">{{username}}</p>
+<p>{{project}}</p>
+
+<form id="check_password_library" action="{% url 'kino_app:check_password_library' %}" method="post" >
+    {% csrf_token %}
+    <h3>Password</h3>
+    <input type="password" name="password" />
+    <input type="hidden" name="project" value="{{project}}"/>
+    <input type="submit" value="Submit"/>
+</form>
+
+<script>
+var active_library = "{{ request.session.active_library }}";
+console.log(active_library);
+
+let off = document.getElementById('logo').offsetHeight - document.getElementById("projects_title").offsetTop+5;
+
+document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+if(active_library == "true") {
+  document.getElementById('check_password_library').style.display = "none";
+}
+$.post({
+  url: window.location.origin+"/kino_app/set_library_false",
+  async: true,
+  data: {'name': ''},
+  dataType: 'json',
+  success: function (data) {
+    // console.log(data);
+  }
+});
+</script>
