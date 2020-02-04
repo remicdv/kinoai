@@ -775,19 +775,56 @@ def set_library_false(request):
     request.session['active_library'] = "false"
     return HttpResponse('')
 
+def upload_video_library(request):
+    if request.method == 'POST' and request.FILES:
+        project = request.POST['project']
+        myfile = request.FILES['fileToUpload']
+        info = str(request.FILES).split('[')[1].split('(')[1].split('/')[0]
+        if info == 'video':
+            fs = FileSystemStorage()
+            filename = fs.save(myfile.name, myfile)
+            dir = os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library/"+str(project))
+            shutil.move(os.path.join(settings.MEDIA_ROOT, filename),dir)
+            os.chmod(dir+'/'+filename,0o644)
+            request.session['active_library'] = "true"
+            return redirect('kino_app:videos_library_app',project=project)
+    return redirect('kino_app:videos_library_app',project=project)
+
+@csrf_exempt
+def remove_video_library(request):
+    project = str(request.POST['project'])
+    dir = os.path.join(settings.MEDIA_ROOT, str(request.POST['path'])[1:])
+    print(dir)
+    if os.path.isfile(dir):
+        os.remove(dir)
+        request.session['active_library'] = "true"
+    return redirect('kino_app:videos_library_app',project=project)
+
 def check_password_library(request):
     print(request)
     if request.method == 'POST':
         password = request.POST['password']
         project = request.POST['project']
-        if password == 'password':
+        if password == 'sourisrat':
             request.session['active_library'] = "true"
         else:
             request.session['active_library'] = "false"
         return redirect('kino_app:videos_library_app',project=project)
 
 def videos_library_app(request, project):
-    return render(request, 'kino_app/videos_library.html', {'username':str(request.user.username), 'project':str(project)})
+    if not os.path.isdir(os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library")):
+        os.mkdir(os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library"))
+    dir = os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library/"+str(project))
+    if not os.path.isdir(dir):
+        os.mkdir(dir)
+    videos = []
+    for root, subdirs, files in os.walk(dir):
+        for file in files:
+            obj = {}
+            obj['Name'] = file.split('.')[0]
+            obj['src'] = "/media/kino_app/videos_library/"+str(project)+'/'+file
+            videos.append(obj)
+    return render(request, 'kino_app/videos_library.html', {'username':str(request.user.username), 'project':str(project), 'videos':videos})
 
 @csrf_exempt
 def get_data_detec(request):

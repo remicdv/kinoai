@@ -310,6 +310,11 @@ var zero_elem = "{{zero_elem}}";
       partition_project_button.id = p.title;
       partition_project_button.innerText = 'Corpus';
       partition_project_button.onclick = clickCorpus;
+      let video_library_button = document.createElement('button');
+      video_library_button.className = "edit_button";
+      video_library_button.id = p.title;
+      video_library_button.innerText = 'Videos';
+      video_library_button.onclick = clickLibrary;
       let c = document.createElement('h3');
       c.innerText = 'Compagnie: '+p.company;
       let d = document.createElement('h3');
@@ -320,6 +325,7 @@ var zero_elem = "{{zero_elem}}";
       document.getElementById('infos').appendChild(edit_button);
       document.getElementById('infos').appendChild(notes_project_button);
       document.getElementById('infos').appendChild(partition_project_button);
+      document.getElementById('infos').appendChild(video_library_button);
       if(remove_button)
         document.getElementById('infos').appendChild(remove_button);
       document.getElementById('infos').appendChild(c);
@@ -422,6 +428,12 @@ var zero_elem = "{{zero_elem}}";
   function clickCorpus() {
     let a = document.createElement('a');
     a.href= "corpus_search/"+this.id;
+    a.click();
+  }
+
+  function clickLibrary() {
+    let a = document.createElement('a');
+    a.href= "videos_library/"+this.id;
     a.click();
   }
 

@@ -2,6 +2,40 @@
 {% load string_filter %}
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
+<style type="text/css">
+#curr_video {
+  width: 40%;
+  margin: 10;
+}
+#top_info {
+  margin-bottom: 100;
+  margin: 10;
+  padding: 10;
+  border: 2px solid #2E5C9C;
+  background-color: white;
+}
+#videos_list {
+  overflow: auto;
+}
+#videos_list li{
+  width: auto;
+  border: none;
+  margin-left: 10;
+  font-size: 20;
+}
+
+button, input {
+  padding: 5;
+  background-color: #2E5C9C;
+  color: white;
+  cursor : pointer;
+  text-decoration: none;
+  border: none;
+}
+input::placeholder {
+  color: white;
+}
+</style>
 <title> Kino AI </title>
 
 <div id='header_info'>
@@ -12,27 +46,49 @@
 <h1>Videos library</h1>
 </div>
 
-<p id="projects_title">{{username}}</p>
-<p>{{project}}</p>
+<div id="top_info">
 
-<form id="check_password_library" action="{% url 'kino_app:check_password_library' %}" method="post" >
+  <form id="check_password_library" action="{% url 'kino_app:check_password_library' %}" method="post" >
+      {% csrf_token %}
+      <h3>Password</h3>
+      <input placeholder="password" type="password" name="password" />
+      <input type="hidden" name="project" value="{{project}}"/>
+      <input type="submit" value="Submit"/>
+  </form>
+
+  <form action="{% url 'kino_app:upload_video_library' %}" method="post" enctype="multipart/form-data" id="upload">
     {% csrf_token %}
-    <h3>Password</h3>
-    <input type="password" name="password" />
+    <h3> {{project|replace_underscore}}</h3>
     <input type="hidden" name="project" value="{{project}}"/>
-    <input type="submit" value="Submit"/>
-</form>
+    <input type="file" name="fileToUpload" id="fileToUpload">
+    <input type="submit" value="Upload Video" name="submit" onClick="clickSub()">
+  </form>
 
+  <script>var videos = [];</script>
+  <ul id="videos_list">
+  <h3>Videos</h3>
+    {% for v in videos %}
+      <script> videos.push({'Name':"{{v.Name}}", 'src':"{{v.src}}"}); </script>
+      <li><button onclick="clickVideo(this)" class="" id="{{v.src}}">{{v.Name|replace_underscore}}</button></li>
+    {% endfor %}
+  </ul>
+</div>
+
+<video controls id="curr_video"></video>
 <script>
 var active_library = "{{ request.session.active_library }}";
-console.log(active_library);
+var project = "{{project}}";
 
-let off = document.getElementById('logo').offsetHeight - document.getElementById("projects_title").offsetTop+5;
-
+let off = document.getElementById('logo').offsetHeight - document.getElementById("top_info").offsetTop+15;
 document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
+
 if(active_library == "true") {
   document.getElementById('check_password_library').style.display = "none";
+} else {
+  document.getElementById('upload').style.display = "none";
+  document.getElementById('videos_list').style.display = "none";
 }
+document.getElementById('curr_video').style.display = "none";
 $.post({
   url: window.location.origin+"/kino_app/set_library_false",
   async: true,
@@ -42,4 +98,37 @@ $.post({
     // console.log(data);
   }
 });
+
+function clickSub() {
+  var para = document.createElement("p");
+  para.innerText = "Your video is processing...";
+  body.appendChild(para);
+}
+
+function clickVideo(el) {
+  let vid = document.getElementById('curr_video');
+  while(vid.firstChild){vid.firstChild.remove();}
+  vid.style.display = "block";
+  var sourceMP4 = document.createElement("source");
+  sourceMP4.type = "video/mp4";
+  sourceMP4.src = el.id;
+  vid.appendChild(sourceMP4);
+  vid.currentTime =0;
+  vid.play();
+  window.scroll(0,vid.offsetTop);
+}
+
+function removeVideo(video) {
+  console.log(video);
+  $.post({
+    url: window.location.origin+"/kino_app/remove_video_library",
+    async: true,
+    data: {'path': video.src.split('media')[1], 'project':project},
+    dataType: 'json',
+    success: function (data) {
+      // console.log(data);
+    }
+  });
+}
+
 </script>
