@@ -780,10 +780,31 @@ def upload_video_library(request):
         project = request.POST['project']
         myfile = request.FILES['fileToUpload']
         info = str(request.FILES).split('[')[1].split('(')[1].split('/')[0]
+        print(info)
         if info == 'video':
             fs = FileSystemStorage()
             filename = fs.save(myfile.name, myfile)
-            dir = os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library/"+str(project))
+            dir = os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library/"+str(project)+"/videos")
+            if os.path.isfile(os.path.join(dir, filename)):
+                i=1;
+                while(os.path.isfile(os.path.join(dir, filename.split('.')[0]+'('+str(i)+').'+filename.split('.')[1]))):
+                  i+=1
+                os.rename(os.path.join(settings.MEDIA_ROOT,filename), os.path.join(settings.MEDIA_ROOT,filename.split('.')[0]+'('+str(i)+').'+filename.split('.')[1]))
+                filename = filename.split('.')[0]+'('+str(i)+').'+filename.split('.')[1]
+            shutil.move(os.path.join(settings.MEDIA_ROOT, filename),dir)
+            os.chmod(dir+'/'+filename,0o644)
+            request.session['active_library'] = "true"
+            return redirect('kino_app:videos_library_app',project=project)
+        if info == 'audio':
+            fs = FileSystemStorage()
+            filename = fs.save(myfile.name, myfile)
+            dir = os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library/"+str(project)+"/audios")
+            if os.path.isfile(os.path.join(dir, filename)):
+                i=1;
+                while os.path.isfile(os.path.join(dir, filename.split('.')[0]+'('+str(i)+').'+filename.split('.')[1])):
+                  i+=1
+                os.rename(os.path.join(settings.MEDIA_ROOT,filename), os.path.join(settings.MEDIA_ROOT,filename.split('.')[0]+'('+str(i)+').'+filename.split('.')[1]))
+                filename = filename.split('.')[0]+'('+str(i)+').'+filename.split('.')[1]
             shutil.move(os.path.join(settings.MEDIA_ROOT, filename),dir)
             os.chmod(dir+'/'+filename,0o644)
             request.session['active_library'] = "true"
@@ -817,14 +838,33 @@ def videos_library_app(request, project):
     dir = os.path.join(settings.MEDIA_ROOT, "kino_app/videos_library/"+str(project))
     if not os.path.isdir(dir):
         os.mkdir(dir)
+    if not os.path.isdir(dir+'/audios'):
+        os.mkdir(dir+'/audios')
+    if not os.path.isdir(dir+'/videos'):
+        os.mkdir(dir+'/videos')
     videos = []
-    for root, subdirs, files in os.walk(dir):
-        for file in files:
-            obj = {}
-            obj['Name'] = file.split('.')[0]
-            obj['src'] = "/media/kino_app/videos_library/"+str(project)+'/'+file
-            videos.append(obj)
-    return render(request, 'kino_app/videos_library.html', {'username':str(request.user.username), 'project':str(project), 'videos':videos})
+    audios = []
+    for root, subdirs, f in os.walk(dir):
+        for sub in subdirs:
+            print(sub)
+            if sub == "audios":
+                for r, s, files in os.walk(root+'/'+sub):
+                    for file in files:
+                        print(file)
+                        obj = {}
+                        obj['Name'] = file.split('.')[0]
+                        obj['src'] = "/media/kino_app/videos_library/"+str(project)+'/audios/'+file
+                        audios.append(obj)
+            if sub == "videos":
+                for r, s, files in os.walk(root+'/'+sub):
+                    for file in files:
+                        print(file)
+                        obj = {}
+                        obj['Name'] = file.split('.')[0]
+                        obj['src'] = "/media/kino_app/videos_library/"+str(project)+'/videos/'+file
+                        videos.append(obj)
+
+    return render(request, 'kino_app/videos_library.html', {'username':str(request.user.username), 'project':str(project), 'videos':videos, 'audios':audios})
 
 @csrf_exempt
 def get_data_detec(request):

@@ -3,7 +3,7 @@
 <link rel="stylesheet" type="text/css" href="{% static 'kino_app/kino_ai/index_style.css' %}">
 <script src="{% static 'kino_app/jquery.min.js' %}"></script>
 <style type="text/css">
-#curr_video {
+#curr_video, #curr_audio {
   width: 40%;
   margin: 10;
 }
@@ -14,10 +14,10 @@
   border: 2px solid #2E5C9C;
   background-color: white;
 }
-#videos_list {
+#videos_list, #audios_list {
   overflow: auto;
 }
-#videos_list li{
+#videos_list li, #audios_list li{
   width: auto;
   border: none;
   margin-left: 10;
@@ -64,7 +64,7 @@ input::placeholder {
     <input type="submit" value="Upload Video" name="submit" onClick="clickSub()">
   </form>
 
-  <script>var videos = [];</script>
+  <script>var videos = []; var audios = [];</script>
   <ul id="videos_list">
   <h3>Videos</h3>
     {% for v in videos %}
@@ -72,9 +72,17 @@ input::placeholder {
       <li><button onclick="clickVideo(this)" class="" id="{{v.src}}">{{v.Name|replace_underscore}}</button></li>
     {% endfor %}
   </ul>
+  <ul id="audios_list">
+  <h3>Audios</h3>
+    {% for a in audios %}
+      <script> audios.push({'Name':"{{a.Name}}", 'src':"{{a.src}}"}); </script>
+      <li><button onclick="clickAudio(this)" class="" id="{{a.src}}">{{a.Name|replace_underscore}}</button></li>
+    {% endfor %}
+  </ul>
 </div>
 
 <video controls id="curr_video"></video>
+<audio controls id="curr_audio"></audio>
 <script>
 var active_library = "{{ request.session.active_library }}";
 var project = "{{project}}";
@@ -87,8 +95,10 @@ if(active_library == "true") {
 } else {
   document.getElementById('upload').style.display = "none";
   document.getElementById('videos_list').style.display = "none";
+  document.getElementById('audios_list').style.display = "none";
 }
 document.getElementById('curr_video').style.display = "none";
+document.getElementById('curr_audio').style.display = "none";
 $.post({
   url: window.location.origin+"/kino_app/set_library_false",
   async: true,
@@ -102,10 +112,11 @@ $.post({
 function clickSub() {
   var para = document.createElement("p");
   para.innerText = "Your video is processing...";
-  body.appendChild(para);
+  document.body.appendChild(para);
 }
 
 function clickVideo(el) {
+  document.getElementById('curr_audio').style.display = "none";
   let vid = document.getElementById('curr_video');
   while(vid.firstChild){vid.firstChild.remove();}
   vid.style.display = "block";
@@ -114,8 +125,24 @@ function clickVideo(el) {
   sourceMP4.src = el.id;
   vid.appendChild(sourceMP4);
   vid.currentTime =0;
+  vid.load();
   vid.play();
   window.scroll(0,vid.offsetTop);
+}
+
+function clickAudio(el) {
+  document.getElementById('curr_video').style.display = "none";
+  let audio = document.getElementById('curr_audio');
+  while(audio.firstChild){audio.firstChild.remove();}
+  audio.style.display = "block";
+  var source = document.createElement("source");
+  source.type = "audio/ogg";
+  source.src = el.id;
+  audio.appendChild(source);
+  audio.currentTime =0;
+  audio.load();
+  audio.play();
+  window.scroll(0,audio.offsetTop);
 }
 
 function removeVideo(video) {
