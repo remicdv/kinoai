@@ -117,6 +117,7 @@ function clickSub() {
 
 function clickVideo(el) {
   document.getElementById('curr_audio').style.display = "none";
+  document.getElementById('curr_audio').pause();
   let vid = document.getElementById('curr_video');
   while(vid.firstChild){vid.firstChild.remove();}
   vid.style.display = "block";
@@ -132,6 +133,7 @@ function clickVideo(el) {
 
 function clickAudio(el) {
   document.getElementById('curr_video').style.display = "none";
+  document.getElementById('curr_video').pause();
   let audio = document.getElementById('curr_audio');
   while(audio.firstChild){audio.firstChild.remove();}
   audio.style.display = "block";

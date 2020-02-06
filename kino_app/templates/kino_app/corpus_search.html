@@ -9,7 +9,7 @@
 <title> Kino AI </title>
 
 <script>
-  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'"));
+  var corpus = JSON.parse("{{data}}".replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&amp;/g,"&"));
   var actors = JSON.parse("{{actors}}".replace(/&quot;/g,'"'));
   var partitions = JSON.parse("{{partitions}}".replace(/&quot;/g,'"').replace(/&lt;/g,"<").replace(/&gt;/g,">"));
   var project = "{{project}}";
