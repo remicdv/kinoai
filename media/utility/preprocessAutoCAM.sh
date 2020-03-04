@@ -78,7 +78,8 @@ for part in "${parts[@]}"; do
     # generate proxy in prores SQ
     if [ ! -f "$take_dir/$part_dir/original_hevc.mov" ]; then
 	echo "Info: generating proxy $take_dir/$part_dir/original.mov"
-	time ffmpeg -nostdin -ss "$start" -i "$take_dir/$video_file" -c:v libx265 -preset veryfast -crf 28 -t "$duration" -c:a aac -strict -2 -b:a 128k "$take_dir/$part_dir/original_hevc.mov" &> "$take_dir/$part_dir/original_hevc.mov.log"
+	time ffmpeg -nostdin -ss "$start" -i "$take_dir/$video_file" -c copy -t "$duration" "$take_dir/$part_dir/original_hevc.mov" &> "$take_dir/$part_dir/original_hevc.mov.log"
+	# time ffmpeg -nostdin -ss "$start" -i "$take_dir/$video_file" -c:v libx265 -preset veryfast -crf 28 -t "$duration" -c:a aac -strict -2 -b:a 128k "$take_dir/$part_dir/original_hevc.mov" &> "$take_dir/$part_dir/original_hevc.mov.log"
 	# time ffmpeg -nostdin -ss "$start" -i "$take_dir/$video_file" -c:v prores_ks -profile:v 2 -vendor ap10 -pix_fmt yuv422p10le -s 2048x1080 -t "$duration" -sws_flags area -acodec copy "$take_dir/$part_dir/original1080.mov" &> "$take_dir/$part_dir/original1080.mov.log"
 	# time ffmpeg -nostdin -ss "$start" -i "$take_dir/$video_file" -c:v prores_ks -profile:v 2 -vendor ap10 -pix_fmt yuv422p10le -s 1024x540 -t "$duration" -sws_flags area -acodec copy "$take_dir/$part_dir/original.mov" &> "$take_dir/$part_dir/original.mov.log"
     else
@@ -116,9 +117,9 @@ for part in "${parts[@]}"; do
     # done
     #create mpd manifest
     if [ -f "$take_dir/$part_dir/output-audio.mp4" ]; then
-  time MP4Box -dash 2100 -rap -frag-rap -profile simple -out "$take_dir/$part_dir/mpd/original_dash" "$take_dir/$part_dir/original1080.mp4" "$take_dir/$part_dir/original540.mp4" "$take_dir/$part_dir/output-audio.mp4" &> "$take_dir/$part_dir/mpd.log"
+  time MP4Box -dash 2100 -rap -frag-rap -profile simple -out "$take_dir/$part_dir/mpd/original_dash" "$take_dir/$part_dir/original1080.mp4#video" "$take_dir/$part_dir/original540.mp4#video" "$take_dir/$part_dir/output-audio.mp4#audio" &> "$take_dir/$part_dir/mpd.log"
     else
-  time MP4Box -dash 2100 -rap -frag-rap -profile simple -out "$take_dir/$part_dir/mpd/original_dash" "$take_dir/$part_dir/original1080.mp4" "$take_dir/$part_dir/original540.mp4" &> "$take_dir/$part_dir/mpd.log"
+  time MP4Box -dash 2100 -rap -frag-rap -profile simple -out "$take_dir/$part_dir/mpd/original_dash" "$take_dir/$part_dir/original1080.mp4#video" "$take_dir/$part_dir/original540.mp4#video" &> "$take_dir/$part_dir/mpd.log"
     fi
 
     if [ ! -f "$take_dir/$part_dir/detections.json" ]; then
