@@ -3752,6 +3752,10 @@ function mouseDragged() {
     offstage_state.drag(mouseX, mouseY);
   }
 
+  if(editing_button.on) {
+    shots_timeline.drag(mouseX,mouseY);
+  }
+
   let new_t = player.drag(mouseX, mouseY);
   if(new_t && !b)
     video.time(new_t);

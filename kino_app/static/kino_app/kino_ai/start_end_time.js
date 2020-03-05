@@ -17,6 +17,8 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
 
   this.drop_shot;
 
+  this.draggin = false;
+
   this.select_author = createSelect();
 
   for(let name of json_data_timelines) {
@@ -29,9 +31,11 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
 
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
+    for(var i=0; i<this.shots.length; i++) {
+      this.shots[i].on = false;
+    }
     if (this.select_author.elt.value == username && !is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       for(var i=0; i<this.shots.length; i++) {
-        this.shots[i].on = false;
         if(mx > this.shots[i].start && mx < this.shots[i].end) {
           this.shots[i].on = true;
         }
@@ -44,17 +48,12 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
   };
 
   this.drag = function(mx, my) {
+    this.draggin = false;
     if (this.select_author.elt.value == username && !is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
-      // if(this.on) {
-      //   this.start = mx;
-      // } else{
-      //   this.end = mx;
-      // }
-      // var unit = this.w/this.duration;
-      // this.time= (mx-this.x)/unit;
       let unit = this.w/(annotation_timeline.total_frame/frame_rate);
       this.time=(annotation_timeline.first/frame_rate)+(mx-this.x)/unit;
-      return this.time;
+      video.time(this.time);
+      this.draggin = true;
     } else {
       return undefined;
     }
@@ -667,7 +666,13 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
           push();
           noStroke();
           fill(120,230,216);
+          if(this.draggin && annotation_timeline.nav_bar.cursor >x_end) {
+            x_end=annotation_timeline.nav_bar.cursor;
+          } else if(this.draggin && annotation_timeline.nav_bar.cursor <x_start) {
+            x_start=annotation_timeline.nav_bar.cursor;
+          }
           rect(x_start,this.y,x_end-x_start,this.h);
+
           pop();
         }
         if(this.shots[i]) {
@@ -728,7 +733,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     strokeWeight(1);
     for(var i=0; i<this.w; i++) {
       var x = this.x + i;
-      if(x<player.x_cursor) {
+      if(x<annotation_timeline.nav_bar.cursor) {
         stroke(50,50,123);
       } else {
         stroke(255);
@@ -740,6 +745,11 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
         line(x, y, x, y-2);
       }
     }
+    stroke(0);
+    strokeWeight(2);
+    fill(0);
+    line(annotation_timeline.nav_bar.cursor,this.y,annotation_timeline.nav_bar.cursor,this.y+this.h);
+    triangle(annotation_timeline.nav_bar.cursor-4, this.y-4, annotation_timeline.nav_bar.cursor+4, this.y-4, annotation_timeline.nav_bar.cursor, this.y);
     pop();
 
   }
