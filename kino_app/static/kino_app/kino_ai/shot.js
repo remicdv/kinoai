@@ -40,6 +40,10 @@ function Shot()  {
       if(this.on && !this.in_stabilize) {
         this.drag = true;
       }
+      if(editing_button.on && keyIsPressed && keyCode == 17) {
+        console.log("ctrl", keyCode);
+        shots_timeline.addShotOnCursor(this);
+      }
     }
   }
 

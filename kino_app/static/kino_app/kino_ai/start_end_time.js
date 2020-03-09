@@ -34,6 +34,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     for(var i=0; i<this.shots.length; i++) {
       this.shots[i].on = false;
     }
+    this.draggin = false;
     if (this.select_author.elt.value == username && !is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       for(var i=0; i<this.shots.length; i++) {
         if(mx > this.shots[i].start && mx < this.shots[i].end) {
@@ -48,7 +49,6 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
   };
 
   this.drag = function(mx, my) {
-    this.draggin = false;
     if (this.select_author.elt.value == username && !is_split && !is_note_book && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       let unit = this.w/(annotation_timeline.total_frame/frame_rate);
       this.time=(annotation_timeline.first/frame_rate)+(mx-this.x)/unit;
@@ -96,6 +96,12 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     } else {
       return undefined;
     }
+  }
+
+  this.addShotOnCursor = function(shot) {
+    let unit = this.w/this.duration;
+    this.time= (annotation_timeline.first/frame_rate) + (annotation_timeline.nav_bar.cursor-this.x)/unit;
+    this.addShot(shot);
   }
 
   this.addShot = function(shot) {
@@ -549,6 +555,33 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     return ret;
   }
 
+  function sortSplitTab(a,b) {
+    if (a[0] < b[0])
+      return -1;
+    if (a[0] > b[0])
+      return 1;
+    return 0;
+  }
+
+  this.splitScreenBBoxes = function(actors_involved, type, a_s) {
+    let ret = [];
+    for(let i=0;i<total_frame;i++) {
+      let tab_frame = [];
+      for(let act of actors_involved) {
+        let tab_act = [];
+        tab_act.push(act)
+        let bb = getShotAspect(type, tab_act, a_s).getCurrStabShot(i);
+        if(bb && bb[0] != "null") {
+          tab_frame.push(bb);
+        } else {
+          tab_frame.push([0,0,Number(original_width), Number(original_height)]);
+        }
+      }
+      ret.push(tab_frame.sort(sortSplitTab));
+    }
+    console.log(ret);
+  }
+
   this.getAspectRatio = function() {
     let curr_a_s = aspect_ratio;
     for(let s of this.shots) {
@@ -665,7 +698,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
         if(this.shots[i].on) {
           push();
           noStroke();
-          fill(120,230,216);
+          fill(46,92,156);
           if(this.draggin && annotation_timeline.nav_bar.cursor >x_end) {
             x_end=annotation_timeline.nav_bar.cursor;
           } else if(this.draggin && annotation_timeline.nav_bar.cursor <x_start) {
