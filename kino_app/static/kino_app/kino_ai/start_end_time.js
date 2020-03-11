@@ -104,11 +104,32 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     this.addShot(shot);
   }
 
+  this.replaceShot = function(shot) {
+    let x_pos= annotation_timeline.nav_bar.cursor;
+    let new_shot;
+    for(let s of this.shots) {
+      if(s.start < x_pos && x_pos<s.end) {
+        new_shot = s;
+      }
+    }
+    if(new_shot) {
+      new_shot.type = shot.type;
+      new_shot.actors_involved = shot.actors_involved;
+      new_shot.aspect_ratio = shot.aspect_ratio;
+      new_shot.is_intersect = shot.is_intersect;
+      new_shot.is_stage_position = shot.is_stage_position;
+      new_shot.is_gaze_direction = shot.is_gaze_direction;
+    }
+  }
+
   this.addShot = function(shot) {
     var s = {};//new Shot();
     s.type = shot.type;
     s.actors_involved = shot.actors_involved;
     s.aspect_ratio = shot.aspect_ratio;
+    s.is_intersect = shot.is_intersect;
+    s.is_stage_position = shot.is_stage_position;
+    s.is_gaze_direction = shot.is_gaze_direction;
     var unit = this.w/this.duration;
     s.start = this.x+this.time*unit;
     s.start_frame = Math.round(frame_rate*this.time);
@@ -436,7 +457,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       if(frame_num <= this.shots[i].end_frame && frame_num >= this.shots[i].start_frame) {
         let f_f = this.shots[i].start_frame;
         // bb = this.shots[i].getCurrStabShot(frame_num - f_f);
-        bb = getShotAspect(this.shots[i].type, this.shots[i].actors_involved, this.shots[i].aspect_ratio).getCurrStabShot(frame_num);
+        bb = getShotAspect(this.shots[i].type, this.shots[i].actors_involved, this.shots[i].aspect_ratio, this.shots[i].is_intersect, this.shots[i].is_stage_position, this.shots[i].is_gaze_direction).getCurrStabShot(frame_num);
         if(bb && bb[0] != "null") {
           ret = [bb[0]*scale_ratio, bb[1]*scale_ratio, bb[2]*scale_ratio, bb[3]*scale_ratio];
           // let hor_len = bb[2] * aspect_ratio;
@@ -455,7 +476,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       if(frame_num <= this.shots[i].end_frame && frame_num >= this.shots[i].start_frame) {
         let f_f = this.shots[i].start_frame;
         // bb = this.shots[i].getCurrStabShot(frame_num - f_f);
-        bb = getShotAspect(this.shots[i].type, this.shots[i].actors_involved, this.shots[i].aspect_ratio).getCurrStabShot(frame_num);
+        bb = getShotAspect(this.shots[i].type, this.shots[i].actors_involved, this.shots[i].aspect_ratio,this.shots[i].is_intersect, this.shots[i].is_stage_position, this.shots[i].is_gaze_direction).getCurrStabShot(frame_num);
         if(bb && bb[0] != "null") {
           ret = bb;
         }
@@ -563,14 +584,15 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     return 0;
   }
 
-  this.splitScreenBBoxes = function(actors_involved, type, a_s) {
-    let ret = [];
+  this.splitScreenBBoxes = function(actors_involved, type, a_s, intersect=true, stage_pos=true) {
+    var ret = [];
+    var final_a_s = a_s;
     for(let i=0;i<total_frame;i++) {
       let tab_frame = [];
       for(let act of actors_involved) {
         let tab_act = [];
         tab_act.push(act)
-        let bb = getShotAspect(type, tab_act, a_s).getCurrStabShot(i);
+        let bb = getShotAspect(type, tab_act, a_s, intersect, stage_pos).getCurrStabShot(i);
         if(bb && bb[0] != "null") {
           tab_frame.push(bb);
         } else {
@@ -580,6 +602,15 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       ret.push(tab_frame.sort(sortSplitTab));
     }
     console.log(ret);
+    $.post({
+      url: "reframeMov",
+      data: {'abs_path': abs_path, 'bboxes':JSON.stringify(ret), 'is_split':true, 'width':Number(original_width), 'aspect_ratio':final_a_s},
+      dataType: 'json',
+      success: function (data) {
+        console.log(data);
+        return callbackReframe(data);
+      }
+    });
   }
 
   this.getAspectRatio = function() {
@@ -633,7 +664,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     for(var i=0; i<this.shots.length; i++) {
       if(this.shots[i].start < player.x_cursor && this.shots[i].end > player.x_cursor) {
         fill(255);
-        let s = getShotAspect(this.shots[i].type, this.shots[i].actors_involved, this.shots[i].aspect_ratio);
+        let s = getShotAspect(this.shots[i].type, this.shots[i].actors_involved, this.shots[i].aspect_ratio, this.shots[i].is_intersect, this.shots[i].is_stage_position, this.shots[i].is_gaze_direction);
         let type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
         if(!type) {
           type = s.type;
@@ -727,7 +758,19 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
           // }
             fill(255);
             noStroke();
-            text(this.shots[i].type, x_start, this.y+10);
+            let intersect = "";
+            if(this.shots[i].is_intersect) {
+              intersect = " I";
+            }
+            let gaze = "";
+            if(this.shots[i].is_gaze_direction) {
+              gaze = " G";
+            }
+            let stage_pos = "";
+            if(this.shots[i].is_stage_position) {
+              stage_pos = " S";
+            }
+            text(this.shots[i].type+intersect+gaze+stage_pos, x_start, this.y+10);
             for(var j=0; j<this.shots[i].actors_involved.length; j++) {
               text(this.shots[i].actors_involved[j].actor_name, x_start, this.y+25+j*15);
             }

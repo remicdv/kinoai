@@ -1279,6 +1279,59 @@ def crop(image):
     else:
         return image
 
+def crop_split(image, bbox, size):
+    x = int(bbox[0])
+    y = int(bbox[1])
+    w = int(math.ceil((bbox[2] - bbox[0])/2)*2)
+    h = int(math.ceil((bbox[3] - bbox[1])/2)*2)
+    # print(w/h, crop.size[0]/crop.size[1], image.dtype)
+    if math.isclose((bbox[2] - bbox[0])/(bbox[3] - bbox[1]), size[0]/size[1], rel_tol=1e-2):
+        return cv2.resize(image[y:y+h, x:x+w],(size[0],size[1]),interpolation=cv2.INTER_LANCZOS4)
+    else:
+        print((bbox[2] - bbox[0]), (bbox[3] - bbox[1]), (bbox[2] - bbox[0])/(bbox[3] - bbox[1]))
+        blank_image = np.zeros((size[1],size[0],3), dtype='uint8')
+        if w<h:
+            height = int(size[1])
+            width = int(height*(w/h))
+            if width > int(size[0]):
+                width=int(size[0])
+            img = cv2.resize(image[y:y+h, x:x+w],(width,height),interpolation=cv2.INTER_LANCZOS4)
+            x_off = int(abs(size[0]-width)/2)
+
+            if x_off+width > int(size[0]):
+                x_off=0
+            blank_image[0:height, x_off:x_off+width] = img
+
+        else:
+            width = int(size[0])
+            height = int(width/(w/h))
+            if height > int(size[1]):
+                height=int(size[1])
+            img = cv2.resize(image[y:y+h, x:x+w],(width,height),interpolation=cv2.INTER_LANCZOS4)
+            y_off = int(abs(size[1]-height)/2)
+            if y_off+height > int(size[1]):
+                y_off=0
+            blank_image[y_off:y_off+height, 0:width]= img
+        return blank_image
+
+def split_screen(image):
+    if split_screen.counter < len(split_screen.bboxes) :
+        bbox = split_screen.bboxes[split_screen.counter]
+    else:
+        bbox = split_screen.bboxes[len(split_screen.bboxes)-1]
+    new_image = crop_split(image, bbox[0], split_screen.size)
+    i=0
+    for bb in bbox:
+        if i>0:
+            new_image = np.hstack((new_image,crop_split(image, bb, split_screen.size)))
+        i+=1
+        # print(crop_split(image, bb, split_screen.size))
+    split_screen.counter += 1
+    if new_image.size !=0:
+        return new_image
+    else:
+        return image
+
 @csrf_exempt
 def reframeCv(request):
     start = time.time()
@@ -1337,28 +1390,34 @@ def reframeMov(request):
     abs_path = request.POST.get('abs_path','')
     width = int(request.POST.get('width',''))
     aspect_ratio = float(request.POST.get('aspect_ratio',''))
+    is_split_screen = request.POST.get('is_split','')!="false"
     bbox = np.array(json.loads(bbox_string))
+
     videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_3'+'/19janvier/pres.mov'#
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
     factor = int(hevc_w / width)
     print(hevc_w, factor, aspect_ratio)
     print(request.user.username)
-    bbox[:,] *= factor
+    scale_factor = 4
+    if not is_split_screen:
+        bbox[:,] *= factor
+        res = bbox[:,2] - bbox[:,0]
+        max = int(sum(res)/len(res))
+        if max > 0:
+            scale_factor = 4
+        if max > 1024:
+            scale_factor = 2
+        if max > 2048:
+            scale_factor = 1
+        crop.bboxes = bbox
+        crop.counter = 0
+        print(max, scale_factor)
+    else:
+        bbox[:][:,] *= factor
+        split_screen.bboxes = bbox
+        split_screen.counter = 0
 
-    res = bbox[:,2] - bbox[:,0]
-    max = int(sum(res)/len(res))
-    scale_factor = 1
-    if max > 0:
-        scale_factor = 4
-    if max > 1024:
-        scale_factor = 2
-    if max > 2048:
-        scale_factor = 1
-
-    print(max, scale_factor)
-    crop.bboxes = bbox
-    crop.counter = 0
     print(len(bbox))
     out_vid = abs_path+'/'+request.user.username+'_output_video.mp4'
     print(videoname)
@@ -1373,10 +1432,16 @@ def reframeMov(request):
         height = width*aspect_ratio
     clip.size = [int(width/scale_factor),int(height/scale_factor)]
     print(clip.size)
-    crop.size = clip.size
-
-    new_clip = clip.fl_image( crop )
-    new_clip.write_videofile(out_vid, threads=16, preset='ultrafast')
+    if not is_split_screen:
+        crop.size = clip.size
+        new_clip = clip.fl_image( crop )
+        new_clip.write_videofile(out_vid, threads=16, preset='ultrafast')
+    else:
+        split_screen.size = clip.size
+        clip.size = [clip.size[0]*len(bbox[0]),clip.size[1]]
+        print(clip.size)
+        new_clip = clip.fl_image( split_screen )
+        new_clip.write_videofile(out_vid, threads=16, preset='ultrafast')
 
     end = time.time()
 

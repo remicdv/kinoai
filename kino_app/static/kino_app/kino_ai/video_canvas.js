@@ -41,9 +41,15 @@ var draw_track;
 var shot_creation;
 var is_shot_creation = false;
 var intersect;
-var is_intersect = true;
+var is_intersect = false;
+var stage_position;
+var is_stage_position = true;
+var gaze_direction;
+var is_gaze_direction = true;
 var all_types;
 var is_all_types = true;
+var show_context;
+var is_show_context = true;
 var show_tracks;
 var is_show_tracks = false;
 var show_shots;
@@ -420,6 +426,7 @@ function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSiz
   let bbox = [];
   let x_centers = [];
   let y_centers = [];
+  let actor_neck_position = [];
   let k=0;
   for(let act of actors_involved) {
     for(let t of act.tracks) {
@@ -432,6 +439,12 @@ function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSiz
       }
       if(first_frame < fr_num && detections_track.length > (fr_num-first_frame) && keypoints_tab) {
         var boxB = getBBoxShotAdapted(aspectRatio, keypoints_tab['KeyPoints'], shot_factor);
+        let neck_position  = keypoints_tab['KeyPoints'][1*3];
+        if(neck_position == 'null') {
+          let oppbbox = getBBox(keypoints_tab['KeyPoints']);
+          neck_position = (oppbbox[0] + oppbbox[2])/2;
+        }
+        actor_neck_position.push(neck_position);
         if(!gaze_vect) {
           gaze_vect = getGazevect(keypointsB[detections_track[fr_num-first_frame]]['KeyPoints']);
           let vel = act.getVelocityVect(fr_num);
@@ -475,11 +488,20 @@ function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSiz
 
   bbox = getAdaptedBBox(bbox, aspectRatio);
 
-  if(gaze_vect && actors_involved.length==1) {
+  if(is_gaze_direction && gaze_vect && actors_involved.length==1) {
     let s_gaze = abs((gaze_vect.x*shot_factor)/100);
     let off = gaze_vect.normalize().x*((bbox[2]-bbox[0])*s_gaze);
     // console.log(off);
     bbox = [int(bbox[0]+off), bbox[1], int(bbox[2]+off), bbox[3]];
+  }
+
+  if(is_stage_position && actor_neck_position.length!=0) {
+    let stage_position = int((actor_neck_position.reduce((pv, cv) => pv + cv, 0))/actor_neck_position.length);
+    let stage_position_factor = Math.min(2/3,Math.max(1/3,stage_position/Number(original_width)));
+    let prev_w = int(bbox[2]-bbox[0]);
+    let offset = int(prev_w*stage_position_factor);
+    bbox[0] = stage_position-offset;
+    bbox[2] = bbox[0]+prev_w;
   }
 
   bbox = [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])];
@@ -672,14 +694,14 @@ function getShot(tab, type, actors_involved) {
 }
 
 // Get shot
-function getShotAspect(type, actors_involved, aspect_ratio) {
+function getShotAspect(type, actors_involved, aspect_ratio, intersect, stage_pos, gaze_dir) {
   let ret = undefined;
   let acts = [];
   for(let a of actors_involved) {
     acts.push(a.actor_name);
   }
   for(let s of shots) {
-    if(s.type == type && s.aspect_ratio == aspect_ratio) {
+    if(s.type == type && s.aspect_ratio == aspect_ratio && intersect == s.is_intersect && stage_pos == s.is_stage_position && gaze_dir == s.is_gaze_direction) {
       let b1 = true;
       for(let a of s.actors_involved) {
         if(!acts.includes(a.actor_name)) {
@@ -999,7 +1021,7 @@ function updateShotCreate() {
   } else {
     let div_creation = createDiv();
     div_creation.id('div_creation');
-    div_creation.position(mid_width,shot_selector.y+30);
+    div_creation.position(mid_width,shot_selector.y+60);
     div_creation.style('display','table');
     div_creation.size((reframe_button.position().x-mid_width)-10);
     for(let a of actors_timeline) {
@@ -1012,8 +1034,20 @@ function updateShotIntersect() {
   is_intersect = this.checked();
 }
 
+function updateShotStagePosition() {
+  is_stage_position = this.checked();
+}
+
+function updateShotGazeDirection() {
+  is_gaze_direction = this.checked();
+}
+
 function updateAllShotSelect() {
   is_all_types = this.checked();
+}
+
+function updateShowContextSelect() {
+  is_show_context = this.checked();
 }
 
 function updateShowTracks() {
@@ -1229,6 +1263,29 @@ function exploitRoughCut() {
   shots.sort(sortShotsByType);
 }
 
+function createContextShot() {
+  let shot = new Shot();
+  shot.aspect_ratio = aspect_ratio;
+  shot.start_frame = 0;
+  shot.end_frame = Math.round(frame_rate*video.duration());
+  shot.is_intersect = false;
+  shot.is_stage_position = false;
+  shot.is_gaze_direction = false;
+  shot.type = 'WS';
+  let b = false;
+  for(let s of shots) {
+    if(s.equalTo(shot, false)) {
+      b = true;
+      break;
+    }
+  }
+  if(!b) {
+    shot.calcBboxes(aspect_ratio);
+    shots.push(shot);
+  }
+}
+
+
 // Get the specification and launch the stabilization of the shot created by the user
 function saveShot() {
 
@@ -1244,6 +1301,10 @@ function saveShot() {
   shot.aspect_ratio = aspect_ratio/ratio_type;
   shot.start_frame = 0;
   shot.end_frame = Math.round(frame_rate*video.duration());
+
+  shot.is_intersect = is_intersect;
+  shot.is_stage_position = is_stage_position;
+  shot.is_gaze_direction = is_gaze_direction;
 
   shot.type = shot_type;
 
@@ -1512,6 +1573,9 @@ function saveTimeline() {
     shot.BBoxes = s.bboxes;
     shot.ActInvolved = s.getActNameInvolved();
     shot.AspectRatio = s.aspect_ratio;
+    shot.GazeDir = s.is_gaze_direction;
+    shot.Intersect = s.is_intersect;
+    shot.StagePos = s.is_stage_position;
     new_json_shots.push(shot);
   }
 
@@ -1528,6 +1592,9 @@ function saveTimeline() {
     }
     shot.ActInvolved = tab;
     shot.AspectRatio = s.aspect_ratio;
+    shot.GazeDir = s.is_gaze_direction;
+    shot.Intersect = s.is_intersect;
+    shot.StagePos = s.is_stage_position;
     new_json_shots.push(shot);
   }
 
@@ -1864,7 +1931,7 @@ function callbackReframe(data) {
 function reframeRequest() {
   $.post({
     url: "reframeMov",
-    data: {'abs_path': abs_path, 'bboxes':JSON.stringify(shots_timeline.compressBBoxes()), 'width':Number(original_width), 'aspect_ratio':shots_timeline.getAspectRatio()},
+    data: {'abs_path': abs_path, 'bboxes':JSON.stringify(shots_timeline.compressBBoxes()), 'is_split':false, 'width':Number(original_width), 'aspect_ratio':shots_timeline.getAspectRatio()},
     dataType: 'json',
     success: function (data) {
       console.log(data);
@@ -2035,13 +2102,15 @@ function drawFramesData() {
 // Show the creation shot interface
 function drawCreationShot() {
 
-  var top_shot = shot_selector.original_y+65;
+  var top_shot = shot_selector.original_y+85;
   if(table_scroll) {
     top_shot = table_scroll.y + table_scroll.height + 10;
   }
   shot_selector.show();
   ratio_selector.show();
   intersect.show();
+  stage_position.show();
+  gaze_direction.show();
   save_shot.show();
   for(let i=0; i<actors_timeline.length; i++) {
     $('#div_creation').append(actors_timeline[i].elem.elt);
@@ -2296,12 +2365,17 @@ function drawShotsLayout() {
 // Draw a grid with a preview for all the shots
 function drawShots() {
   var top_shot = shot_selector.original_y+65;
+  let context_height = int((reframe_button.position().x-mid_width-20)/2);
   if(table_scroll) {
     top_shot = table_scroll.y + table_scroll.height + 10;
+  }
+  if(is_show_context) {
+    top_shot += context_height+10;
   }
 
   shot_selector.show();
   all_types.show();
+  show_context.show();
   var k=0;
   var off_x = 0;
   var off_y = 0;
@@ -2314,12 +2388,13 @@ function drawShots() {
   }
   var front_shot;
   var front_bbox;
+
   for(let s of shots) {
     if(!s.aspect_ratio){
       s.aspect_ratio = aspect_ratio;
     }
     var arr = s.getCurrStabShot(frame_num);
-    if(arr && (s.type == shot_type || is_all_types)) {
+    if(arr && s.type != 'WS' && (s.type == shot_type || is_all_types)) {
       var bbox = [];
       for(var j=0; j<arr.length; j++) {
         bbox.push(arr[j]*scale_ratio);
@@ -2361,6 +2436,15 @@ function drawShots() {
         }
         s.displayText();
       }
+    } else if (is_show_context && s.type == 'WS') {
+      s.setPosition((viewer_width+10), top_shot-(context_height+10), context_height*aspect_ratio, context_height);
+      s.display();
+      if(img_hd) {
+        image(img_hd, s.x, s.y, s.w, s.h);
+      } else {
+        image(image_frame, s.x, s.y, s.w, s.h);
+      }
+      s.displayText();
     }
   }
   if(front_shot) {
@@ -2882,6 +2966,18 @@ function setup() {
         s.bboxes = data_shots[i].BBoxes;
         s.setActInvoled(data_shots[i].ActInvolved);
         s.aspect_ratio = data_shots[i].AspectRatio;
+        if(data_shots[i].GazeDir==undefined) {
+          data_shots[i].GazeDir = true;
+        }
+        s.is_gaze_direction = data_shots[i].GazeDir;
+        if(data_shots[i].Intersect==undefined) {
+          data_shots[i].Intersect = true;
+        }
+        s.is_intersect = data_shots[i].Intersect;
+        if(data_shots[i].StagePos==undefined) {
+          data_shots[i].StagePos = false;
+        }
+        s.is_stage_position = data_shots[i].StagePos;
         shots.push(s);
       }
     }
@@ -2895,6 +2991,18 @@ function setup() {
         s.start_frame = data_shots.StartFrame;
         s.end_frame = data_shots.EndFrame;
         s.aspect_ratio = data_shots.AspectRatio;
+        if(data_shots.GazeDir ==undefined) {
+          data_shots.GazeDir = true;
+        }
+        s.is_gaze_direction = data_shots.GazeDir;
+        if(data_shots.Intersect ==undefined) {
+          data_shots.Intersect = true;
+        }
+        s.is_intersect = data_shots.Intersect;
+        if(data_shots.StagePos ==undefined) {
+          data_shots.StagePos = false;
+        }
+        s.is_stage_position = data_shots.StagePos;
         let tab = [];
         for(let n of data_shots.ActInvolved) {
           tab.push(getAct(n));
@@ -2908,7 +3016,6 @@ function setup() {
       obj.Data = tab_shots;
       shots_timeline.list_data.push(obj);
     }
-
     shots.sort(sortShotsByName);
     shots.sort(sortShotsByType);
 
@@ -2941,13 +3048,29 @@ function setup() {
     ratio_selector.option(3);
     ratio_selector.changed(selectRatio);
 
-    intersect = createCheckbox('Intersect', true);
+    intersect = createCheckbox('Intersect', false);
     intersect.side = false;
     intersect.mouseOver(processToolTip('Test intersection with not included actors'));
     intersect.mouseOut(processToolTip(''));
     html_elements.push(intersect);
-    intersect.position(windowWidth/2 + 140, 40);
+    intersect.position(windowWidth/2 + 5, 70);
     intersect.changed(updateShotIntersect);
+
+    stage_position = createCheckbox('Stage position', true);
+    stage_position.side = false;
+    stage_position.mouseOver(processToolTip('Keep the stage position'));
+    stage_position.mouseOut(processToolTip(''));
+    html_elements.push(stage_position);
+    stage_position.position(windowWidth/2 + 140, 70);
+    stage_position.changed(updateShotStagePosition);
+
+    gaze_direction = createCheckbox('Gaze direction', true);
+    gaze_direction.side = false;
+    gaze_direction.mouseOver(processToolTip('Use the gaze direction'));
+    gaze_direction.mouseOut(processToolTip(''));
+    html_elements.push(gaze_direction);
+    gaze_direction.position(windowWidth/2 + 315, 70);
+    gaze_direction.changed(updateShotGazeDirection);
 
     all_types = createCheckbox('All types', true);
     all_types.side = false;
@@ -2957,7 +3080,15 @@ function setup() {
     all_types.position(windowWidth/2 + 140, 40);
     all_types.changed(updateAllShotSelect);
 
-    save_shot = createButton('Save');
+    show_context = createCheckbox('Show context', true);
+    show_context.side = false;
+    show_context.mouseOver(processToolTip('Display the stage'));
+    show_context.mouseOut(processToolTip(''));
+    html_elements.push(show_context);
+    show_context.position(windowWidth/2 + 320, 40);
+    show_context.changed(updateShowContextSelect);
+
+    save_shot = createButton('Create');
     save_shot.side = false;
     save_shot.mouseOver(processToolTip('Launch the stabilization process of the shot'));
     save_shot.mouseOut(processToolTip(''));
@@ -3146,14 +3277,19 @@ function setup() {
       elem.original_x = elem.position().x;
       elem.original_y = elem.position().y;
     }
-    shot_selector.hide();
+    // shot_selector.hide();
     save_shot.hide();
     ratio_selector.hide();
     intersect.hide();
+    stage_position.hide();
+    gaze_direction.hide();
     all_types.hide();
+    show_context.hide();
     // createAllShots();
   }
   frameRate(frame_rate);
+  total_frame = Math.floor(video.duration()*frame_rate);
+  createContextShot();
 }
 
 function draw() {
@@ -3184,8 +3320,11 @@ function draw() {
     showAllElt();
     shot_selector.original_x = mid_width + 10;
     ratio_selector.original_x = mid_width + 80;
-    intersect.original_x = mid_width + 140;
+    intersect.original_x = mid_width + 10;
+    stage_position.original_x = mid_width + 140;
+    gaze_direction.original_x = mid_width + 315;
     all_types.original_x = mid_width + 140;
+    show_context.original_x = mid_width + 320;
     shot_creation.original_x = mid_width + 10;
     show_tracks.original_x = mid_width + 160;
     show_shots.original_x = mid_width + 320;
@@ -3413,6 +3552,7 @@ function draw() {
           }
           if(is_shot_creation) {
             all_types.hide();
+            show_context.hide();
             drawCreationShot();
             if(table_scroll) {
               table_scroll.remove();
@@ -3420,14 +3560,18 @@ function draw() {
             }
           } else {
             createTableTracks();
-            shot_selector.hide();
+            if(!is_show_shots)
+              shot_selector.hide();
             ratio_selector.hide();
             intersect.hide();
+            stage_position.hide();
+            gaze_direction.hide();
             save_shot.hide();
             if(is_show_shots && !is_show_tracks) {
               drawShots();
             } else {
               all_types.hide();
+              show_context.hide();
             }
           }
           if(!crop_button.on) {

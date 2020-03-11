@@ -24,6 +24,12 @@ function Shot()  {
 
   this.end;
 
+  this.is_intersect = false;
+
+  this.is_stage_position = true;
+
+  this.is_gaze_direction = true;
+
   this.actors_involved = [];
 
   this.on = false;
@@ -35,14 +41,16 @@ function Shot()  {
   this.accuracy_rate;
 
   this.click = function(mx, my) {
-    if(mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
+    if(!(!is_show_context && this.type == 'WS') && (this.type == shot_type || is_all_types) && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       this.on = !this.on;
       if(this.on && !this.in_stabilize) {
         this.drag = true;
       }
       if(editing_button.on && keyIsPressed && keyCode == 17) {
-        console.log("ctrl", keyCode);
         shots_timeline.addShotOnCursor(this);
+      }
+      if(editing_button.on && keyIsPressed && keyCode == 16) {
+        shots_timeline.replaceShot(this);
       }
     }
   }
@@ -81,7 +89,7 @@ function Shot()  {
       s_act_inv = s.getUpdateActInvolved();
       s_type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
     }
-    if(s_type == type) {
+    if(s_type == type && s.is_intersect == this.is_intersect && s.is_stage_position == this.is_stage_position && s.is_gaze_direction == this.is_gaze_direction) {
       let b1 = true;
       for(let name of s_act_inv) {
         if(!act_inv.includes(name)) {
@@ -989,7 +997,19 @@ function Shot()  {
     if(!type) {
       type = this.type;
     }
-    text('Type '+this.type+' a_s '+round_prec(this.aspect_ratio,2)+' '/*+Math.round(this.accuracy_rate*100)+'%'*/, this.x, this.y+10);
+    let intersect = "";
+    if(this.is_intersect) {
+      intersect = " I";
+    }
+    let gaze = "";
+    if(this.is_gaze_direction) {
+      gaze = " G";
+    }
+    let stage_pos = "";
+    if(this.is_stage_position) {
+      stage_pos = " S";
+    }
+    text('Type '+this.type+' a_s '+round_prec(this.aspect_ratio,2)+intersect+gaze+stage_pos/*+Math.round(this.accuracy_rate*100)+'%'*/, this.x, this.y+10);
     for(let i=0; i<this.actors_involved.length; i++) {
       text(this.actors_involved[i].actor_name, this.x, this.y+20+i*10);
     }
