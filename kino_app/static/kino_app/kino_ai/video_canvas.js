@@ -488,20 +488,36 @@ function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSiz
 
   bbox = getAdaptedBBox(bbox, aspectRatio);
 
-  if(is_gaze_direction && gaze_vect && actors_involved.length==1) {
-    let s_gaze = abs((gaze_vect.x*shot_factor)/100);
-    let off = gaze_vect.normalize().x*((bbox[2]-bbox[0])*s_gaze);
-    // console.log(off);
-    bbox = [int(bbox[0]+off), bbox[1], int(bbox[2]+off), bbox[3]];
-  }
-
+  let stage_off;
   if(is_stage_position && actor_neck_position.length!=0) {
     let stage_position = int((actor_neck_position.reduce((pv, cv) => pv + cv, 0))/actor_neck_position.length);
     let stage_position_factor = Math.min(2/3,Math.max(1/3,stage_position/Number(original_width)));
     let prev_w = int(bbox[2]-bbox[0]);
     let offset = int(prev_w*stage_position_factor);
-    bbox[0] = stage_position-offset;
-    bbox[2] = bbox[0]+prev_w;
+    if(!(is_gaze_direction && gaze_vect && actors_involved.length==1)) {
+      bbox[0] = stage_position-offset;
+      bbox[2] = bbox[0]+prev_w;
+    } else {
+      stage_off = (stage_position-offset)-bbox[0];
+    }
+  }
+
+  if(is_gaze_direction && gaze_vect && actors_involved.length==1) {
+    let s_gaze = abs((gaze_vect.x*shot_factor)/150);
+    let off = gaze_vect.normalize().x*((bbox[2]-bbox[0])*s_gaze);
+    if(stage_off) {
+      let n_o = off;
+      if(stage_off<0 && off<0) {
+        n_o = Math.min(off, stage_off);
+      } else if(stage_off>0 && off>0) {
+        n_o = Math.max(off, stage_off);
+      } else {
+        n_o = off + stage_off;
+      }
+      off = n_o;
+    }
+    // console.log(off);
+    bbox = [int(bbox[0]+off), bbox[1], int(bbox[2]+off), bbox[3]];
   }
 
   bbox = [int(bbox[0]), int(bbox[1]), int(bbox[2]), int(bbox[3])];
@@ -3093,7 +3109,7 @@ function setup() {
     save_shot.mouseOver(processToolTip('Launch the stabilization process of the shot'));
     save_shot.mouseOut(processToolTip(''));
     html_elements.push(save_shot);
-    save_shot.position(windowWidth/2 + 200, 40);
+    save_shot.position(windowWidth/2 + 180, 40);
     save_shot.mousePressed(saveShot);
 
     shot_creation = createCheckbox('Create shot', false);
@@ -3328,7 +3344,7 @@ function draw() {
     shot_creation.original_x = mid_width + 10;
     show_tracks.original_x = mid_width + 160;
     show_shots.original_x = mid_width + 320;
-    save_shot.original_x = mid_width + 240;
+    save_shot.original_x = mid_width + 180;
     for(let elem of html_elements) {
       if(elem.side) {
         let x = can.width-160;

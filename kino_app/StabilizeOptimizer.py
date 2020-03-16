@@ -302,10 +302,11 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
         if lambda3 != 0.:
             lambda3Factor = lambda3 * fps / imageHeight
             lambda2Factor = lambda2 * fps * fps * fps / imageHeight
+            lambdaM = 5
             if n > 1:
                 m1_term = 0
                 for c_x, c_y, c_h in zip(c_x_factor, c_y_factor, c_h_factor):
-                    m1_term += lambda3Factor * (cvx.norm(c_x*(x[1:]-x[0:full_chunk_size-1]), 1) +
+                    m1_term +=  lambdaM * (cvx.norm(c_x*(x[1:]-x[0:full_chunk_size-1]), 1) +
                                              cvx.norm(c_y*(y[1:]-y[0:full_chunk_size-1]), 1) +
                                              cvx.norm(c_h*(h[1:]-h[0:full_chunk_size-1]), 1) * zoomSmooth)
             if chunk_start >= 1:
@@ -313,7 +314,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
                     c_x = c[chunk_start-1, 0]
                     c_y = c[chunk_start-1, 1]
                     c_h = c[chunk_start-1, 2]
-                    m1_term += lambda3Factor * (cvx.norm(c_x*(x[0]-optimised_xcenter[chunk_start-1]), 1) +
+                    m1_term +=  lambdaM * (cvx.norm(c_x*(x[0]-optimised_xcenter[chunk_start-1]), 1) +
                                              cvx.norm(c_y*(y[0]-optimised_ycenter[chunk_start-1]), 1) +
                                              cvx.norm(c_h*(h[0]-optimised_height[chunk_start-1]), 1) * zoomSmooth)
             if n > 1:
@@ -321,7 +322,7 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
                 for b_x, b_y, b_h_g in zip(b_x_factor, b_y_factor, b_h_factor):
                     b_h = gaussian_filter(b_h_g,sigma=5)
                     # print(b_x, b_x.dtype)
-                    m2_term += lambda3 * (cvx.neg((b_x-(x[1:]-x[0:full_chunk_size-1]))*b_x) +
+                    m2_term +=  lambdaM * (cvx.neg((b_x-(x[1:]-x[0:full_chunk_size-1]))*b_x) +
                                             cvx.neg((b_y-(y[1:]-y[0:full_chunk_size-1]))*b_y) +
                                             cvx.neg((b_h-(h[1:]-h[0:full_chunk_size-1]))*b_h) * zoomSmooth)
             if chunk_start >=1 :
@@ -329,10 +330,10 @@ def stabilize_chunk(desiredShot, aspectRatio, noDataFrames, imageSize, fps, crop
                     b_x = b[chunk_start-1, 0]
                     b_y = b[chunk_start-1, 0]
                     b_h = b[chunk_start-1, 0]
-                    m2_term += lambda3 * (cvx.neg((b_x-(x[0]-optimised_xcenter[chunk_start-1]))*b_x) +
+                    m2_term +=  lambdaM * (cvx.neg((b_x-(x[0]-optimised_xcenter[chunk_start-1]))*b_x) +
                                             cvx.neg((b_y-(y[0]-optimised_ycenter[chunk_start-1]))*b_y) +
                                             cvx.neg((b_h-(h[0]-optimised_height[chunk_start-1]))*b_h) * zoomSmooth)
-                # expr += m1_term + m2_term
+            # expr += m1_term + m2_term
 
             # if n > 1:
             #     # E out

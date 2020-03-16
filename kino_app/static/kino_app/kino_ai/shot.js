@@ -89,7 +89,7 @@ function Shot()  {
       s_act_inv = s.getUpdateActInvolved();
       s_type = s.getUpdatedSizeShot(s.getCurrStabShot(frame_num)[3]);
     }
-    if(s_type == type && s.is_intersect == this.is_intersect && s.is_stage_position == this.is_stage_position && s.is_gaze_direction == this.is_gaze_direction) {
+    if(s.aspect_ratio == this.aspect_ratio && s_type == type && s.is_intersect == this.is_intersect && s.is_stage_position == this.is_stage_position && s.is_gaze_direction == this.is_gaze_direction) {
       let b1 = true;
       for(let name of s_act_inv) {
         if(!act_inv.includes(name)) {

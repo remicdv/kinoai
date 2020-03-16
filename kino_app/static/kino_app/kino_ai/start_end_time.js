@@ -584,7 +584,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
     return 0;
   }
 
-  this.splitScreenBBoxes = function(actors_involved, type, a_s, intersect=true, stage_pos=true) {
+  this.splitScreenBBoxes = function(actors_involved, type, a_s, intersect=true, stage_pos=true, gaze_dir=true) {
     var ret = [];
     var final_a_s = a_s;
     for(let i=0;i<total_frame;i++) {
@@ -592,7 +592,7 @@ function ShotsTimeline(tempX, tempY, tempW, tempH, tempDur, tempRate, tempStart 
       for(let act of actors_involved) {
         let tab_act = [];
         tab_act.push(act)
-        let bb = getShotAspect(type, tab_act, a_s, intersect, stage_pos).getCurrStabShot(i);
+        let bb = getShotAspect(type, tab_act, a_s, intersect, stage_pos, gaze_dir).getCurrStabShot(i);
         if(bb && bb[0] != "null") {
           tab_frame.push(bb);
         } else {
