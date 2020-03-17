@@ -138,6 +138,10 @@ class IndexView(generic.ListView):
     @never_cache
     def get(self, request):
         print(self.request.META.get('HTTP_REFERER'))
+        if not os.path.isdir(os.path.join(settings.MEDIA_ROOT, 'kino_app')):
+            os.mkdir(os.path.join(settings.MEDIA_ROOT, 'kino_app'))
+            os.mkdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/data'))
+            
         projects_name = os.listdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/data'))
 
         old = len(FolderPath.objects.all())

@@ -55,6 +55,7 @@ media/kino_dev/images/*
 
 # python virtual environnement #
 kinoaienv/
+*env/
 activate/
 kinoaienv/*
 activate/*
@@ -64,3 +65,5 @@ activate/*
 *.jpeg
 *.jpg
 *.png
+
+!kino_app/static/kino_app/logo/*
