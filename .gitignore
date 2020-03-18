@@ -67,3 +67,4 @@ activate/*
 *.png
 
 !kino_app/static/kino_app/logo/*
+!wiki_images/*
