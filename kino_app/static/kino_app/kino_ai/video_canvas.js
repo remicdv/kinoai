@@ -94,7 +94,7 @@ var remove_timeline = false;
 var shot_selector;
 var ratio_selector;
 var shot_type='BCU';
-var ratio_type =1;
+var ratio_type = 1;
 var shots_timeline;
 var show_shot;
 var save_shot;
@@ -282,6 +282,36 @@ function getFactor(type, prev=false) {
   }
   return shot_factor;
 }
+
+//Get the selected aspect ratio
+function getAspectRatioFromSelect(sel) {
+  let a_s = aspect_ratio;
+  switch (sel){
+    case 'original':
+      a_s = aspect_ratio;
+      break;
+    case 'half width':
+      a_s = aspect_ratio/2;
+      break;
+    case 'twice width':
+      a_s = aspect_ratio*2;
+      break;
+    case '16:9':
+      a_s = 16/9;
+      break;
+    case '4:3':
+      a_s = 4/3;
+      break;
+    case '4k - 2k':
+      a_s = 2048/1080;
+      break;
+    default:
+      a_s = aspect_ratio;
+      break;
+  }
+  return a_s;
+}
+
 //Get the bounding box from open pose detect
 function getBBox(keypoints, scale=0) {
   // console.log(keypoints);
@@ -1132,7 +1162,7 @@ function selectShotType() {
 }
 
 function selectRatio() {
-  ratio_type = ratio_selector.value();
+  ratio_type = getAspectRatioFromSelect(ratio_selector.value());
 }
 
 // -----------------------------------------------------------------------------------------------------------------
@@ -1314,7 +1344,7 @@ function saveShot() {
   }
 
   // console.log(aspect_ratio/ratio_type);
-  shot.aspect_ratio = aspect_ratio/ratio_type;
+  shot.aspect_ratio = ratio_type;
   shot.start_frame = 0;
   shot.end_frame = Math.round(frame_rate*video.duration());
 
@@ -2134,8 +2164,8 @@ function drawCreationShot() {
   }
   var keypoints = frames_data[frame_num];
   var w = 300;
-  var h = Math.floor(w/(aspect_ratio/ratio_type));
-  var arr = getBBoxShot(shot_type, aspect_ratio/ratio_type);
+  var h = Math.floor(w/ratio_type);
+  var arr = getBBoxShot(shot_type, ratio_type);
   push();
   if(x_off<0){x_off=0;}
   if(y_off<0){y_off=0;}
@@ -2866,6 +2896,7 @@ function setup() {
     loadSubtile();
     scale_ratio = video.elt.videoWidth/Number(original_width);
     aspect_ratio = Number(original_width)/Number(original_height);
+    ratio_type = aspect_ratio;
     viewer_height = windowHeight*((1/2)*viewer_scale);
     createVideoTimer(viewer_height-15);
 
@@ -3057,11 +3088,12 @@ function setup() {
     ratio_selector.mouseOut(processToolTip(''));
     html_elements.push(ratio_selector);
     ratio_selector.position(windowWidth/2 + 120, 40);
-    ratio_selector.option(1);
-    ratio_selector.option(0.25);
-    ratio_selector.option(0.5);
-    ratio_selector.option(2);
-    ratio_selector.option(3);
+    ratio_selector.option("original");
+    ratio_selector.option("half width");
+    ratio_selector.option("twice width");
+    ratio_selector.option("4:3");
+    ratio_selector.option("16:9");
+    ratio_selector.option("4k - 2k");
     ratio_selector.changed(selectRatio);
 
     intersect = createCheckbox('Intersect', false);
@@ -3109,7 +3141,7 @@ function setup() {
     save_shot.mouseOver(processToolTip('Launch the stabilization process of the shot'));
     save_shot.mouseOut(processToolTip(''));
     html_elements.push(save_shot);
-    save_shot.position(windowWidth/2 + 180, 40);
+    save_shot.position(windowWidth/2 + 200, 40);
     save_shot.mousePressed(saveShot);
 
     shot_creation = createCheckbox('Create shot', false);
@@ -3344,7 +3376,7 @@ function draw() {
     shot_creation.original_x = mid_width + 10;
     show_tracks.original_x = mid_width + 160;
     show_shots.original_x = mid_width + 320;
-    save_shot.original_x = mid_width + 180;
+    save_shot.original_x = mid_width + 220;
     for(let elem of html_elements) {
       if(elem.side) {
         let x = can.width-160;

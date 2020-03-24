@@ -37,9 +37,9 @@
         var username = "{{username}}";
         var json_data_note = JSON.parse("{{data_note}}".replace(/&quot;/g,'"'));
         var sub_granted = true;
-        if("{{owner}}"=="None") {
-          sub_granted = false;
-        }
+        // if("{{owner}}"=="None") {
+        //   sub_granted = false;
+        // }
         var data_partitions;
         var json_data_timelines = JSON.parse("{{data_timelines}}".replace(/&quot;/g,'"'));
         var owner = "{{owner}}";
