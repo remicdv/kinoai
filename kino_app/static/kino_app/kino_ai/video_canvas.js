@@ -521,6 +521,7 @@ function getBBoxShotInvolved(actors_involved, aspectRatio, shot_factor, imageSiz
   let stage_off;
   if(is_stage_position && actor_neck_position.length!=0) {
     let stage_position = int((actor_neck_position.reduce((pv, cv) => pv + cv, 0))/actor_neck_position.length);
+    console.log(actor_neck_position, stage_position);
     let stage_position_factor = Math.min(2/3,Math.max(1/3,stage_position/Number(original_width)));
     let prev_w = int(bbox[2]-bbox[0]);
     let offset = int(prev_w*stage_position_factor);
