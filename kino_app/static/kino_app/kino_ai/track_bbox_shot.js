@@ -70,8 +70,8 @@ function TrackBboxShot(a)  {
 
   // Draw the rectangle
   this.display = function() {
-    var unit = this.act.w/annotation_timeline.total_frame;
-    let off_x = annotation_timeline.first*unit;
+    var unit = this.act.w/player.total_frame;
+    let off_x = player.first*unit;
     var start = this.act.x + Math.round((this.first_frame-1)*unit)-off_x;
     var w = Math.round((this.bboxes.length-1)*unit);
     this.setSize(start, this.act.y, w, this.act.h/2);

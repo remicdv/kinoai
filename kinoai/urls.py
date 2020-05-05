@@ -22,7 +22,6 @@ from django.conf.urls.static import static
 
 urlpatterns = [
     path('kino_app/', include('kino_app.urls')),
-    path('kino_dev/', include('kino_dev.urls')),
     path('accounts/login/', LoginView.as_view(), name='login'),
     path('accounts/sign_in/', signin_view, name='sign_in'),
     path('', LoginView.as_view(), name='login'),

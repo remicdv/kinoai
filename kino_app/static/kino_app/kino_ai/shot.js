@@ -41,16 +41,19 @@ function Shot()  {
   this.accuracy_rate;
 
   this.click = function(mx, my) {
-    if(!(!is_show_context && this.type == 'WS') && (this.type == shot_type || is_all_types) && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
+    if(!(!montage_editor.is_show_context && this.type == 'WS') && (this.type == cadrage_editor.shot_type || montage_editor.is_all_types) && mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       this.on = !this.on;
       if(this.on && !this.in_stabilize) {
         this.drag = true;
       }
-      if(editing_button.on && keyIsPressed && keyCode == 17) {
+      if(is_montage_editor && keyIsPressed && keyCode == 17) {
         shots_timeline.addShotOnCursor(this);
       }
-      if(editing_button.on && keyIsPressed && keyCode == 16) {
+      if(is_montage_editor && keyIsPressed && keyCode == 16) {
         shots_timeline.replaceShot(this);
+      }
+      if(crop_button.on) {
+        show_shot = this;
       }
     }
   }
@@ -191,14 +194,14 @@ function Shot()  {
       }
       type_curr = this.type;
     } else {
-      curr_involved =actors_timeline;
-      for(let a of actors_timeline) {
+      curr_involved =preparation_editor.actors_timeline;
+      for(let a of preparation_editor.actors_timeline) {
         names.push(a.actor_name);
       }
       type_curr = 'FS';
     }
 
-    for(let a of actors_timeline) {
+    for(let a of preparation_editor.actors_timeline) {
       if(!names.includes(a.actor_name)){
         not_involved.push(a);
       }
@@ -241,7 +244,7 @@ function Shot()  {
         if(first_frame < frame_num && detections_track.length > (frame_num-first_frame)) {
           var boxB;
           if(keypoints_tab[detections_track[frame_num-first_frame]]) {
-            boxB = getBBoxShotAdapted(this.aspect_ratio, keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor);
+            boxB = getBBoxShotAdapted(this.aspect_ratio, keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor, curr_involved[i]);
             x_centers.push((boxB[0]+boxB[2])/2);
             y_centers.push((boxB[1]+boxB[3])/2);
             if(!gaze_vect && this.actors_involved.length==1) {
@@ -269,7 +272,7 @@ function Shot()  {
         if(t.first_frame < frame_num && t.last_frame > frame_num) {
           let b = t.bboxes[frame_num-t.first_frame];
           let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-          var boxB = getBBoxShotAdapted(this.aspect_ratio, undefined, shot_factor, false, curr_bbox, b.center_x, b.center_y);
+          var boxB = getBBoxShotAdapted(this.aspect_ratio, undefined, shot_factor, curr_involved[i], false, curr_bbox, b.center_x, b.center_y);
           x_centers.push((boxB[0]+boxB[2])/2);
           y_centers.push((boxB[1]+boxB[3])/2);
           if(bbox.length > 0) {
@@ -298,7 +301,7 @@ function Shot()  {
           if(first_frame < frame_num && detections_track.length > (frame_num-first_frame)) {
             var boxB;
             if(keypoints_tab[detections_track[frame_num-first_frame]]) {
-              boxB = getBBoxShotAdapted(this.aspect_ratio, keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor);
+              boxB = getBBoxShotAdapted(this.aspect_ratio, keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints'], shot_factor, a);
               let box_side = getBBox(keypoints_tab[detections_track[frame_num-first_frame]]['KeyPoints']);
               boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
             }
@@ -319,7 +322,7 @@ function Shot()  {
           if(t.first_frame < frame_num && t.last_frame > frame_num) {
             let b = t.bboxes[frame_num-t.first_frame];
             let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-            var boxB = getBBoxShotAdapted(this.aspect_ratio,undefined, shot_factor, false, curr_bbox, b.center_x, b.center_y);
+            var boxB = getBBoxShotAdapted(this.aspect_ratio,undefined, shot_factor, a, false, curr_bbox, b.center_x, b.center_y);
             let box_side = curr_bbox;
             boxB = [box_side[0],boxB[1],box_side[2],boxB[3]];
             if(boxB && bbox) {
@@ -439,7 +442,7 @@ function Shot()  {
       var first_frame = t.first_frame;
       if(first_frame < f_n && detections_track.length > (f_n-first_frame)) {
         if(keypointsB[detections_track[f_n-first_frame]]) {
-          bbox = getBBoxShotAdapted(keypointsB[detections_track[f_n-first_frame]]['KeyPoints'], 1/4);
+          bbox = getBBoxShotAdapted(keypointsB[detections_track[f_n-first_frame]]['KeyPoints'], 1/4, a);
         }
       }
     }
@@ -448,7 +451,7 @@ function Shot()  {
         if(t.first_frame < f_n && t.last_frame > f_n) {
           let b = t.bboxes[f_n-t.first_frame];
           let curr_bbox = [b.x, b.y,b.x+b.w, b.y+b.h];
-          var boxB = getBBoxShotAdapted(undefined, 1/4, false, curr_bbox, b.center_x, b.center_y);
+          var boxB = getBBoxShotAdapted(undefined, 1/4, a, false, curr_bbox, b.center_x, b.center_y);
           if(bbox.length > 0) {
             bbox[0] = min(bbox[0], boxB[0]);
             bbox[1] = min(bbox[1], boxB[1]);
@@ -541,7 +544,7 @@ function Shot()  {
       let xr1 = 0;
       let tl = 0;
       let tr = 0;
-      for(let a of actors_timeline) {
+      for(let a of preparation_editor.actors_timeline) {
         if(!names_involved.includes(a.actor_name)) {
           let bb = this.getCSBbox(i, a);
           if(bb && bb[0] < this.bboxes[i][0]) {
@@ -585,7 +588,7 @@ function Shot()  {
     for (let i=0; i<this.bboxes.length; i++) {
       let left = false;
       let right = false;
-      for(let a of actors_timeline) {
+      for(let a of preparation_editor.actors_timeline) {
         if(!names_involved.includes(a.actor_name)) {
           let c = a.getCenterAct(i);
           if(c.x < this.bboxes[i][0]) {
@@ -643,7 +646,7 @@ function Shot()  {
     for(var i=1; i<= total_frame; i++) {
       var f_num = i;
       if(this.actors_involved.length<1) {
-        this.bboxes.push([0,0,original_width,original_height]);
+        this.bboxes.push([0,0,Number(original_width),Number(original_height)]);
       } else {
         var bbox = getBBoxShot(this.type, this.aspect_ratio, f_num);//this.getCurrBBoxShot(this.aspect_ratio, f_num, frames_data);
         if(bbox) {
@@ -760,13 +763,13 @@ function Shot()  {
   this.callbackBBox = function(myRtnA, data) {
     if(myRtnA == "succes") {
       console.log(data);
-      let i = getShot(add_shot, data['type'], data['actors_involved']);
+      let i = montage_editor.getShot(cadrage_editor.add_shot, data['type'], data['actors_involved']);
       // console.log(add_shot[i]);
-      add_shot[i].bboxes = data['bboxes'];
-      add_shot[i].in_stabilize = false;
+      cadrage_editor.add_shot[i].bboxes = data['bboxes'];
+      cadrage_editor.add_shot[i].in_stabilize = false;
       // add_shot[i].accuracy_rate = add_shot[i].getAccuracyRate();
       // console.log(add_shot[0].bboxes);
-      add_shot.splice(i,1);
+      cadrage_editor.add_shot.splice(i,1);
     } else if(myRtnA == "error") {
       console.error('error');
     }
@@ -834,12 +837,38 @@ function Shot()  {
     let tab = [];
     let bbox = this.getCurrStabShot(f_n);
     if(bbox) {
-      for(let a of actors_timeline) {
+      for(let a of preparation_editor.actors_timeline) {
         let center_act = a.getCenterAct(f_n);
         if(center_act.x > bbox[0] && center_act.x < bbox[2] && center_act.y > bbox[1] && center_act.y < bbox[3]) {
           tab.push(a.actor_name);
         }
       }
+    }
+    return tab;
+  }
+
+  this.splitActInvolved = function(act_inv = undefined, f_n = undefined) {
+    if(!f_n) {
+      f_n = frame_num;
+    }
+    if(!act_inv) {
+      act_inv = preparation_editor.actors_timeline;
+    }
+    let tab = [];
+    let bbox = this.getCurrStabShot(f_n);
+    if(bbox) {
+      for(let a of act_inv) {
+        let shot_act = montage_editor.getShotAspect(this.type, [a], 1, false, false, false);
+        if(shot_act) {
+          let boxB = shot_act.getCurrStabShot(f_n);
+          if(!(bbox[2]<boxB[0] || boxB[2]<bbox[0] || bbox[3]<boxB[1] || boxB[3] < bbox[1])) {
+            tab.push(a.actor_name);
+          }
+        }
+      }
+    }
+    if(tab.length==0) {
+      tab = this.actors_involved;
     }
     return tab;
   }
@@ -859,9 +888,9 @@ function Shot()  {
 
   this.setActInvoled = function(tab) {
     for(var j=0; j<tab.length; j++) {
-      for(var i=0; i<actors_timeline.length; i++) {
-        if(actors_timeline[i].actor_name == tab[j]) {
-          this.actors_involved.push(actors_timeline[i]);
+      for(var i=0; i<preparation_editor.actors_timeline.length; i++) {
+        if(preparation_editor.actors_timeline[i].actor_name == tab[j]) {
+          this.actors_involved.push(preparation_editor.actors_timeline[i]);
         }
       }
     }
@@ -875,12 +904,12 @@ function Shot()  {
     let acts = this.getUpdateActInvolved(f_n);
     let dist = Number.MAX_VALUE;
     for(let name of acts) {
-      let a = getAct(name);
+      let a = preparation_editor.getAct(name);
       let keypoints = a.getKeyPoints(f_n);
       if(keypoints) {
         let shot_factors = [1/7,1/5,1/3,1/2,2/3,1];
         for(let fact of shot_factors) {
-          let bbox = getBBoxShotAdapted(this.aspectRatio, keypoints, fact);
+          let bbox = getBBoxShotAdapted(this.aspectRatio, keypoints, fact, a);
           if(abs(low_bound-bbox[3]) < dist && fact > size) {
             size = fact;
             dist = abs(low_bound-bbox[3]);
@@ -992,8 +1021,11 @@ function Shot()  {
   this.displayText = function() {
     // let acts = this.getUpdateActInvolved();
     push();
-    fill(255);
-    let type = this.getUpdatedSizeShot(this.getCurrStabShot(frame_num)[3]);
+    fill(255);;
+    let type;
+    if(this.getCurrStabShot(frame_num)) {
+      type = this.getUpdatedSizeShot(this.getCurrStabShot(frame_num)[3]);
+    }
     if(!type) {
       type = this.type;
     }
@@ -1009,7 +1041,7 @@ function Shot()  {
     if(this.is_stage_position) {
       stage_pos = " S";
     }
-    text('Type '+this.type+' a_s '+round_prec(this.aspect_ratio,2)+intersect+gaze+stage_pos/*+Math.round(this.accuracy_rate*100)+'%'*/, this.x, this.y+10);
+    text(this.type+' '+round_prec(this.aspect_ratio,2)+intersect+gaze+stage_pos/*+Math.round(this.accuracy_rate*100)+'%'*/, this.x, this.y+10);
     for(let i=0; i<this.actors_involved.length; i++) {
       text(this.actors_involved[i].actor_name, this.x, this.y+20+i*10);
     }

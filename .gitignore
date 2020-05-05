@@ -48,6 +48,10 @@ web_app/test/
 media/kino_app/data/*
 media/kino_app/index_images/*
 media/kino_app/images/*
+media/kino_app/notes/*
+media/kino_app/partition/*
+media/kino_app/video_library/*
+media/utility/shots/*
 
 media/kino_dev/data/*
 media/kino_dev/index_images/*

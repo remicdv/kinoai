@@ -12,6 +12,11 @@
     <!-- <script src="{% static 'kino_app/opencv.js' %}"></script> -->
     <script src="{% static 'kino_app/addons/p5.dom.min.js' %}"></script>
     <script src="{% static 'kino_app/addons/p5.sound.min.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/preparation_editor.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/cadrage_editor.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/montage_editor.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/annotation_editor.js' %}"></script>
+    <script src="{% static 'kino_app/kino_ai/export_editor.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/actor_timeline.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/tracklet.js' %}"></script>
     <script src="{% static 'kino_app/kino_ai/erase_button.js' %}"></script>
@@ -40,8 +45,8 @@
         // if("{{owner}}"=="None") {
         //   sub_granted = false;
         // }
+        var data_path_video_export = JSON.parse("{{data_path_video_export}}".replace(/&quot;/g,'"'));
         var data_partitions;
-        var json_data_timelines = JSON.parse("{{data_timelines}}".replace(/&quot;/g,'"'));
         var owner = "{{owner}}";
         var json_track = "/media/kino_app/data/{{path}}/tracklets.json";
         var json_timeline = "/media/kino_app/data/{{path}}/actors_timeline.json";
@@ -94,12 +99,11 @@
      </div>
 
      <div id='opencv_out' ></div>
-     <button id='submit'>Save</button>
      {% block javascript %}
      <script>
-     let off = document.getElementById('user_info').offsetHeight - document.getElementById("div_player").offsetTop;
+     let off = document.getElementById('user_info').offsetHeight - document.getElementById("div_player").offsetTop+10;
      if((document.getElementById('logo').offsetHeight - document.getElementById("div_player").offsetTop)>off) {
-       off = document.getElementById('logo').offsetHeight - document.getElementById("div_player").offsetTop;
+       off = document.getElementById('logo').offsetHeight - document.getElementById("div_player").offsetTop +30;
      }
      document.getElementById('header_info').style.padding =  " 0 0 "+off.toString()+" 0";
 
@@ -160,10 +164,13 @@
           if ($this.data('before') !== $this.html()) {
               $this.data('before', $this.html());
               $this.trigger('change');
-              for(let act of actors_timeline) {
+              for(let act of preparation_editor.actors_timeline) {
                 if($(this).is(act.elem.elt)) {
                   act.setActorName($(this)[0].innerText);
                 }
+              }
+              if($(this).is(shots_timeline.name_elem.elt)) {
+                shots_timeline.changeName($(this)[0].innerText);
               }
           }
       });
@@ -177,8 +184,8 @@
             console.log("not allowed");
           }
           shots_timeline.saveShotsTimeline();
-          note_editor.saveNote();
-          partition_editor.savePartitionTimeline();
+          annotation_editor.note_editor.saveNote();
+          annotation_editor.partition_editor.savePartitionTimeline();
           keyDown = undefined;
           return false;
         }

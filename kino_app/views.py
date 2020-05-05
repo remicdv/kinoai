@@ -19,7 +19,7 @@ import numpy as np
 import scipy as sp
 import scipy.sparse
 from . import StabilizeOptimizer as stab
-from moviepy.editor import VideoFileClip, ImageSequenceClip
+from moviepy.editor import VideoFileClip, ImageSequenceClip, AudioFileClip
 import subprocess
 import shutil
 import math, random
@@ -80,13 +80,8 @@ def list_files(startpath, user):
     list = []
     for root, dirs, files in os.walk(startpath):
         for name in dirs:
-            ret = False
-            dir_path = os.path.abspath(os.path.join(root, name))
-            for r, dirs_in, files_in in os.walk(dir_path):
-                for name_in in dirs_in:
-                    if name_in != 'mpd' and name_in != 'images':
-                        ret = True
-            if (name != 'mpd' and name != 'images') and not ret:
+            if 'part' in name:
+                dir_path = os.path.abspath(os.path.join(root, name))
                 d = dir_path.split('/kino_app/data/')
                 list.append(d[1])
                 obj, created = FolderPath.objects.get_or_create(
@@ -141,7 +136,7 @@ class IndexView(generic.ListView):
         if not os.path.isdir(os.path.join(settings.MEDIA_ROOT, 'kino_app')):
             os.mkdir(os.path.join(settings.MEDIA_ROOT, 'kino_app'))
             os.mkdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/data'))
-            
+
         projects_name = os.listdir(os.path.join(settings.MEDIA_ROOT, 'kino_app/data'))
 
         old = len(FolderPath.objects.all())
@@ -172,7 +167,7 @@ class IndexView(generic.ListView):
                 list += list_files(path, None)
                 project["List"].sort()
                 projects.append(project)
-        # print(len(list),old)
+        print(len(list),old)
         extractImagesAndDelete(list, old)
         if request.user is None or request.user.is_authenticated == False:
             print(settings.LOGIN_URL)
@@ -413,19 +408,7 @@ def video_editing(request, id):
         file.write("[]")
         file.close()
 
-    if not os.path.isfile(dir.abs_path+'/'+str(request.user.username)+'_timelines.json'):
-        with open(dir.abs_path+'/shots.json') as f:
-            data = json.load(f)
-        shots_timeline = []
-        for s in data:
-            if s['Timeline']==1:
-                shots_timeline.append(s)
-        file = open(dir.abs_path+'/'+str(request.user.username)+'_timelines.json',"w")
-        file.write(json.dumps(shots_timeline))
-        file.close()
-
     data_note = []
-    data_timelines = []
     request.session['previous_name'] = title
     for root, subdirs, files in os.walk(dir.abs_path):
         for file in files:
@@ -440,13 +423,21 @@ def video_editing(request, id):
                     t['Text'] = t['Text'].replace('\"','\\"').replace('\n','\\n')
                 note_obj['Note'] = tab
                 data_note.append(note_obj)
-            if '_timelines.json' in file:
-                data_timelines.append(file.split('_')[0])
+
+    data_path_video_export = []
+    for root, subdirs, files in os.walk(dir.abs_path+'/videos_export/'+request.user.username):
+        for file in files:
+            out_vid = root+'/'+file
+            d = out_vid.split('/media/')
+            resp = '/media/'+d[1]
+            data_path_video_export.append(resp)
+
     if request.user is None or request.user.is_authenticated == False:
         print(settings.LOGIN_URL)
         return HttpResponseRedirect(settings.LOGIN_URL)
-    return render(request, 'kino_app/video_editing.html', {'id':id, 'title':split_title[1], 'part':part, 'path':dir.path, 'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev, 'owner':dir.owner,
-     'data_note':json.dumps(data_note), 'username':request.user.username, 'data_timelines':json.dumps(data_timelines)})
+    return render(request, 'kino_app/video_editing.html', {'id':id, 'title':split_title[1], 'part':part, 'path':dir.path,
+    'abs_path':dir.abs_path, 'width':width, 'height':height, 'frame_rate':round(frame_rate), 'next_id':next, 'prev_id':prev,
+    'owner':dir.owner, 'data_note':json.dumps(data_note), 'username':request.user.username, 'data_path_video_export':json.dumps(data_path_video_export)})
     # return render(request, 'kino_app/index.html', {'image' : data_path})
 
 def get_shot_from_spec(shots, type, actors_involved, aspect_ratio):
@@ -990,7 +981,6 @@ def save_timeline(request):
     abs_path = request.POST.get('abs_path','')
     data_timelines = json.loads(request.POST.get('timeline',''))
     json_shots_path = abs_path+'/'+request.user.username+'_timelines.json'
-    print(data_timelines)
     with open(json_shots_path, 'w') as fp:
         json.dump(data_timelines, fp, indent=2)
 
@@ -1234,6 +1224,7 @@ def cropCv(image, bbox, size, i):
     return cv2.resize(image[y:y+h, x:x+w],(size[0],size[1]),interpolation=cv2.INTER_LANCZOS4)
 
 def crop(image):
+    crop.progress = round(crop.counter/len(crop.bboxes)*100)
     if crop.counter < len(crop.bboxes) :
         bbox = crop.bboxes[crop.counter]
         crop.counter += 1
@@ -1245,7 +1236,7 @@ def crop(image):
         if math.isclose((bbox[2] - bbox[0])/(bbox[3] - bbox[1]), crop.size[0]/crop.size[1], rel_tol=1e-2):
             return cv2.resize(image[y:y+h, x:x+w],(crop.size[0],crop.size[1]),interpolation=cv2.INTER_LANCZOS4)
         else:
-            print((bbox[2] - bbox[0]), (bbox[3] - bbox[1]), (bbox[2] - bbox[0])/(bbox[3] - bbox[1]))
+            # print((bbox[2] - bbox[0]), (bbox[3] - bbox[1]), (bbox[2] - bbox[0])/(bbox[3] - bbox[1]))
             blank_image = np.zeros((crop.size[1],crop.size[0],3), dtype='uint8')
             if w<h:
                 height = int(crop.size[1])
@@ -1319,6 +1310,7 @@ def crop_split(image, bbox, size):
         return blank_image
 
 def split_screen(image):
+    split_screen.progress = round(split_screen.counter/len(split_screen.bboxes)*100)
     if split_screen.counter < len(split_screen.bboxes) :
         bbox = split_screen.bboxes[split_screen.counter]
     else:
@@ -1335,6 +1327,17 @@ def split_screen(image):
         return new_image
     else:
         return image
+
+@csrf_exempt
+def check_progress_bar(request):
+    if crop.progress != None:
+        # print(crop.progress)
+        return HttpResponse(json.dumps({'progress':crop.progress}))
+    elif split_screen.progress:
+        return HttpResponse(json.dumps({'progress':split_screen.progress}))
+    else:
+        return HttpResponse(json.dumps({'progress':0}))
+
 
 @csrf_exempt
 def reframeCv(request):
@@ -1394,10 +1397,14 @@ def reframeMov(request):
     abs_path = request.POST.get('abs_path','')
     width = int(request.POST.get('width',''))
     aspect_ratio = float(request.POST.get('aspect_ratio',''))
+    t_start = float(request.POST.get('t_start',''))
+    t_end = float(request.POST.get('t_end',''))
+    name_export = request.POST.get('name_export','')
     is_split_screen = request.POST.get('is_split','')!="false"
     bbox = np.array(json.loads(bbox_string))
 
     videoname = abs_path+'/original_hevc.mov'#'/media/kinoai/AUTOCAM1/La_Fabrique_Episode_3'+'/19janvier/pres.mov'#
+    audiofile = abs_path+'/audio.m4a'
 
     hevc_w = int(subprocess.check_output('ffprobe -i {0} -show_entries stream=width -v quiet -of csv="p=0"'.format(videoname), shell=True ,stderr=subprocess.STDOUT))
     factor = int(hevc_w / width)
@@ -1416,14 +1423,21 @@ def reframeMov(request):
             scale_factor = 1
         crop.bboxes = bbox
         crop.counter = 0
+        crop.progress = 0
         print(max, scale_factor)
     else:
         bbox[:][:,] *= factor
         split_screen.bboxes = bbox
         split_screen.counter = 0
+        split_screen.progress = 0
+        crop.progress = None
 
     print(len(bbox))
-    out_vid = abs_path+'/'+request.user.username+'_output_video.mp4'
+    if not os.path.isdir(abs_path+'/videos_export'):
+        os.makedirs(abs_path+'/videos_export')
+        if not os.path.isdir(abs_path+'/videos_export/'+request.user.username):
+            os.makedirs(abs_path+'/videos_export/'+request.user.username)
+    out_vid = abs_path+'/videos_export/'+request.user.username+'/'+name_export+'.mp4'
     print(videoname)
     clip = VideoFileClip(videoname)
     width = clip.size[0]
@@ -1436,16 +1450,28 @@ def reframeMov(request):
         height = width*aspect_ratio
     clip.size = [int(width/scale_factor),int(height/scale_factor)]
     print(clip.size)
+
     if not is_split_screen:
-        crop.size = clip.size
-        new_clip = clip.fl_image( crop )
-        new_clip.write_videofile(out_vid, threads=16, preset='ultrafast')
+        sub_clip = clip.subclip(t_start,t_end)
+        crop.size = sub_clip.size
+        new_clip = sub_clip.fl_image( crop )
+        if os.path.isfile(audiofile):
+            audio_clip = AudioFileClip(audiofile)
+            sub_audio = audio_clip.subclip(t_start,t_end)
+            new_clip.audio = sub_audio
+        new_clip.write_videofile(out_vid, threads=16, preset='ultrafast', logger=None)
     else:
-        split_screen.size = clip.size
-        clip.size = [clip.size[0]*len(bbox[0]),clip.size[1]]
-        print(clip.size)
-        new_clip = clip.fl_image( split_screen )
-        new_clip.write_videofile(out_vid, threads=16, preset='ultrafast')
+        sub_clip = clip.subclip(t_start,t_end)
+        sub_clip.size = clip.size
+        split_screen.size = sub_clip.size
+        sub_clip.size = [sub_clip.size[0]*len(bbox[0]),sub_clip.size[1]]
+        print(sub_clip.size)
+        new_clip = sub_clip.fl_image( split_screen )
+        if os.path.isfile(audiofile):
+            audio_clip = AudioFileClip(audiofile)
+            sub_audio = audio_clip.subclip(t_start,t_end)
+            new_clip.audio = sub_audio
+        new_clip.write_videofile(out_vid, threads=16, preset='ultrafast', logger=None)
 
     end = time.time()
 

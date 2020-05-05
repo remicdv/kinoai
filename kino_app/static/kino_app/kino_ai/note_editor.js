@@ -20,13 +20,14 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
   this.select_note.elt.value = username;
   this.select_note.changed(selectAuthor);
-  if(!is_note_book) {
-    this.select_note.hide();
-  }
+  this.select_note.hide();
 
   this.div_notes = createDiv();
   this.div_notes.style('overflow','auto');
   this.div_notes.id('div_notes');
+
+  this.div_sub;
+  this.tab_sub = [];
 
 
   this.click = function(mx, my) {
@@ -39,6 +40,9 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
       }
     }
 
+    for(let a of preparation_editor.actors_timeline) {
+      a.click(mx, my);
+    }
   };
 
   this.drop = function(mx, my) {
@@ -81,45 +85,151 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   this.update = function(checked) {
     if(checked) {
-      this.setDivSize();
-      this.input_note.show();
-      this.div_notes.show();
-      this.select_note.show();
-      partition_editor.update(false);
-      is_partition_editor = false;
-      partition_check.checked(false);
+      this.showAllElt();
+      annotation_editor.partition_editor.update(false);
+      annotation_editor.is_partition_editor = false;
+      annotation_editor.partition_check.checked(false);
+      act_input.hide();
+      let div_creation = createDiv();
+      div_creation.id('div_creation');
+      div_creation.position(windowWidth-150,annotation_editor.partition_check.y+30);
+      div_creation.size(150, height+can.elt.offsetTop-div_creation.position().y);
+      for(let a of preparation_editor.actors_timeline) {
+        a.on = false;
+        a.elem.style('margin','5% 0 5% 0');
+        a.elem.show();
+        div_creation.child(a.elem.elt);
+      }
     } else {
-      this.input_note.hide();
-      this.div_notes.hide();
-      this.select_note.hide();
+
+      this.hideAllElt();
+      for(let a of preparation_editor.actors_timeline) {
+        a.elem.remove();
+        a.elem = createElement('h3', a.actor_name);
+        a.elem.elt.contentEditable = 'true';
+        a.elem.id('editor');
+        preparation_editor.div_actors_timeline.child(a.elem);
+      }
+
+      // showAllElt();
+
     }
   }
 
+  // Create the notebook and resize it
+  this.resizeNoteBook = function() {
+    let div_creation = select('#div_creation');
+    if(!div_creation) {
+      div_creation = createDiv();
+      div_creation.id('div_creation');
+      for(let a of actors_timeline) {
+        a.on = false;
+        a.elem.style('margin','5% 0 5% 0');
+        div_creation.child(a.elem.elt);
+      }
+    }
+    div_creation.position(windowWidth-150,annotation_editor.partition_check.y+30);
+    div_creation.size(150, height+can.elt.offsetTop-div_creation.position().y);
+    this.div_sub = select('#div_sub');
+    // tab_sub = [];
+    let cpt=0;
+    for(let t of video.elt.textTracks) {
+      if(t.mode == "showing" && cpt==0) {
+        let i=0;
+        cpt++;
+        if(!this.div_sub) {
+          this.tab_sub = [];
+          this.div_sub = createDiv();
+          this.div_sub.id('div_sub');
+          this.div_sub.position(mid_width+10,can.elt.offsetTop);
+          this.div_sub.size(((windowWidth - 160)-(mid_width+10))/2,height);
+          for(let c of t.cues) {
+            let obj = {};
+            let p = createP(annotation_editor.partition_editor.parseTextAction(c.text));
+            obj.p = p;
+            obj.start = c.startTime;
+            obj.end = c.endTime;
+            this.tab_sub.push(obj);
+            this.div_sub.child(p);
+          }
+        } else {
+          this.div_sub.position(mid_width+10,can.elt.offsetTop);
+          this.div_sub.size(((windowWidth - 160)-(mid_width+10))/2,height);
+        }
+      }
+    }
+  }
+
+  // Show the subtitle next to the player and allow the user to navigate in the video
+  this.showNoteBook = function() {
+    if(!this.div_sub || this.div_sub.size().height!=height || mid_width != viewer_width) {
+      this.resizeNoteBook();
+    } else {
+      if(this.tab_sub.length>1) {
+        for(let s of this.tab_sub) {
+          if(video.time() >= s.start && video.time() <= s.end) {
+            s.p.style('color','red');
+            let pos = s.p.position().y - ($('#div_sub').height()/2);
+            if(!dash_player.isPaused())
+              $('#div_sub').scrollTop(pos);
+          } else {
+            s.p.style('color','rgb(50,50,50)');
+          }
+          s.p.style('font-size','20');
+        }
+      }
+    }
+    // getShotsFromActs();
+    montage_editor.splitScreen(montage_editor.getShotsFromActs());
+  }
+
+  this.hideAllElt = function() {
+    this.input_note.hide();
+    this.div_notes.hide();
+    this.select_note.hide();
+    for(let el of html_elements) {
+      if(!el.side)
+        el.hide();
+    }
+    if(this.div_sub) {
+      $("#div_sub").remove();
+      this.div_sub = undefined;
+      this.tab_sub = [];
+    }
+  }
+
+  this.showAllElt = function() {
+    this.setDivSize();
+    this.input_note.show();
+    this.div_notes.show();
+    this.select_note.show();
+  }
+
   this.setDivSize = function() {
-    this.div_notes.position(mid_width+(reframe_button.position().x-mid_width)/2,can.elt.offsetTop+70);
-    this.div_notes.size((reframe_button.position().x-mid_width)/2-10,height-70);
-    this.select_note.position(reframe_button.position().x-100,can.elt.offsetTop+10);
-    this.select_note.size(reframe_button.position().x-this.select_note.x-15);
+    this.div_notes.position(mid_width+((windowWidth - 160)-mid_width)/2,can.elt.offsetTop+70);
+    this.div_notes.size(((windowWidth - 160)-mid_width)/2-10,height-70);
+    this.select_note.position((windowWidth - 160)-100,can.elt.offsetTop+10);
+    this.select_note.size((windowWidth - 160)-this.select_note.x-15);
   }
 
   function addNote() {
-    if(note_editor.select_note.elt.value == username) {
+    if(annotation_editor.note_editor.select_note.elt.value == username) {
       let note = {};
       let b = false;
-      for(let n of note_editor.notes) {
+      for(let n of annotation_editor.note_editor.notes) {
         if(n.Time == Math.floor(video.time())) {
-          n.Text += "\n"+note_editor.input_note.value()+'';
+          n.Text += "\n"+annotation_editor.note_editor.input_note.value()+'';
           b = true;
           break;
         }
       }
       if(!b) {
-        note.Text = note_editor.input_note.value()+'';
+        note.Text = annotation_editor.note_editor.input_note.value()+'';
         note.Time = Math.floor(video.time());
-        note_editor.notes.push(note);
+        annotation_editor.note_editor.notes.push(note);
       }
-      note_editor.updateChilds();
-      note_editor.input_note.value('');
+      annotation_editor.note_editor.updateChilds();
+      annotation_editor.note_editor.input_note.value('');
     } else {
       alert("Select your notes before editing")
     }
@@ -187,5 +297,10 @@ function NoteEditor(tempX=0, tempY=0, tempW=0, tempH=0)  {
     //   text(this.getTimeFrame(note.Frame)+'  '+note.Text, mid_width+10, 200+i*20);
     // }
     pop();
+    push();
+    fill(150);
+    rect(0,viewer_height,mid_width,windowHeight-viewer_height);
+    pop();
+    this.showNoteBook();
   }
 }

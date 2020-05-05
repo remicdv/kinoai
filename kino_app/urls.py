@@ -4,7 +4,6 @@ from . import views
 
 app_name = 'kino_app'
 urlpatterns = [
-    # ex: /polls/
     path('', views.IndexView.as_view(), name='index'),
     path('set_previous', views.set_previous, name='set_previous'),
     path('upload', views.upload_view, name='upload'),
@@ -44,5 +43,6 @@ urlpatterns = [
     path('video_editing/processKeyFrames', views.processKeyFrames, name='processKeyFrames'),
     path('video_editing/reframe', views.reframe, name='reframe'),
     path('video_editing/reframeCv', views.reframeCv, name='reframeCv'),
+    path('video_editing/check_progress_bar', views.check_progress_bar, name='check_progress_bar'),
     path('video_editing/reframeMov', views.reframeMov, name='reframeMov')
 ]

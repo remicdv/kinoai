@@ -26,7 +26,7 @@ function EraseButton(ind, tempX=0, tempY=0, tempRad = 5)  {
   }
   // Draw the rectangle
   this.display = function() {
-    if(this.y > div_actors_timeline.elt.offsetTop-can.elt.offsetTop) {
+    if(this.y > preparation_editor.div_actors_timeline.elt.offsetTop-can.elt.offsetTop) {
       push();
       stroke('red');
       strokeWeight(3);

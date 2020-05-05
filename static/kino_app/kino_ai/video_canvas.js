@@ -72,10 +72,6 @@ var table_scroll;
 var table_tracks;
 var keyDown;
 var remove_timeline = false;
-var shot_selector;
-var ratio_selector;
-var shot_type='BCU';
-var ratio_type =1;
 var shots_timeline;
 var show_shot;
 var save_shot;
@@ -1356,7 +1352,7 @@ function showNoteBook() {
         div_sub = createDiv();
         div_sub.id('div_sub');
         div_sub.position(viewer_width+10,can.elt.offsetTop);
-        div_sub.size(reframe_button.position().x-(viewer_width+10),height);
+        div_sub.size((windowWidth - 160)-(viewer_width+10),height);
         for(let c of t.cues) {
           let obj = {};
           let p = createP(c.text);

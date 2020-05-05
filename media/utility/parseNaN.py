@@ -6,8 +6,6 @@ import json
 import getopt
 
 def parseNAN(inputDetections):
-    frames = inputDetections['Frames']
-
     # Iterate over detections in frame
     for frame_index in range(len(inputDetections['Frames'])):
         keypoints = inputDetections['Frames'][str(frame_index+1)]
@@ -15,6 +13,8 @@ def parseNAN(inputDetections):
             for pointIndex in range(len(keypoints[keypointIndex]['KeyPoints'])):
                 if np.isnan(keypoints[keypointIndex]['KeyPoints'][pointIndex]):
                     keypoints[keypointIndex]['KeyPoints'][pointIndex] = 'null'
+                # if keypoints[keypointIndex]['KeyPoints'][pointIndex] == "null":
+                #     keypoints[keypointIndex]['KeyPoints'][pointIndex] = np.nan
 
     return inputDetections
 

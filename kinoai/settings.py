@@ -27,14 +27,13 @@ SECRET_KEY = '-0ec&vq1x-7=f^b5)ft_)2na6n%y6&xnf&l35-#n_)p1dzo_*='
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ["kinoai.com", "194.199.26.106", "127.0.0.1", "127.0.1.1", "kinoai", "brume"]
+ALLOWED_HOSTS = ["kinoai.com", "127.0.0.1", "kinoai"]
 
 
 # Application definition
 
 INSTALLED_APPS = [
     'kino_app.apps.KinoAppConfig',
-    'kino_dev.apps.KinoDevConfig',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',

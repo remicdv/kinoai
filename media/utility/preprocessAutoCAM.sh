@@ -125,7 +125,7 @@ for part in "${parts[@]}"; do
     if [ ! -f "$take_dir/$part_dir/detections.json" ]; then
 	echo "Info: launching openpose on $take_dir/$part_dir/original540.mp4"
 	for res in 540; do
-	    time INPUT_VIDEO="$take_dir/$part_dir/original${res}.mp4" DETECTION_FILE="$take_dir/$part_dir/detections${res}.json" ./launchDetector.sh &> "$take_dir/$part_dir/detections${res}.json.log"
+	    time TMP_JSON_PATH="$take_dir/$part_dir/tmpJsonDetections" INPUT_VIDEO="$take_dir/$part_dir/original${res}.mp4" DETECTION_FILE="$take_dir/$part_dir/detections${res}.json" ./launchDetector.sh &> "$take_dir/$part_dir/detections${res}.json.log"
 	    if [ ! -f "$take_dir/$part_dir/detections${res}.json" ]; then
 		echo "Error creating $take_dir/$part_dir/detections${res}.json"
 		exit

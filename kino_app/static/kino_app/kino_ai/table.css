@@ -88,12 +88,16 @@ button, select {
   padding: 5;
 }
 
+.tabs {
+  border: 1px solid white;
+}
+
 select {
   height: 27;
 }
 
 button:hover, select:hover {
-  opacity: 0.8;
+  opacity: 0.9;
   cursor: pointer;
 }
 

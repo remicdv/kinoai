@@ -3,21 +3,17 @@
 # Written by Alexandre Gauthier-Foichat
 
 # Script used to launch the openpose detector on either a video or image sequence and output detections
-# to a file format specific to Natron's AutoCAM node.
+# to a file format specific to KinoAi.
 
 # Make sure LD_LIBRARY_PATH contains cuda libs and caffe
 # Looks like this on my Ubuntu installation:
 # LD_LIBRARY_PATH=/usr/lib:/usr/local/lib:/usr/local/cuda/lib64:/home/user/openpose/3rdparty/caffe/distribute/lib:/home/user/.local/lib
 
 # Options:
-# KINOAI_DIR: Location of the scripts in Engine/AutoCAM
+# KINOAI_DIR: Location of the scripts in media/utility
 # IMAGES_PATTERN: When detecting on an image sequence, this is the pattern of the sequence, e.g: /home/user/sequence#.jpg
 # INPUT_VIDEO: When detecting from a video, this is the filename of the video file, e.g: /home/user/video.mp4
 # Either one of IMAGES_PATTERN or INPUT_VIDEO must be set
-#
-# ACTORS_MODEL: Path to the file containing the actors model to apply to the detections.
-# If empty, no probabilities will be associated to detections.
-# ACTORS_LIST: Path to the file containing the actors list corresponding to the ACTORS_MODEL file
 #
 # OPP_BINARY: Path to the openpose.bin binary
 # MODEL_FOLDER: Path to the models (for open-pose) in the open-pose distribution
@@ -30,13 +26,6 @@
 # TRACKLETS_FILE: If set, tracklets will also be generated for the sequence based on the detections.
 # This is useful to help the user create the model tracks from within Natron. If not set, they will not be
 # generated
-
-# Since we then later on in the pipeline need to re-open the image corresponding to the detection,
-# it is best if this is an image instead of a video frame so we do not hit
-# video stream issues with different decoders/encoders:
-# Natron and OpenCV both use ffmpeg for videos but their implementation vary
-# and may give different frame counts, etc...
-
 
 set -e # Exit immediately if a command exits with a non-zero status
 set -u # Treat unset variables as an error when substituting.
@@ -87,14 +76,24 @@ elif [ ! -z "$imagespattern" ]; then
 fi
 
 
-TMP_JSON_PATH="$CWD/tmpJsonDetections"
+# TMP_JSON_PATH="$CWD/tmpJsonDetections"
 if [ -d "$TMP_JSON_PATH" ]; then
     rm -rf "$TMP_JSON_PATH"
 fi
 mkdir -p "$TMP_JSON_PATH"
 
+if [ -z "${OPP_BINARY:-}" ]; then
+    export OPP_BINARY=~/openpose/build/examples/openpose/openpose.bin
+fi
+
+if [ -z "$openposemodel" ]; then
+    openposemodel=~/openpose/models/
+fi
+
+print "$OPP_BINARY $openposemodel"
+
 # Launch open-pose
-"$OPP_BINARY" --logging_level=4  $inputstreamflag $displayflags --write_json "$TMP_JSON_PATH" --model_folder="$openposemodel"
+$OPP_BINARY --logging_level=4  $inputstreamflag $displayflags --write_json "$TMP_JSON_PATH" --model_folder="$openposemodel"
 
 python -c "import os;[os.rename('$TMP_JSON_PATH' + '/' + f, '$TMP_JSON_PATH' + '/' + f.replace('_keypoints', '')) for f in os.listdir('$TMP_JSON_PATH') if not f.startswith('.')]"
 

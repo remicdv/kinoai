@@ -65,10 +65,6 @@ def readOPPJsonSequence(jsonSequencePattern, imageSequencePattern, inputVideoFil
                 undetectedPoints = keyPoints == 0
                 keyPoints[undetectedPoints] = np.nan
 
-                # Reverse the Y coordinate of every keyPoint because open-pose Y axis
-                # is top-down but Natron is bottom-up
-                # keyPoints[1::3] = (
-                #     height - np.array(keyPoints[1::3]) - 1).tolist()
                 detection = {}
                 detection['KeyPoints'] = keyPoints.tolist()
                 frameData.append(detection)
@@ -80,6 +76,42 @@ def readOPPJsonSequence(jsonSequencePattern, imageSequencePattern, inputVideoFil
     ret['Frames'] = framesDataOrdered
     return ret
 
+def readFolderKeypoints(folder_path):
+    confidence = 0.15
+    framesData = {}
+    # for frameNum in range(sequenceObj.start(), sequenceObj.end() + 1):
+    for root, dirs, files in os.walk(folder_path):
+        frameNum=0
+        for frameJsonFile in files:
+            with open(os.path.join(root,frameJsonFile)) as jsonStream:
+                try:
+                    jsonContent = json.load(jsonStream)
+                except:
+                    print("Cannot open file: ", frameJsonFile)
+                    sys.exit(1)
+                if frameNum % 100 == 0:
+                    print("Reading", frameJsonFile)
+                frameData = []
+                for person in jsonContent['people']:
+                    keyPoints = np.array(person['pose_keypoints_2d'])
+                    undetectedPoints = keyPoints == 0
+                    keyPoints[undetectedPoints] = np.nan
+                    list = []
+                    for p in keyPoints:
+                        if np.isnan(p):
+                            p = "null"
+                        list.append(p)
+                    detection = {}
+                    detection['KeyPoints'] = list
+                    frameData.append(detection)
+                # In Natron, videos begin at frame 1, not 0
+                framesData[str(frameNum+1)] = frameData
+                frameNum+=1
+    ret = {}
+    framesDataOrdered = OrderedDict(
+        sorted(framesData.items(), key=lambda x: int(x[0])))
+    ret['Frames'] = framesDataOrdered
+    return ret
 
 def main(argv):
     # Parse options
@@ -106,6 +138,7 @@ def main(argv):
 
     sequenceData = readOPPJsonSequence(
         jsonSequencePattern, imageSequencePattern, inputVideoFilename)
+    # sequenceData = readFolderKeypoints(jsonSequencePattern)
     print('Writing', outputfile, '...')
     with open(outputfile, 'w') as fp:
         # fp.write('// # Detections\n')

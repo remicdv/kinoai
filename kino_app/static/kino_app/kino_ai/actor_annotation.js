@@ -50,17 +50,17 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.drop = function(mx, my, curr_action) {
-    let unit = this.w/annotation_timeline.total_frame;
+    let unit = this.w/player.total_frame;
     if (mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
       if(curr_action.drag) {
-        let drop_frame = Math.round(annotation_timeline.first+(mx-this.x)/unit);
+        let drop_frame = Math.round(player.first+(mx-this.x)/unit);
         this.addAction(curr_action, drop_frame);
       }
     }
     for (let a of this.actions) {
       if(a.on) {
         if(a.drag_off != mx-a.x)
-          video.time((annotation_timeline.first+(mx-this.x)/unit)/frame_rate);
+          video.time((player.first+(mx-this.x)/unit)/frame_rate);
         if(a.ext) {
           this.extendAction(a);
         } else {
@@ -111,22 +111,22 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.extendAction = function(a) {
-    let unit = this.w/annotation_timeline.total_frame;
+    let unit = this.w/player.total_frame;
     if(a.side == 0 && a.drag_x < a.x+a.w) {
       a.w = a.w+(a.x-a.drag_x);
       a.x = a.drag_x;
     } else if(a.side ==1 && a.drag_x > a.x) {
       a.w = a.drag_x - a.x;
     }
-    a.first_frame = annotation_timeline.first+Math.round((a.x-this.x)/unit);
-    a.end_frame = annotation_timeline.first+Math.round(((a.x+a.w)-this.x)/unit);
+    a.first_frame = player.first+Math.round((a.x-this.x)/unit);
+    a.end_frame = player.first+Math.round(((a.x+a.w)-this.x)/unit);
   }
 
   this.moveAction = function(a) {
     a.x = Math.max(Math.min(a.drag_x-a.drag_off,(this.x+this.w)-(a.w)),this.x);
-    let unit = this.w/ annotation_timeline.total_frame;
-    a.first_frame = annotation_timeline.first+Math.round((a.x-this.x)/unit);
-    a.end_frame = annotation_timeline.first+Math.round(((a.x+a.w)-this.x)/unit);
+    let unit = this.w/ player.total_frame;
+    a.first_frame = player.first+Math.round((a.x-this.x)/unit);
+    a.end_frame = player.first+Math.round(((a.x+a.w)-this.x)/unit);
   }
 
   this.splitAction = function() {
@@ -165,7 +165,7 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
   this.updateAction = function(name) {
     let ind = [];
     for(let i=0; i< this.actions.length-1;i++) {
-      if(this.actions[i].name == name && annotation_timeline.first < this.actions[i].end_frame && annotation_timeline.last > this.actions[i].first_frame) {
+      if(this.actions[i].name == name && player.first < this.actions[i].end_frame && player.last > this.actions[i].first_frame) {
         let j = i+1;
         let next;
         while(this.getNext(j, name) && this.actions[i].x+this.actions[i].w>this.actions[this.getNext(j, name)].x) {
@@ -210,10 +210,10 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
       }
     }
     if(b) {
-      let unit = this.w/annotation_timeline.total_frame;
+      let unit = this.w/player.total_frame;
       let act = {};
       if(fr-frame_rate>1) {
-        act.x = this.x+(fr-frame_rate-annotation_timeline.first)*unit;
+        act.x = this.x+(fr-frame_rate-player.first)*unit;
         act.first_frame = fr-frame_rate;
       } else {
         act.x = this.x;
@@ -237,7 +237,7 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   this.setAction = function(act) {
     this.setPosition(player.x, this.elem.elt.offsetTop+this.elem.elt.parentNode.offsetTop-can.elt.offsetTop-$('#div_wrap').scrollTop(),player.w,20);
-    let unit = this.w/annotation_timeline.total_frame;
+    let unit = this.w/player.total_frame;
     act.x = this.x+act.first_frame*unit;
     act.w = (this.x+act.end_frame*unit)-act.x;
     act.y = this.y;
@@ -247,9 +247,9 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.updatePosZoom = function(a) {
-    let unit = this.w / annotation_timeline.total_frame;
-    let f = a.first_frame - annotation_timeline.first;
-    let l = a.end_frame - annotation_timeline.first;
+    let unit = this.w / player.total_frame;
+    let f = a.first_frame - player.first;
+    let l = a.end_frame - player.first;
     a.x = this.x+Math.max(f*unit,0);
     a.w = Math.min(this.x+l*unit,this.x+this.w) - a.x;
   }
@@ -267,7 +267,7 @@ function ActorAnnotation(name='', tempX=0, tempY=0, tempW=0, tempH=0)  {
       pop();
       for(let a of this.actions) {
         if(curr_action.name == a.name) {
-          if(annotation_timeline.first < a.end_frame && annotation_timeline.last > a.first_frame) {
+          if(player.first < a.end_frame && player.last > a.first_frame) {
             this.updatePosZoom(a);
             push();
             a.y = this.y;

@@ -25,7 +25,7 @@ function PartitionEditor()  {
     for(let p of this.partitions_saved) {
       let y_time = p.TimeElt.elt.offsetTop - this.div_partition_saved.elt.scrollTop;
       let h_time = p.TimeElt.height;
-      if(p.x && p.w && mx > p.x && mx < p.x + p.w && my > player.y+70 && my < player.y+170) {
+      if(p.x && p.w && mx > p.x && mx < p.x + p.w && my > shots_timeline.y && my < shots_timeline.y+shots_timeline.h) {
         p.on = true;
         p.TextElt.style('color','red');
         video.time(p.Start);
@@ -53,6 +53,30 @@ function PartitionEditor()  {
     if(keyCode == 46) {
       this.removeSub();
     }
+  }
+
+  this.update = function(checked) {
+    if(checked) {
+      annotation_editor.note_editor.update(false);
+      annotation_editor.is_note_book = false;
+      annotation_editor.note_book.checked(false);
+      $('#div_sub').hide();
+      this.showAllElt();
+    } else {
+      // showAllElt();
+      this.hideAllElt();
+    }
+  }
+
+  this.hideAllElt = function() {
+    this.div_partition_saved.hide();
+    this.textarea_current_partition.hide();
+  }
+
+  this.showAllElt = function() {
+    this.div_partition_saved.show();
+    this.textarea_current_partition.show();
+    this.setDivSizePos();
   }
 
   this.removeSub = function() {
@@ -126,15 +150,15 @@ function PartitionEditor()  {
   $(document).bind('keydown', function(e) {
     if(e.ctrlKey && (e.which == 13)) {
       e.preventDefault();
-      partition_editor.savePartition();
+      annotation_editor.partition_editor.savePartition();
     }
     if(e.ctrlKey) {
-      let element = partition_editor.textarea_current_partition.elt;
-      for(let i=0; i<actors_timeline.length; i++) {
+      let element = annotation_editor.partition_editor.textarea_current_partition.elt;
+      for(let i=0; i<preparation_editor.actors_timeline.length; i++) {
         if(e.keyCode == 49+i) {
           e.preventDefault();
-          element.value += '   '+actors_timeline[i].actor_name.toUpperCase()+'\n';
-          partition_editor.curr_speaker = actors_timeline[i];
+          element.value += '   '+preparation_editor.actors_timeline[i].actor_name.toUpperCase()+'\n';
+          annotation_editor.partition_editor.curr_speaker = preparation_editor.actors_timeline[i];
           element.focus();
           element.setSelectionRange(element.value.length,element.value.length);
         }
@@ -147,25 +171,25 @@ function PartitionEditor()  {
       else {
         dash_player.play();
         img_hd = undefined;
-        partition_editor.curr_repeat = video.time();
+        annotation_editor.partition_editor.curr_repeat = video.time();
       }
       playing = !playing;
     }
     if(e.ctrlKey && (e.which == 82)) {
       e.preventDefault();
-      video.time(partition_editor.curr_repeat);
+      video.time(annotation_editor.partition_editor.curr_repeat);
       dash_player.play();
       playing = true;
     }
     if(e.ctrlKey && (e.which == 76)) {
       e.preventDefault();
-      video.time(partition_editor.getPrecTime());
+      video.time(annotation_editor.partition_editor.getPrecTime());
       dash_player.play();
       playing = true;
     }
     if(e.ctrlKey && (e.which == 77)) {
       e.preventDefault();
-      video.time(partition_editor.getNextTime());
+      video.time(annotation_editor.partition_editor.getNextTime());
       dash_player.play();
       playing = true;
     }
@@ -179,7 +203,7 @@ function PartitionEditor()  {
     }
     if(e.ctrlKey && (e.which == 85)) {
       e.preventDefault();
-      partition_editor.undoRemove();
+      annotation_editor.partition_editor.undoRemove();
     }
   });
 
@@ -242,52 +266,23 @@ function PartitionEditor()  {
     }
   }
 
-  this.update = function(checked) {
-    if(checked) {
-      note_editor.update(false);
-      is_note_book = false;
-      note_book.checked(false);
-      $('#div_sub').hide();
-      if(table_scroll){
-        table_scroll.hide();
-      }
-      for(let act of actors_timeline) {
-        act.elem.hide();
-      }
-      for(let el of html_elements) {
-        if(!el.side)
-          el.hide();
-      }
-      this.div_partition_saved.show();
-      this.textarea_current_partition.show();
-      this.setDivSizePos();
-    } else {
-      for(let el of html_elements) {
-        if(!el.side)
-          el.show();
-      }
-      this.div_partition_saved.hide();
-      this.textarea_current_partition.hide();
-    }
-  }
-
   this.setDivSizePos = function() {
     if(this.partitions_saved.length>0) {
       this.div_partition_saved.show();
       this.div_partition_saved.position(mid_width,can.elt.offsetTop);
-      this.div_partition_saved.size(reframe_button.position().x-mid_width-20,this.div_partition_saved.elt.scrollHeight);
+      this.div_partition_saved.size((windowWidth - 160)-mid_width-20,this.div_partition_saved.elt.scrollHeight);
       this.div_partition_saved.style('margin','0 10');
-      this.textarea_current_partition.size(reframe_button.position().x-mid_width-20,150);
+      this.textarea_current_partition.size((windowWidth - 160)-mid_width-20,150);
       let new_h = height-(this.textarea_current_partition.height*1.5);
       if(this.div_partition_saved.elt.scrollHeight > new_h) {
-        this.div_partition_saved.size(reframe_button.position().x-mid_width-20,new_h);
+        this.div_partition_saved.size((windowWidth - 160)-mid_width-20,new_h);
         this.div_partition_saved.style('overflow','auto');
       }
       this.textarea_current_partition.position(mid_width+10,this.div_partition_saved.position().y+this.div_partition_saved.elt.offsetHeight+60);
     } else {
       this.div_partition_saved.hide();
       this.textarea_current_partition.position(mid_width+10,can.elt.offsetTop+60);
-      this.textarea_current_partition.size(reframe_button.position().x-mid_width-20,150);
+      this.textarea_current_partition.size((windowWidth - 160)-mid_width-20,150);
     }
     this.textarea_current_partition.style('background','rgb(150,150,150)');
     this.textarea_current_partition.style('overflow','auto');
@@ -373,7 +368,7 @@ function PartitionEditor()  {
       }
       this.setDivSizePos();
     }
-    if(!is_partition_editor)
+    if(!annotation_editor.is_partition_editor)
       this.div_partition_saved.hide();
   }
 
@@ -393,15 +388,15 @@ function PartitionEditor()  {
       }
       this.setDivSizePos();
     }
-    if(!is_partition_editor)
+    if(!annotation_editor.is_partition_editor)
       this.div_partition_saved.hide();
   }
 
   function changeText() {
-    for(let p of partition_editor.partitions_saved) {
+    for(let p of annotation_editor.partition_editor.partitions_saved) {
       if(p.TextElt.elt === this) {
-        p.Text = partition_editor.parseActionText(this.innerHTML);
-        partition_editor.setDivSizePos();
+        p.Text = annotation_editor.partition_editor.parseActionText(this.innerHTML);
+        annotation_editor.partition_editor.setDivSizePos();
       }
     }
   }
@@ -429,16 +424,16 @@ function PartitionEditor()  {
   this.displayParts = function() {
     for(let p of this.partitions_saved) {
       let unit = player.w/this.duration;
-      if(p.End >= annotation_timeline.first_time && p.Start <= annotation_timeline.last_time) {
-        let s = Math.max(p.Start - annotation_timeline.first_time,0);
-        let e = Math.min(p.End - annotation_timeline.first_time,this.duration);
+      if(p.End >= player.first_time && p.Start <= player.last_time) {
+        let s = Math.max(p.Start - player.first_time,0);
+        let e = Math.min(p.End - player.first_time,this.duration);
         push();
         fill('#2E5C9C');
         if(p.on || video.time() < p.End && p.Start < video.time()) {
           fill('rgb(170,56,35)');
         }
         stroke('yellow');
-        rect(player.x + s*unit,player.y+70,e*unit-s*unit,100);
+        rect(player.x + s*unit,shots_timeline.y,e*unit-s*unit,100);
         p.x = player.x + s*unit;
         p.w = e*unit-s*unit;
         pop();
@@ -463,21 +458,18 @@ function PartitionEditor()  {
 
   this.display = function() {
 
-    this.duration = (annotation_timeline.total_frame/frame_rate);
-    annotation_timeline.updateFirstLast();
-    annotation_timeline.drawCursor();
-
+    this.duration = (player.total_frame/frame_rate);
     let new_h = height-(this.textarea_current_partition.height*1.5);
     if(this.div_partition_saved.height != new_h) {
       this.setDivSizePos();
     }
     this.curr_end = video.time();
     push();
-    let off_y = this.div_partition_saved.height+25;
+    let off_y = this.textarea_current_partition.y-this.textarea_current_partition.height-50;
     fill(255);
-    rect(player.x,player.y+70,player.w,100);
+    rect(player.x,shots_timeline.y,player.w,100);
     fill('grey');
-    rect(player.x,player.y+70,annotation_timeline.nav_bar.cursor-player.x,100);
+    rect(player.x,shots_timeline.y,player.nav_bar.cursor-player.x,100);
     fill(0);
     textSize(20);
     text('Start : '+this.timeToString(this.curr_start),mid_width+10,off_y);

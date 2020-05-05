@@ -17,16 +17,16 @@ function GoButton(tempW, tempH, t, g)  {
 
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
-    var x1 = table_scroll.position().x+this.elem.position().x;
-    var y1 = table_scroll.position().y+this.elem.position().y - table_scroll.elt.scrollTop;
+    var x1 = preparation_editor.table_scroll.position().x+this.elem.position().x;
+    var y1 = preparation_editor.table_scroll.position().y+this.elem.position().y - preparation_editor.table_scroll.elt.scrollTop;
     my += can.elt.offsetTop;
 
-    if (my > table_scroll.position().y && mx > x1 && mx < x1 + this.w && my > y1 && my < y1 + this.h) {
+    if (my > preparation_editor.table_scroll.position().y && mx > x1 && mx < x1 + this.w && my > y1 && my < y1 + this.h) {
       this.on = !this.on;
       video.time((this.track.first_frame+1)/frame_rate);
       video.pause();
       playing = false;
-      for(let t of tracklets_line) {
+      for(let t of preparation_editor.tracklets_line) {
         t.on = false;
       }
       this.track.on = true;

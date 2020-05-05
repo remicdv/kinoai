@@ -1,15 +1,16 @@
-// Constructor initializes all variables
 function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
-  // Button location and size
   this.x  = tempX;
   this.y  = tempY;
   this.w  = tempW;
   this.h  = tempH;
-  // Is the button on or off?
-  // Button always starts as off
+
   this.on = false;
 
+  this.split = false;
+
   this.actor_name = "";
+
+  this.size_head;
 
   this.color = 'black';
 
@@ -28,8 +29,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
   this.frames_data = frames_data;
 
   this.click = function(mx, my) {
-    // Check to see if a point is inside the rectangle
-    if(!is_shot_creation && !is_note_book) {
+    if(is_preparation_editor) {
       if (mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) {
         this.on = !this.on;
         for(var i=0; i< this.tracks.length; i++) {
@@ -49,9 +49,11 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
       if(mx > this.elem.x && mx < this.x && my > this.y && my < this.y + this.h) {
         this.on = !this.on;
       }
-    } else {
-      my += can.elt.offsetTop - $('#div_creation').position().top + $('#div_creation').scrollTop();
-      mx -= $('#div_creation').position().left;
+    } else{
+      if(cadrage_editor.is_shot_creation || annotation_editor.is_note_book) {
+        my += can.elt.offsetTop - $('#div_creation').position().top + $('#div_creation').scrollTop();
+        mx -= $('#div_creation').position().left;
+      }
       if(mx > this.elem.elt.offsetLeft && mx < this.elem.elt.offsetLeft+this.elem.elt.offsetWidth && my > this.elem.elt.offsetTop && my < (this.elem.elt.offsetTop + this.elem.elt.offsetHeight)) {
         this.on = !this.on;
         if(this.on) {
@@ -144,6 +146,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
 
   this.dropState = function(mx, my, state, num_state) {
     if ((mx > this.x && mx < this.x + this.w && my > this.y && my < this.y + this.h) && !this.onTrack(mx)){
+      let unit = this.w/player.total_frame;
       this.tracks.sort(compare_first);
       this.removeState(mx, my);
       var new_state;
@@ -154,27 +157,19 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
       let f_f;
       let e_f;
       if(!prec && !next) {
-        x = this.x;
-        w = this.w;
         f_f = 0;
-        e_f = total_frame;
+        e_f = player.total_frame;
       } else if (prec && !next) {
-        x = prec.x + prec.w;
-        w = this.w - x;
         if(!prec.last_frame) {
           f_f = prec.first_frame + prec.detections.length + 1;
         } else {
           f_f = prec.last_frame + 1;
         }
-        e_f = total_frame;
+        e_f = player.total_frame;
       } else if (!prec && next) {
-        x = this.x;
-        w = next.x - x;
         f_f = 0;
         e_f = next.first_frame-1;
       } else {
-        x = prec.x + prec.w;
-        w = next.x - x;
         if(!prec.last_frame) {
           f_f = prec.first_frame + prec.detections.length + 1;
         } else {
@@ -186,8 +181,8 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
       new_state.first_frame = f_f;
       new_state.last_frame = e_f;
       new_state.Num = num_state;
-      new_state.x = x;
-      new_state.w = w;
+      new_state.x = this.x+new_state.first_frame*unit;
+      new_state.w = this.x+new_state.last_frame*unit-new_state.x;
       new_state.color = state.color;
       new_state.h = this.h/2;
       if(new_state) {
@@ -361,7 +356,7 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
   this.updateTrackPos = function(total_frame) {
     for(var i=0; i<this.tracks.length; i++) {
       let unit = this.w/total_frame;
-      let off_x = annotation_timeline.first*unit;
+      let off_x = player.first*unit;
       let start = this.x + Math.round((this.tracks[i].first_frame-1)*unit) - off_x;
       let end = start + Math.round((this.tracks[i].detections.length-1)*unit);
       this.tracks[i].setPosition(start, this.y, end-start, this.h/2);
@@ -833,6 +828,13 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
         }
       }
     }
+    if(!center.x && montage_editor.is_split) {
+      let s = montage_editor.getShotOnlyOne(this.actor_name);
+      if(s && s.bboxes[f_n][0]) {
+        center.x = int((s.bboxes[f_n][0] + s.bboxes[f_n][2])/2);
+        center.y = int((s.bboxes[f_n][1] + s.bboxes[f_n][3])/2);
+      }
+    }
     return center;
   }
 
@@ -886,11 +888,21 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
     }
   }
 
+  function numMedian(a) {
+    a = a.slice(0).sort(function(x, y) {
+      return x - y;
+    });
+    var b = (a.length + 1) / 2;
+    return (a.length % 2) ? a[b - 1] : (a[b - 1.5] + a[b - 0.5]) / 2;
+  }
+
+  function getVariance(a) {
+    let mean = int((a.reduce((pv, cv) => pv + cv, 0))/a.length);
+    return (a.reduce((pv, cv) => pv + Math.pow(cv-mean,2), 0))/a.length;
+  }
+
   this.updateHeadSize = function() {
-    let total=0;
-    let cpt=0;
     let tabHead = [];
-    let tabBody = [];
     for(let t of this.tracks) {
       let ind=t.first_frame;
       for(let d of t.detections) {
@@ -905,34 +917,22 @@ function ActorTimeline(tempX=0, tempY=0, tempW=0, tempH=0, frames_data)  {
           let yNeck = keypoints[1*3+1];
           let xMid = keypoints[8*3];
           let yMid = keypoints[8*3+1];
-          if(xNose && yNose && xNeck && yNeck && xMid && yMid){
+          if((xNeck && yNeck && xMid && yMid) &&
+          (xNeck != 'null' && yNeck != 'null' && xMid != 'null' && yMid != 'null')){
             let sizeBody=int(dist(xNeck, yNeck, xMid, yMid));
-            let sizeHead=int(dist(xNose, yNose, xNeck, yNeck));
-            // total += size;
-            // cpt++;
-            tabBody.push(sizeBody);
+            let sizeHead = int((sizeBody/3));
+            tabHead.push(sizeHead);
+          }else if((xNose && yNose && xNeck && yNeck) &&
+           (xNose != 'null' && yNose != 'null' && xNeck != 'null' && yNeck != 'null')){
+            let sizeHead=int(dist(xNose, yNose, xNeck, yNeck)*2/3);
             tabHead.push(sizeHead);
           }
         }
         ind++;
       }
     }
-    // let mean = total/cpt;
-    // cpt = 0;
-    // total = 0;
-    // for(let t of this.tracks) {
-    //   let ind=t.first_frame;
-    //   for(let d of t.detections) {
-    //       let keypoints = this.frames_data[ind][d]['KeyPoints'];
-    //       let size=int(dist(keypoints[3], keypoints[4], keypoints[3*8], keypoints[3*8+1]));
-    //       if(size){
-    //         total += pow((size-mean),2);
-    //         cpt++;
-    //       }
-    //       ind++;
-    //   }
-    // }
-    // let std_dev = sqrt(total/cpt);
+    this.size_head = numMedian(tabHead);//int((tabHead.reduce((pv, cv) => pv + cv, 0))/tabHead.length);
+    // console.log(numMedian(tabHead), this.size_head, getVariance(tabHead), Math.pow(getVariance(tabHead),2));
   }
 
   this.addTrack = function(t) {

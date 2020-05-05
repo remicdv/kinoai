@@ -25,7 +25,7 @@ function Track(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   this.click = function(mx, my) {
     // Check to see if a point is inside the rectangle
-    if(!is_split && !is_note_book) {
+    if(is_preparation_editor) {
       if(frame_num>=this.first_frame && frame_num <= this.first_frame + this.detections.length) {
 
         if(x_off<0){x_off=0;}
@@ -65,7 +65,7 @@ function Track(tempX=0, tempY=0, tempW=0, tempH=0)  {
   }
 
   this.updatePos = function(unit, tx, ty) {
-    let off_x = annotation_timeline.first*unit;
+    let off_x = player.first*unit;
     let start = tx + Math.round((this.first_frame-1)*unit) - off_x;
     let end = start + Math.round((this.detections.length-1)*unit);
     this.setPosition(start, ty, end-start, 7);

@@ -24,10 +24,8 @@ function Button(tempX, tempY, tempRad)  {
     } else {
       this.color = [255,255,255];
     }
-    if(editing_button.on) {
-      shots_timeline.select_author.show();
-    } else {
-      shots_timeline.select_author.hide();
+    if(!crop_button.on) {
+      show_shot = undefined;
     }
   }
 
@@ -48,7 +46,7 @@ function Button(tempX, tempY, tempRad)  {
   this.display = function() {
     push();
     fill(this.color[0],this.color[1],this.color[2]);
-    ellipse(this.x,this.y,this.rad);
+    rect(this.x,this.y,this.rad, this.rad);
     pop();
   }
 }

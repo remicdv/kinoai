@@ -8,15 +8,15 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   this.scale = 1;
 
-  this.total_frame = total_frame;
-
   this.move = true;
 
   this.actors_annotation = [];
+  this.erase_button = [];
 
   this.div_wrap = createDiv();
   this.div_wrap.style('overflow','auto');
   this.div_wrap.id('div_wrap');
+  this.div_wrap.hide();
 
   // this.input_act = createInput('');
 
@@ -25,13 +25,15 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
   this.act_select.option('Move');
   this.act_select.option('Speaking');
   this.act_select.option('Offstage');
+  this.act_select.hide();
   this.curr_action = {};
   this.curr_action.name = 'Playing';
 
+
   this.add_act_button = createButton('Add');
   this.add_act_button.mousePressed(addAction);
+  this.add_act_button.hide();
 
-  this.nav_bar = {};
   //action creator editor
 
   //actor addition
@@ -43,6 +45,15 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     }
     for(let a of this.actors_annotation) {
       a.click(mx, my);
+    }
+    for (var i = 0; i < this.erase_button.length; i++) {
+      this.erase_button[i].on = false;
+      this.erase_button[i].click(mouseX, mouseY);
+      if(this.erase_button[i].on && this.erase_button[i]) {
+        this.actors_annotation[i].elem.remove();
+        this.actors_annotation.splice(i,1);
+        this.erase_button.splice(i, 1);
+      }
     }
   };
 
@@ -63,22 +74,6 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     }
   }
 
-  this.dragNavBar = function(mx, my) {
-    if (!is_note_book && !is_split && mx > this.nav_bar.x && mx < this.nav_bar.x + this.nav_bar.w && my > this.nav_bar.y && my < this.nav_bar.y + this.nav_bar.h) {
-      let unit = player.w / (this.last-this.first)*frame_rate;
-      let time = (mx-player.x)/unit + (this.first/frame_rate);
-      let b = false;
-      for(let t of tracklets_line) {
-        if(t.drag) {
-          b = true;
-          break;
-        }
-      }
-      if(!b)
-        video.time(time);
-    }
-  }
-
   this.keyPressed = function(keyCode) {
     for(let a of this.actors_annotation) {
       a.keyPressed(keyCode);
@@ -87,55 +82,82 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
 
   this.mouseWheel = function(event) {
     if(keyCode===122) {
-      if(event.delta<0) {
-        if(this.scale - 0.01 > 0) {
-          this.scale -= 0.01;
-          for(let a of this.actors_annotation) {
-            for(let act of a.actions) {
-              if(this.curr_action.name == act.name)
-                act.on = false;
-            }
-          }
-        }
-      } else {
-        if(this.scale + 0.01 <= 1) {
-          this.scale += 0.01;
-          for(let a of this.actors_annotation) {
-            for(let act of a.actions) {
-              if(this.curr_action.name == act.name)
-                act.on = false;
-            }
-          }
+      for(let a of this.actors_annotation) {
+        for(let act of a.actions) {
+          if(this.curr_action.name == act.name)
+            act.on = false;
         }
       }
     }
   }
 
+  this.update = function(checked) {
+    if(checked) {
+      // preparation_editor.note_editor.update(false);
+      // preparation_editor.is_note_book = false;
+      // preparation_editor.note_book.checked(false);
+      // $('#div_sub').hide();
+      // preparation_editor.partition_editor.update(false);
+      // preparation_editor.is_partition_editor = false;
+      // preparation_editor.partition_check.checked(false);
+      this.showAllElt();
+      this.setWrap();
+      this.setActSelect();
+      preparation_editor.div_actors_timeline.hide();
+    } else {
+      this.sortActorAnnotation();
+      preparation_editor.div_actors_timeline.show();
+      this.hideAllElt();
+    }
+  }
+
+  this.hideAllElt = function() {
+    this.act_select.hide();
+    this.div_wrap.hide();
+    this.add_act_button.hide();
+  }
+
+  this.showAllElt = function() {
+    act_input.show();
+    this.div_wrap.show();
+    this.act_select.show();
+    this.add_act_button.show();
+  }
+
+
   function addAction() {
-    for(let a of annotation_timeline.actors_annotation) {
+    for(let a of preparation_editor.annotation_timeline.actors_annotation) {
       if(a.on) {
-        a.addAction(annotation_timeline.curr_action);
+        a.addAction(preparation_editor.annotation_timeline.curr_action);
       }
+    }
+  }
+
+  this.sortActorAnnotation = function() {
+    this.actors_annotation.sort(compare_name);
+    while(this.div_wrap.firstChild){this.div_wrap.firstChild.remove();}
+    for(let a of this.actors_annotation) {
+      this.div_wrap.child(a.elem);
     }
   }
 
   this.setWrap = function() {
-    this.div_wrap.position(0,viewer_height+can.elt.offsetTop+40);
+    this.div_wrap.position(0,viewer_height+can.elt.offsetTop+45);
     this.div_wrap.size(mid_width, windowHeight-this.div_wrap.y-5);
   }
 
   this.setActSelect = function() {
-    this.act_select.position(0, viewer_height+can.elt.offsetTop);
+    this.act_select.position(act_input.position().x+act_input.width+10, viewer_height+can.elt.offsetTop);
     this.act_select.changed(this.selectAction);
 
-    this.add_act_button.position(140, viewer_height+can.elt.offsetTop);
+    this.add_act_button.position(this.act_select.position().x+this.act_select.elt.offsetWidth+50, viewer_height+can.elt.offsetTop);
     this.add_act_button.size(37);
 
     // this.input_act.position(mid_width/3*2, viewer_height+can.elt.offsetTop);
   }
 
   this.selectAction = function() {
-    annotation_timeline.curr_action.name = this.value();
+    preparation_editor.annotation_timeline.curr_action.name = this.value();
   }
 
   this.setCurrActionPosition = function(tX, tY, tW, tH) {
@@ -159,25 +181,6 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     }
   }
 
-  this.drawCursor = function() {
-    this.nav_bar.x = player.x;
-    this.nav_bar.y = viewer_height+45;
-    this.nav_bar.w = player.w;
-    this.nav_bar.h = 5;
-    push();
-    stroke(255);
-    strokeWeight(this.nav_bar.h );
-    line(this.nav_bar.x, this.nav_bar.y, this.nav_bar.x+this.nav_bar.w, this.nav_bar.y);
-    let unit = player.w / this.total_frame;
-    this.nav_bar.cursor = player.x+(frame_num-this.first)*unit;
-    noStroke();
-    text(this.getTimeFrame(this.first), player.x, viewer_height+37);
-    text(this.getTimeFrame(this.last), player.x+player.w-35, viewer_height+37);
-    fill(0);
-    ellipse(this.nav_bar.cursor,this.nav_bar.y,this.nav_bar.h*2);
-    pop();
-  }
-
   this.getTimeFrame = function(frame) {
     let mil = round_prec(((frame/frame_rate)%1)*100,0);
     let s = Math.floor((frame/frame_rate)%60);
@@ -185,32 +188,11 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
     return ''+m+':'+s+':'+mil;
   }
 
-  this.updateFirstLast = function() {
-    this.total_frame = Math.round(total_frame*this.scale);
-    let first=1;
-    let last=total_frame;
-    if(this.total_frame != total_frame) {
-      first = Math.max(frame_num-this.total_frame/2,1);
-      if(first == 1) {
-        last = first + this.total_frame;
-      } else {
-        last = Math.min(frame_num+this.total_frame/2,total_frame);
-        if(last == total_frame) {
-          first = last - this.total_frame;
-        }
-      }
-    }
-    if((this.total_frame != this.last-this.first || (frame_num<this.first||frame_num>this.last)) || !this.first) {
-      this.first = Math.round(first);
-      this.first_time = this.first/frame_rate;
-      this.last = Math.round(last);
-      this.last_time = this.last/frame_rate;
-    }
-  }
 
   // Draw the rectangle
   this.display = function() {
-    this.updateFirstLast();
+    this.setWrap();
+    this.setActSelect();
     switch (this.curr_action.name){
       case 'Playing':
         this.curr_action.color = 'blue';
@@ -229,16 +211,19 @@ function AnnotationTimeline(tempX=0, tempY=0, tempW=0, tempH=0)  {
         break;
     }
     if(!this.curr_action.drag) {
-      this.setCurrActionPosition(105,viewer_height+10, 25, 7);
+      this.setCurrActionPosition(this.act_select.position().x+this.act_select.elt.offsetWidth+10,viewer_height+10, 25, 7);
     }
     push();
 
-    this.drawCursor();
+
     fill(this.curr_action.color);
     rect(this.curr_action.x,this.curr_action.y, this.curr_action.w, this.curr_action.h);
     pop();
-    for(let a of this.actors_annotation) {
+    for(let i=0; i<this.actors_annotation.length; i++) {
+      let a = this.actors_annotation[i];
       a.display(this.curr_action);
+      this.erase_button[i].setPosition(mid_width+10, a.y+(a.h/2));
+      this.erase_button[i].display();
     }
   }
 }
